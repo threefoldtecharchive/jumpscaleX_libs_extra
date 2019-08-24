@@ -1,0 +1,30 @@
+{
+	"$schema": "http://json-schema.org/schema#",
+	"type": "object",
+	"properties": {
+		"cru": {
+			"type": "number"
+		},
+		"farmer_id": {
+			"type": [
+				"string",
+				"null"
+			]
+		},
+		"hru": {
+			"type": "number"
+		},
+		"mru": {
+			"type": "number"
+		},
+		"sru": {
+			"type": "number"
+		}
+	},
+	"required": [
+		"cru",
+		"hru",
+		"mru",
+		"sru"
+	]
+}

@@ -1,0 +1,5 @@
+{% for network in networks -%}
+{% for host in network.hosts -%}
+{{host.macaddress}},{{host.ipaddress}},{{host.name}},infinite
+{% endfor -%}
+{% endfor -%}

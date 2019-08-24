@@ -1,0 +1,2 @@
+class ProxyNameConflictError(Exception):
+    pass

@@ -1,0 +1,54 @@
+{
+	"$schema": "http://json-schema.org/schema#",
+	"type": "object",
+	"properties": {
+		"farmer_id": {
+			"type": [
+				"string",
+				"null"
+			]
+		},
+		"location": {
+			"$ref": "Location_schema.json"
+		},
+		"node_id": {
+			"type": "string"
+		},
+		"os_version": {
+			"type": "string"
+		},
+		"parameters": {
+			"type": [
+				"array",
+				"null"
+			],
+			"items": {
+				"type": "string"
+			}
+		},
+		"reserved_resources": {
+			"$ref": "ResourceUnits_schema.json"
+		},
+		"robot_address": {
+			"type": "string"
+		},
+		"total_resources": {
+			"$ref": "ResourceUnits_schema.json"
+		},
+		"uptime": {
+			"type": [
+				"integer",
+				"null"
+			]
+		},
+		"used_resources": {
+			"$ref": "ResourceUnits_schema.json"
+		}
+	},
+	"required": [
+		"node_id",
+		"os_version",
+		"robot_address",
+		"total_resources"
+	]
+}

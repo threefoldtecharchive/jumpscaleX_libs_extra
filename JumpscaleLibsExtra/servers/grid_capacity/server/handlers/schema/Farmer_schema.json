@@ -1,0 +1,23 @@
+{
+	"$schema": "http://json-schema.org/schema#",
+	"type": "object",
+	"properties": {
+		"iyo_organization": {
+			"type": "string"
+		},
+		"name": {
+			"type": "string"
+		},
+		"wallet_addresses": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	},
+	"required": [
+		"iyo_organization",
+		"name",
+		"wallet_addresses"
+	]
+}

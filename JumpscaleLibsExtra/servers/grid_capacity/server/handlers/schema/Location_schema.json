@@ -1,0 +1,28 @@
+{
+	"$schema": "http://json-schema.org/schema#",
+	"type": "object",
+	"properties": {
+		"city": {
+			"type": "string"
+		},
+		"continent": {
+			"type": "string"
+		},
+		"country": {
+			"type": "string"
+		},
+		"latitude": {
+			"type": "number"
+		},
+		"longitude": {
+			"type": "number"
+		}
+	},
+	"required": [
+		"city",
+		"continent",
+		"country",
+		"latitude",
+		"longitude"
+	]
+}

@@ -1,0 +1,237 @@
+{% extends "layout.html" %}
+
+{# Macro for creating navigation links #}
+{% macro render_navigation(pagination, endpoint) %}
+  <nav aria-label="Page navigation">
+    <ul class="pagination">
+      {% if nodes.has_prev %}
+      <li class="page-item"><a class="page-link" href="{{ url_for(endpoint, page=nodes.prev_num, cru=form.cru, mru=form.mru, hru=form.hru, sru=form.sru, country=form.country, farmer=form.farmer) }}">Previous</a></li>
+      {% endif %}
+      {% for page in nodes.iter_pages() %}
+        {% if page %}
+          {% if page != pagination.page %}
+            <li class="page-item"><a class="page-link" href="{{ url_for(endpoint, page=page, cru=form.cru, mru=form.mru, hru=form.hru, sru=form.sru, country=form.country, farmer=form.farmer) }}">{{page}}</a></li>
+          {% else %}
+            <li class="page-item active disabled"><a class="page-link" href="#">{{page}} <span class="sr-only">(current)</span></a></li>
+          {% endif %}
+        {% else %}
+        <span class=ellipsis>…</span>
+        {% endif %}
+      {% endfor %}
+      {% if nodes.has_next %}
+      <li class="page-item"><a class="page-link" href="{{ url_for(endpoint, page=nodes.next_num, cru=form.cru, mru=form.mru, hru=form.hru, sru=form.sru, country=form.country, farmer=form.farmer) }}">Next</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endmacro %}
+
+{% block js_after %}
+<script src="/static/form.js" type="text/javaScript"></script>
+{% endblock %}
+
+  {% block body %}
+    <main role="main">
+
+      <div class="container">
+        <p class="float-right"><a href="https://threefoldfoundation.github.io/info_grid/#/">Threefold grid documentation</a></p>
+        <h2>Search for capacity</h2>
+        <form action="/" method="get">
+          <div class="form-group">
+              <label for="formCRU">Minimum <abbr title="CPU resource unit">CRU</abbr> : <span class="badge badge-pill badge-primary"><span id=formCRUValue></span> CPU</span></span></label>
+              <input type="range" class="form-control-range" id="formCRU" name="cru" value="{{form.cru}}" step=1>
+          </div>
+          <div class="form-group">
+            <label for="formMRU">Minimum <abbr title="Memory resource unit">MRU</abbr> : <span class="badge badge-pill badge-primary"><span id=formMRUValue></span> GiB</span></span></label>
+            <input type="range" class="form-control-range" id="formMRU" name="mru" value="{{form.mru}}" step=1 onchange="">
+          </div>
+          <div class="form-group">
+              <label for="formHRU">minimum <abbr title="HDD resource unit">HRU</abbr> : <span class="badge badge-pill badge-primary"><span id=formHRUValue></span> GiB</span></span></label>
+              <input type="range" class="form-control-range" id="formHRU" name="hru" value="{{form.hru}}" step=1 max=5000>
+          </div>
+          <div class="form-group">
+              <label for="formSRU">minimum <abbr title="SSD resource unit">SRU</abbr> : <span class="badge badge-pill badge-primary"><span id=formSRUValue></span> GiB</span></span></label>
+              <input type="range" class="form-control-range" id="formSRU" name="sru" value="{{form.sru}}" step=1 max=1000>
+          </div>
+          <div class="row">
+            <div class="form-group col-6">
+                <label for="formCountry">filter by country :</label>
+                <select class="form-control" id="formCountry"  name="country">
+                  <option></option>
+                  {% for country in countries %}
+                  {% if form.country == country %}
+                  <option selected>{{country}}</option>
+                  {% else %}
+                  <option>{{country}}</option>
+                  {% endif %}
+                  {% endfor %}
+                </select>
+            </div>
+            <div class="form-group col-6">
+                <label for="formFarmer">filter by farmer :</label>
+                <select class="form-control" id="formFarmer"  name="farmer">
+                  <option></option>
+                  {% for farmer in farmers %}
+                  {% if form.farmer == farmer.iyo_organization %}
+                  <option value="{{farmer.iyo_organization}}" selected>{{farmer.name}}</option>
+                  {% else %}
+                  <option value="{{farmer.iyo_organization}}">{{farmer.name}}</option>
+                  {% endif %}
+                  {% endfor %}
+                </select>
+            </div>
+          </div>
+          <div class="form-group">
+              <button type="submit" class="btn btn-primary">Search</button>
+              <a class="btn btn-secondary" href="/">Reset</a>
+          </div>
+        </form>
+      </div>
+
+      {% if nodes %}
+      <div class="container">
+        <div class="ro">
+          {% if nodes.total > 1 %}
+            <p>Nodes found: {{nodes.total}}</p>
+          {% else %}
+            <p>Node found: {{nodes.total}}</p>
+          {% endif %}
+        </div>
+        <div class="row">
+          <table class="table table-hover">
+            <thead class="thead-light">
+              <tr>
+                <th scope="col">Node ID <input</th>
+                <!-- <th scope="col">Farmer ID</th> -->
+                <th scope="col">Location</th>
+                <th scope="col">Farmer</th>
+                <th scope="col">Resources units</th>
+                <th scope="col" data-toggle="modal" data-target="#statusHelpModal">Status <span class="badge badge-secondary" id="statusHelp">?</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for node in nodes.items %}
+              <tr class="nodeItem">
+                <td>{{ node.node_id }}</td>
+                <!-- <td>{{ node.farmer }}</td> -->
+                <td>
+                  <i class="far fa-map"></i>
+                  {{ node.farmer.location.continent or node.location.continent}} >
+                  {{ node.farmer.location.country or node.location.country }} >
+                  {{ node.farmer.location.city or node.location.city }}
+                </td>
+                <td><a href="/farmers#{{node.farmer.id}}" onclick="event.stopPropagation();">{{node.farmer.name}}</a></td>
+                <td>
+                  <button type="button" class="btn btn-info" data-toggle="modal" data-target="#nodeDetailModal{{node.node_id}}"><i class="fas fa-hdd"></i> details</button>
+                </td>
+                <td><span class="badge badge-{{node.updated | deltatime_color}}">{{ node.updated | node_status }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="row">
+          {{ render_navigation(nodes, '.capacity') }}
+        </div>
+      </div>
+      {% endif %}
+
+    </main>
+
+    <!-- Modal -->
+    {% for node in nodes.items %}
+    <div class="modal fade" id="nodeDetailModal{{node.node_id}}" tabindex="-1" role="dialog" aria-labelledby="nodeDetailModalLabel{{node.node_id}}" aria-hidden="true">
+      <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="nodeDetailModalLabel">Node detail</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p>Node ID: <code>{{node.node_id}}</code></p>
+            <p>Node 0-robot address: <code>{{node.robot_address}}</code></p>
+            <p>0-OS version: <code>{{node.os_version}}</code></p>
+            <p>Farm: <code><a href="/farmers#{{node.farmer.id}}">{{node.farmer.name}}</a></code></p>
+            <!-- <p>Uptime: <span class="badge badge-{{node.updated | deltatime_color}}">{{ node.uptime | uptime }}</span></p> -->
+            {% if node.farmer.wallet_addresses|length > 0 %}
+            <p>
+              Wallet addresses:
+              <ul>
+              {% for addr in node.farmer.wallet_addresses %}
+                <li>
+                  <pre>{{addr}}</pre>
+                </li>
+              {% endfor %}
+              </ul>
+            </p>
+           {% endif %}
+           <div>
+             <table class="table table-sm table-hover">
+                <thead class="thead-light">
+                  <tr>
+                    <th scope="col">Resource units</th>
+                    <th scope="col">CRU</th>
+                    <th scope="col">MRU</th>
+                    <th scope="col">HRU</th>
+                    <th scope="col">SRU</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Total</td>
+                    <td>{{ node.total_resources.cru }}</td>
+                    <td>{{ node.total_resources.mru }}</td>
+                    <td>{{ node.total_resources.hru }}</td>
+                    <td>{{ node.total_resources.sru }}</td>
+                  </tr>
+                  <tr>
+                    <td>Reserved</td>
+                    <td>{{ node.reserved_resources.cru }}</td>
+                    <td>{{ node.reserved_resources.mru }}</td>
+                    <td>{{ node.reserved_resources.hru }}</td>
+                    <td>{{ node.reserved_resources.sru }}</td>
+                  </tr>
+                  <tr>
+                    <td>Used</td>
+                    <td>{{ node.used_resources.cru }}</td>
+                    <td>{{ node.used_resources.mru }}</td>
+                    <td>{{ node.used_resources.hru }}</td>
+                    <td>{{ node.used_resources.sru }}</td>
+                    </tr>
+                </tbody>
+             </table>
+           </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+  <!-- Modal -->
+  <div class="modal fade" id="statusHelpModal" tabindex="-1" role="dialog" aria-labelledby="statusHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="statusHelpModalLabel">What does the color of the status means ?</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <ul>
+            <li><span class="badge badge-success">Node is up</span> and has been refreshed less than 10 minutes</li>
+            <li><span class="badge badge-warning">Node is likely down</span> cause we didn't recevieve update from it for more than 10 minutes</li>
+            <li><span class="badge badge-danger">Node is down</span></li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endblock %}

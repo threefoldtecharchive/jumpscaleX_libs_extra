@@ -1,0 +1,150 @@
+#%RAML 1.0
+title: "TFT Grid capacity"
+description: API of the TFT grid, used to register/track the capacity available on the grid
+version: 0.0.1
+mediaType: application/json
+
+types:
+  Location:
+    properties:
+      continent: string
+      country: string
+      city: string
+      latitude: number
+      longitude: number
+  Capacity:
+    description: |
+      Capacity of a node
+    properties:
+      node_id:
+        type: string
+      farmer:
+        type: string
+        description: ID of the farmer owning the node
+        required: false
+      os_version:
+        type: string
+        description: branch and revision of 0-OS
+      location:
+        required: false
+        type: Location
+      robot_address:
+        type: string
+        description: URL to the node 0-robot of the node
+      cru:
+        type: number
+        description: amount of CPU resource unit
+      mru:
+        type: number
+        description: amount of memory resource unit
+      hru:
+        type: number
+        description: amount of HDD resource unit
+      sru:
+        type: number
+        description: amount of SSD resource unit
+    example:
+      node_id: 544546f60261
+      farmer: JohnDoe
+      os_version: "heads/v1.2.2 6b693a496de940b26ee1a2356b67f7d65767c13f"
+      robot_address: "http://10.241.100.10:6600"
+      cru: 5
+      mru: 64
+      hrd: 5000
+      sru: 256
+      location:
+        continent: Europe
+        country: Belgium
+        city: Brussels
+        latitude: 50.83
+        longitude: 4.29
+  Farmer:
+    properties:
+      id:
+        type: string
+      iyo_account:
+        type: string
+      name:
+        type: string
+      wallet_address:
+        type: string
+      location:
+        required: false
+        type: Location
+
+  Error:
+    properties:
+      code:
+        type: integer
+        description: error code
+      message:
+        type: string
+        description: Human friendly error message
+      stack_trace:
+        type: string
+        description: optional stack_trace attached with the error.
+        required: false
+
+/api/nodes:
+  post:
+    displayName: RegisterCapacity
+    description: Register a node capacity
+    body:
+      type: Capacity
+    responses:
+      201:
+        body:
+          type: Capacity
+  get:
+    displayName: ListCapacity
+    description: List all the nodes capacity
+    queryString:
+      properties:
+        country?: string
+        cru?: number
+        mru?: number
+        sru?: number
+    responses:
+      200:
+        body:
+          type: Capacity[]
+
+    
+/api/farmers:
+  post:
+    displayName: RegisterFarmer
+    description: Register a farmer
+    body:
+      type: Farmer
+    responses:
+      201:
+        body:
+          type: Farmer
+  
+  put:
+    displayName: UpdateFarmer
+    description: Update a farmer
+    body:
+      type: Farmer
+    responses:
+      204:
+        description: Farmer updated successfully
+      400:
+        description: Invalid location (longitude, latitude)
+        body:
+          type: Error
+      404:
+        description: Itsyou.online organization not found.
+        body:
+          type: Error
+
+      
+  get:
+    displayName: ListFarmers
+    description: List Farmers
+    responses:
+      200:
+        body:
+          type: Farmer[]
+
+  
