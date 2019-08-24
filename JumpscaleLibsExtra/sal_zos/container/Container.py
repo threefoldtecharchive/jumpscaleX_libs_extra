@@ -5,7 +5,7 @@ from io import BytesIO
 
 import netaddr
 from Jumpscale import j
-from Jumpscale.clients.zero_os.protocol.Response import ResultError
+from JumpscaleLibs.clients.zero_os.protocol.Response import ResultError
 
 from ..utils import get_zt_ip
 

@@ -9,7 +9,7 @@ class TestOpencCloudClientFactory(unittest.TestCase):
     @pytest.mark.ssh_factory
     @mock.patch("Jumpscale.clients.openvcloud.Account.Account")
     def test_machine_create_name_empty(self, account):
-        from Jumpscale.clients.openvcloud.Space import Space
+        from JumpscaleLibs.clients.openvcloud.Space import Space
 
         with pytest.raises(RuntimeError):
             model = dict()
@@ -22,7 +22,7 @@ class TestOpencCloudClientFactory(unittest.TestCase):
     @mock.patch("Jumpscale.clients.openvcloud.Account.Account")
     @mock.patch("Jumpscale.clients.openvcloud.Machine.Machine")
     def test_machine_create_image_find_id_called(self, account, machine):
-        from Jumpscale.clients.openvcloud.Space import Space
+        from JumpscaleLibs.clients.openvcloud.Space import Space
 
         model = dict()
         model["id"] = 123
@@ -41,7 +41,7 @@ class TestOpencCloudClientFactory(unittest.TestCase):
     @mock.patch("Jumpscale.clients.openvcloud.Space.size_find_id")
     @mock.patch("Jumpscale.clients.openvcloud.Space.machines")
     def test_machine_create_size_id(self, account, a, b, c, d):
-        from Jumpscale.clients.openvcloud import Space
+        from JumpscaleLibs.clients.openvcloud import Space
 
         model = dict()
         model["id"] = 123
@@ -57,7 +57,7 @@ class TestOpencCloudClientFactory(unittest.TestCase):
     @mock.patch("Jumpscale.clients.openvcloud.Space.size_find_id")
     @mock.patch("Jumpscale.clients.openvcloud.Space.machines")
     def test_machine_create_configure_machine(self, account, a, b, c, d):
-        from Jumpscale.clients.openvcloud import Space
+        from JumpscaleLibs.clients.openvcloud import Space
 
         model = dict()
         model["id"] = 123
@@ -77,7 +77,7 @@ class TestOpencCloudClientFactory(unittest.TestCase):
     @mock.patch("Jumpscale.clients.openvcloud.Space.createPortForward")
     @mock.patch("Jumpscale.clients.openvcloud.Space._authorizeSSH")
     def test_machine_create_create_port_forward(self, account, a, b, c, e, d):
-        from Jumpscale.clients.openvcloud import Space
+        from JumpscaleLibs.clients.openvcloud import Space
 
         model = dict()
         model["id"] = 123
@@ -96,7 +96,7 @@ class TestOpencCloudClientFactory(unittest.TestCase):
     @mock.patch("Jumpscale.clients.openvcloud.Space.createPortForward")
     @mock.patch("Jumpscale.clients.openvcloud.Space._authorizeSSH")
     def test_machine_create_authorize_ssh(self, account, a, b, c, e, d):
-        from Jumpscale.clients.openvcloud import Space
+        from JumpscaleLibs.clients.openvcloud import Space
 
         model = dict()
         model["id"] = 123

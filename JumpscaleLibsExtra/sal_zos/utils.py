@@ -2,7 +2,7 @@ import netaddr
 
 
 def authorize_zerotiers(identify, nics):
-    from Jumpscale.sal_zos.abstracts import ZTNic
+    from JumpscaleLibsExtra.sal_zos.abstracts import ZTNic
 
     for nic in nics:
         if isinstance(nic, ZTNic):

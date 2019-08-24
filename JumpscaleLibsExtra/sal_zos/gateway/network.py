@@ -1,5 +1,5 @@
 from Jumpscale import j
-from Jumpscale.clients.zerotier.ZerotierClient import ZerotierClient, ZeroTierNetwork
+from JumpscaleLibs.clients.zerotier.ZerotierClient import ZerotierClient, ZeroTierNetwork
 from ..abstracts import Collection, Nic, ZTNic
 from ..utils import get_ip_from_nic
 from ..vm.ZOS_VM import ZOS_VM

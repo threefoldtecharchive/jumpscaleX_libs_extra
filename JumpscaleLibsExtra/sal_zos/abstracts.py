@@ -1,5 +1,5 @@
 from Jumpscale import j
-from Jumpscale.sal_zos.utils import authorize_zerotiers
+from JumpscaleLibsExtra.sal_zos.utils import authorize_zerotiers
 
 
 class Mountable:
