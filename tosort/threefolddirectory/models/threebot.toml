@@ -1,0 +1,14 @@
+
+@url = threefold.grid.threebot
+botid = 0 (I)                     #official id on the blockchain for thos bot
+botnames = "" (LS)                #botnames list of bot names's $min5char.$min5char e.g. kristof.ibiza
+ipaddr = "" (S)                   #ip address how to reach, can change over time
+pubkey = ""                       #public key of this 3bot
+description = ""
+error = ""
+secret = ""                       #optional additional secret for reservation (on top of pub key)
+email* = ""                       #for now we use email to escalate to the threebot because they are not on the grid yet
+
+reputation* = ""                  #OK, DENY  (to know which ones we want to work with)
+
+

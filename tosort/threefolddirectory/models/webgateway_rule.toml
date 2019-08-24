@@ -1,0 +1,6 @@
+@url = threefold.grid.webgateway_rule
+rule_name = ""
+user* = ""
+domain = ""
+backends = [] (LS)
+webgateway_name = ""
