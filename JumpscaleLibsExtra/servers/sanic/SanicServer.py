@@ -23,6 +23,7 @@ class SanicServer(JSConfigClient):
         if not self.default_path:
             self.default_path = "{}/server_app.py".format(self.path)
         cmd = "python3 {}".format(self.default_path)
+        raise RuntimeError("need to load from other location")
         cmd_gedis = """kosmos '\
         server = j.servers.gedis.configure(host="0.0.0.0", port=8888);\
         server.actor_add("/sandbox/code/github/threefoldtech/digitalmeX/DigitalMe/tools/graphql_tutorial/graphql_actor.py");\

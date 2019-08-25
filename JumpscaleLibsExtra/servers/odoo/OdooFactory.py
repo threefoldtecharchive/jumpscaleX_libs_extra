@@ -1,7 +1,7 @@
 from Jumpscale import j
 from .OdooServer import OdooServer
 
-JSConfigs = j.baseclasses.factory
+JSConfigs = j.baseclasses.object_config_collection
 
 
 class OdooFactory(JSConfigs):

@@ -6,7 +6,7 @@ from .RaftServer import RaftServer
 from .RaftCluster import RaftCluster
 
 
-class RaftServerFactory(j.baseclasses.factory):
+class RaftServerFactory(j.baseclasses.object_config_collection_testtools):
     __jslocation__ = "j.servers.raftserver"
 
     def _init(self, **wargs):

@@ -1,7 +1,7 @@
 from Jumpscale import j
 from .karkenClient import KrakenClient
 
-JSConfigs = j.baseclasses.factory
+JSConfigs = j.baseclasses.object_config_collection
 
 
 class KrakenFactory(JSConfigs):

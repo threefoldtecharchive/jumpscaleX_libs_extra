@@ -1,7 +1,7 @@
 from Jumpscale import j
 from .RadicaleServer import RadicaleServer
 
-JSConfigs = j.baseclasses.factory
+JSConfigs = j.baseclasses.object_config_collection
 
 
 class RadicaleFactory(JSConfigs):
