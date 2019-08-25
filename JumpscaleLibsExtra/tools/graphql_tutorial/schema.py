@@ -15,7 +15,7 @@ class Post(graphene.ObjectType):
     author = graphene.Field(Author)
 
 
-class Query(graphene.ObjectType, j.baseclasses.objects_config_bcdb):
+class Query(graphene.ObjectType, j.baseclasses.object_config):
     posts = graphene.List(Post)
 
     def resolve_posts(self, root):

@@ -4,9 +4,7 @@ JSBASE = j.baseclasses.object
 
 
 class ReportlabFactory(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.tools.reportlab"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.reportlab"
 
     @property
     def _RLDoc(self):

@@ -37,13 +37,10 @@ CHARS_NONVOWEL = {
 NUMBERS = {48: 0, 49: 1, 50: 2, 51: 3, 52: 4, 53: 5, 54: 6, 55: 7, 56: 8, 57: 9}
 NONVOWELS_ORD = [item for item in CHARS_NONVOWEL.keys()]
 
-JSBASE = j.baseclasses.object
 
+class NLTKFactory(j.baseclasses.object):
 
-class NLTKFactory(JSBASE):
-    def __init__(self):
-        self.__jslocation__ = "j.data.nltk"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.data.nltk"
 
     def install(self):
         j.builders.runtimes.pip.install("nltk,nameparser,unidecode")

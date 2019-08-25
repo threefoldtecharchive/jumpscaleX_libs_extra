@@ -1,7 +1,7 @@
 from Jumpscale import j
 from .SanicServer import SanicServer
 
-JSConfigs = j.application.JSFactoryConfigsBaseClass
+JSConfigs = j.baseclasses.object_config_collection
 
 
 class SanicFactory(JSConfigs):

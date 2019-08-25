@@ -11,9 +11,7 @@ class RealitProcess(j.baseclasses.object):
     """
     """
 
-    def __init__(self):
-        self.__jslocation__ = "j.tools.realityprocess"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.realityprocess"
 
     def influxpump(self, influxdb, cidr="127.0.0.1", ports=[7777], rentention_duration="5d", workers=4):
         """

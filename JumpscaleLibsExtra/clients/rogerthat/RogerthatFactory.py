@@ -1,7 +1,7 @@
 from Jumpscale import j
 from .Rogerthat import Rogerthat
 
-JSConfigs = j.baseclasses.objects_config_bcdb
+JSConfigs = j.baseclasses.factory
 
 
 class RogerthatFactory(JSConfigs):

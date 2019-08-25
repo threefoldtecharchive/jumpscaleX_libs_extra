@@ -8,9 +8,9 @@ class DASH(j.baseclasses.object):
     """
     """
 
-    def __init__(self):
-        self.__jslocation__ = "j.tools.dash"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.dash"
+
+    def _init(self):
         self._default = None
 
     def install(self):

@@ -6,12 +6,10 @@ from .RaftServer import RaftServer
 from .RaftCluster import RaftCluster
 
 
-JSConfigBase = j.application.JSFactoryConfigsBaseClass
+class RaftServerFactory(j.baseclasses.factory):
+    __jslocation__ = "j.servers.raftserver"
 
-
-class RaftServerFactory(JSConfigBase):
-    def __init__(self):
-        self.__jslocation__ = "j.servers.raftserver"
+    def _init(self, **wargs):
         super(RaftServerFactory, self).__init__(RaftCluster)
 
     def get_by_params(

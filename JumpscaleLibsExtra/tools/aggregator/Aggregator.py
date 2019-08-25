@@ -10,9 +10,7 @@ class Aggregator(j.baseclasses.object):
     """
     """
 
-    def __init__(self):
-        self.__jslocation__ = "j.tools.aggregator"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.aggregator"
 
     def getClient(self, redisConnection, nodename):
         return AggregatorClient(redisConnection, nodename)

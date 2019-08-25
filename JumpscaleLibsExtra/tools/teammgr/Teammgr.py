@@ -309,9 +309,9 @@ class Department(j.baseclasses.object):
 
 
 class Teammgr(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.tools.team_manager"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.team_manager"
+
+    def _init(self):
         self.departments = {}
 
     def _add_department(self, path, name):

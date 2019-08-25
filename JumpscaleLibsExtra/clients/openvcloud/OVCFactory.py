@@ -3,7 +3,7 @@ from Jumpscale import j
 from pprint import pprint as print
 from .OVCClient import OVCClient
 
-JSConfigBaseFactory = j.application.JSFactoryConfigsBaseClass
+JSConfigBaseFactory = j.baseclasses.object_config_collection
 
 
 class OVCClientFactory(JSConfigBaseFactory):

@@ -8,9 +8,9 @@ from .ZOSVB import ZOSVB
 
 
 class Builder(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.tools.notapplicableyet"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.notapplicableyet"
+
+    def _init(self):
         self._zos_client = None
         self._clients = {}
         self._containers = {}

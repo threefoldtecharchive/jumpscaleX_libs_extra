@@ -5,13 +5,11 @@ from Jumpscale import j
 
 from .CapacityServer import CapacityServer
 
-JSConfigBase = j.application.JSFactoryConfigsBaseClass
+JSConfigBase = j.baseclasses.object_config_collection
 
 
 class CapacityFactory(JSConfigBase):
-    def __init__(self):
-        self.__jslocation__ = "j.servers.capacity"
-        JSConfigBase.__init__(self, CapacityServer)
+    __jslocation__ = "j.servers.capacity"
 
     def start(self, instance="main", background=False):
         server = self.get(instance, interactive=False)

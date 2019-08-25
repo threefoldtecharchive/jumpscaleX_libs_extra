@@ -4,9 +4,7 @@ JSBASE = j.baseclasses.object
 
 
 class Rexplorer(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.tools.rexplorer"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.rexplorer"
 
     def install(self):
         """

@@ -4,7 +4,7 @@ from .File import File
 from .Navigation import Navigation
 
 
-class DocSite(j.application.JSFactoryConfigsBaseClass, j.baseclasses.object_config):
+class DocSite(j.baseclasses.object_config_collection, j.baseclasses.object_config):
 
     _SCHEMATEXT = """
         @url = jumpscale.docs.docsite.1
@@ -17,7 +17,7 @@ class DocSite(j.application.JSFactoryConfigsBaseClass, j.baseclasses.object_conf
 
     def __init__(self, factory=None, dataobj=None, childclass_name=None):
         j.baseclasses.object_config.__init__(self, factory=factory, dataobj=dataobj, childclass_name=childclass_name)
-        j.application.JSFactoryConfigsBaseClass.__init__(self)
+        j.baseclasses.object_config_collection.__init__(self)
 
     def _childclass_selector(self, childclass_name="doc", **kwargs):
         """

@@ -4,10 +4,7 @@ JSBASE = j.baseclasses.object
 
 
 class ErrBotFactory(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.servers.errbot"
-
-        JSBASE.__init__(self)
+    __jslocation__ = "j.servers.errbot"
 
     def start(self, reset=False):
         """

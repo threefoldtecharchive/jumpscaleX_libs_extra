@@ -5,9 +5,7 @@ JSBASE = j.application.jsbase_get_class()
 
 
 class NetworkFactory(JSBASE):
-    def __init__(self):
-        self.__jslocation__ = "j.sal_zos.network"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.sal_zos.network"
 
     @staticmethod
     def get(node):

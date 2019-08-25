@@ -1,7 +1,7 @@
 from Jumpscale import j
 from .RacktivityClient import RacktivityClient
 
-JSConfigs = j.baseclasses.objects_config_bcdb
+JSConfigs = j.baseclasses.factory
 
 
 class RacktivityFactory(JSConfigs):

@@ -5,9 +5,7 @@ JSBASE = j.application.jsbase_get_class()
 
 
 class PrimitivesFactory(JSBASE):
-    def __init__(self):
-        self.__jslocation__ = "j.sal_zos.primitives"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.sal_zos.primitives"
 
     @staticmethod
     def get(node):

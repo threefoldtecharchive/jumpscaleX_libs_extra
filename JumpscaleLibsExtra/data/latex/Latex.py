@@ -6,9 +6,7 @@ from pylatex.utils import bold
 
 
 class Latex(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.data.latex"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.data.latex"
 
     def install(self):
         p = j.tools.prefab.local

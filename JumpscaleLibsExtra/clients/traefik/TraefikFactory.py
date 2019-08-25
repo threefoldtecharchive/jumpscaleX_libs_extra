@@ -2,7 +2,7 @@ from Jumpscale import j
 
 from .TraefikClient import Backend, BackendServer, Frontend, FrontendRule, TraefikClient
 
-JSConfigBaseFactory = j.baseclasses.objects_config_bcdb
+JSConfigBaseFactory = j.baseclasses.factory
 
 
 class TraefikFactory(JSConfigBaseFactory):

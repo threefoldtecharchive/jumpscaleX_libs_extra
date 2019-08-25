@@ -8,9 +8,9 @@ JSBASE = j.baseclasses.object
 
 
 class Factory(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.tools.capacity"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.capacity"
+
+    def _init(self):
         self.parser = CapacityParser()
         self.reservation_parser = ReservationParser()
         self.reality_parser = RealityParser()

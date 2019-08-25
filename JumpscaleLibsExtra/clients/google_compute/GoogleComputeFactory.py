@@ -1,7 +1,7 @@
 from .GoogleCompute import GoogleCompute
 from Jumpscale import j
 
-JSBASE = j.application.JSFactoryConfigsBaseClass
+JSBASE = j.baseclasses.object_config_collection
 
 
 class GoogleComputeFactory(JSBASE):

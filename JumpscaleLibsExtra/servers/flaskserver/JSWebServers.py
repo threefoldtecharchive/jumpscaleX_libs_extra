@@ -1,14 +1,13 @@
 from Jumpscale import j
 from .JSWebServer import JSWebServer
 
-JSConfigBase = j.application.JSFactoryConfigsBaseClass
+JSConfigBase = j.baseclasses.object_config_collection
 
 
 class JSWebServers(JSConfigBase):
-    def __init__(self):
-        self.__jslocation__ = "j.servers.flask"
+    __jslocation__ = "j.servers.flask"
 
-        JSConfigBase.__init__(self, JSWebServer)
+    def _init(self):
         self.latest = None
 
     def get(self, port):

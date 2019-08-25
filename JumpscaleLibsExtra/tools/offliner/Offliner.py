@@ -35,9 +35,7 @@ class Offliner(j.baseclasses.object):
     functionality to inspect objectr structure and generate apifile
     """
 
-    def __init__(self):
-        self.__jslocation__ = "j.tools.offliner"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.offliner"
 
     # @asyncio.coroutine
     def getSiteDownloadCmd(self, url, dest="", level=5, docElementsOnly=True, restrictToDomain=True):
