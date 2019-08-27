@@ -311,7 +311,7 @@ class Department(j.baseclasses.object):
 class Teammgr(j.baseclasses.object):
     __jslocation__ = "j.tools.team_manager"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self.departments = {}
 
     def _add_department(self, path, name):

@@ -7,7 +7,7 @@ JSConfigBase = j.baseclasses.object_config_collection
 class JSWebServers(JSConfigBase):
     __jslocation__ = "j.servers.flask"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self.latest = None
 
     def get(self, port):

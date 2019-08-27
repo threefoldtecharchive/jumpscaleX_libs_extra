@@ -10,7 +10,7 @@ class DASH(j.baseclasses.object):
 
     __jslocation__ = "j.tools.dash"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self._default = None
 
     def install(self):

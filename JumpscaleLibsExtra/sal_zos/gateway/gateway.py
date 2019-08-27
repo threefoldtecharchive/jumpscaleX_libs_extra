@@ -509,7 +509,7 @@ class Gateway:
         dhcp = DHCP(self.container, self.domain, self.networks)
         dhcp.apply_config()
 
-    def configure_cloudinit(self):
+    def configure_cloudinit(self, **kwargs):
         """
         Configure cloudinit
         """

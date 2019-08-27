@@ -10,7 +10,7 @@ from .ZOSVB import ZOSVB
 class Builder(j.baseclasses.object):
     __jslocation__ = "j.tools.notapplicableyet"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self._zos_client = None
         self._clients = {}
         self._containers = {}
