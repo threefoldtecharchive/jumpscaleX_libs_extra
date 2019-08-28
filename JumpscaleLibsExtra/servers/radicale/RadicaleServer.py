@@ -22,7 +22,7 @@ class RadicaleServer(JSConfigClient):
 
         :return:
         """
-        # j.builders.runtimes.python.pip_package_install("radicale")
+        # j.builders.runtimes.python3.pip_package_install("radicale")
         pass
 
     def start(self, name="radicale", background=False):
