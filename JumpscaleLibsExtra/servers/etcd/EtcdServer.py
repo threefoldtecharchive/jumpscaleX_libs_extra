@@ -13,7 +13,7 @@ class EtcdServer(j.baseclasses.object):
         :rtype: tmux.Pane
         """
         if not j.core.tools.cmd_installed("etcd"):
-            raise RuntimeError("install etcd: 'j.builders.db.etcd.install()'")
+            self.install()
         cmd = j.sal.fs.joinPaths(j.core.dirs.BINDIR, "etcd")
         if config_file:
             cmd += " --config-file %s" % config_file
@@ -34,3 +34,6 @@ class EtcdServer(j.baseclasses.object):
         else:
             full_path = j.sal.fs.joinPaths(j.core.dirs.BINDIR, "etcd")
             j.sal.process.killProcessByName(full_path, sig)
+
+    def install(self, reset=False):
+        j.builders.db.etcd.install(reset=reset)
