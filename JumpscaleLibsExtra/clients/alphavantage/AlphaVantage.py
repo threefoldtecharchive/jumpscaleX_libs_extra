@@ -10,7 +10,7 @@ class AlphaVantageClient(j.baseclasses.object_config):
 
     _SCHEMATEXT = """
     @url = jumpscale.alphavantage.client
-    name* = "" (S)
+    name** = "" (S)
     api_key_ = "" (S)
     """
 

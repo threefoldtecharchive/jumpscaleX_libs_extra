@@ -7,7 +7,7 @@ class Doc(j.baseclasses.object_config):
 
     _SCHEMATEXT = """
         @url = jumpscale.docs.docsite.1
-        name* = ""
+        name** = ""
         path = ""        
         title = ""
         source = ""
@@ -18,7 +18,7 @@ class Doc(j.baseclasses.object_config):
         
         
         @url = jumpscale.docs.link.1
-        name* = ""
+        name** = ""
         source = ""
         url = (S)
         state = "init,ok,dead" (E)

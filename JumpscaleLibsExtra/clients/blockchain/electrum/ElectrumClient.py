@@ -18,7 +18,7 @@ class ElectrumClient(JSConfigBase):
 
     _SCHEMATEXT = """
         @url = jumpscale.electrum.client
-        name* = "" (S)
+        name** = "" (S)
         server = "localhost:7777" (S)
         rpc_user = "user" (S)
         rpc_pass_ = "pass" (S)

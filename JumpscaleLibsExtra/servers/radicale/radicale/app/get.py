@@ -49,7 +49,7 @@ class ApplicationGetMixin:
             logger.warning("Failed to encode filename: %r", filename, exc_info=True)
             encoded_filename = ""
         if encoded_filename:
-            value += "; filename*=%s''%s" % (self.encoding, encoded_filename)
+            value += "; filename**=%s''%s" % (self.encoding, encoded_filename)
         return value
 
     def do_GET(self, environ, base_prefix, path, user):

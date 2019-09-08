@@ -8,7 +8,7 @@ class DocSite(j.baseclasses.object_config_collection, j.baseclasses.object_confi
 
     _SCHEMATEXT = """
         @url = jumpscale.docs.docsite.1
-        name* = ""
+        name** = ""
         path = ""
         git_url = ""
         description = ""

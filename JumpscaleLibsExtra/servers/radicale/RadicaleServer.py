@@ -12,7 +12,7 @@ JSConfigClient = j.baseclasses.object_config
 class RadicaleServer(JSConfigClient):
     _SCHEMATEXT = """
        @url =  jumpscale.servers.radicale
-       name* = "default" (S)
+       name** = "default" (S)
        port = 11000 (I)
                """
 

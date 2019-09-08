@@ -8,7 +8,7 @@ JSConfigClient = j.baseclasses.object_config
 class OdooServer(JSConfigClient):
     _SCHEMATEXT = """
            @url =  jumpscale.odoo.server.1
-           name* = "default" (S)
+           name** = "default" (S)
            host = "127.0.0.1" (S)
            port = 8069 (I)
            admin_login = "admin"(S)
@@ -19,7 +19,7 @@ class OdooServer(JSConfigClient):
            databases = (LO) !jumpscale.odoo.server.db.1
            
            @url =  jumpscale.odoo.server.db.1
-           name* = "odoo_test" (S)
+           name** = "odoo_test" (S)
            admin_email = "info@example.com" (S)                      
            admin_passwd_ = "123456" (S)
            country_code = "be"

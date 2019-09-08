@@ -8,7 +8,7 @@ JSConfigClient = j.baseclasses.object_config
 class KrakenClient(JSConfigClient):
     _SCHEMATEXT = """
         @url = jumpscale.kraken.clients
-        name* = "" (S)
+        name** = "" (S)
         api_key_ = "" (S)
         private_key_ = "" (S)
         """

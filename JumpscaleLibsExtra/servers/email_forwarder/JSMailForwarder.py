@@ -10,7 +10,7 @@ class JSMailForwarderBase(j.baseclasses.object_config):
 
     _SCHEMATEXT = """
         @url = jumpscale.mailforwarder.1
-        name* = ""
+        name** = ""
         listening_host = ""
         listening_port = (I)
         relay_host = ""

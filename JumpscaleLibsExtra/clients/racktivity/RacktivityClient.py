@@ -14,7 +14,7 @@ port = 80
 class RacktivityClient(JSConfigClient, RackSal):
     _SCHEMATEXT = """
     @url = jumpscale.racktivity.client
-    name* ="" (S)
+    name** ="" (S)
     username = "" (S)
     password_ = "" (S)
     hostname = "127.0.0.1" (S)
