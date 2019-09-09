@@ -4,7 +4,11 @@ patch_all()
 from Jumpscale import j
 from gevent.pywsgi import WSGIServer
 
-from radicale import application
+try:
+    from radicale import application
+except:
+    j.builders.runtimes.python3.pip_package_install("radicale")
+    from radicale import application
 
 JSConfigClient = j.baseclasses.object_config
 
