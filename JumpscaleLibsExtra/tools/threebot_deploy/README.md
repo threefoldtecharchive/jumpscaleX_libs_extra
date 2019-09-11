@@ -1,4 +1,4 @@
-# Threebot wikis deply
+# Threebot wikis deploy
 
 ## How to deploy threebot wikis
 
@@ -79,7 +79,7 @@ wikis_machine.create_new_do_machine()
 wikis_machine.jsx_install()
 ```
 
-- **Depoloy wikis**
+- **Deploy wikis**
 
 ```python
 wikis_machine.deploy_wikis()
@@ -93,7 +93,7 @@ dns_machine.add_dns_record(subdomain="wikis", domain="web.grid.tf", wikis_machin
 
 Site should be live now, Congrats!
 
-- **to add more tests**
+- **add macro tests**
 
 ```python
 wikis_machine.test_macros()
