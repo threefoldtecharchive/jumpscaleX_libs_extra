@@ -5,6 +5,7 @@ from . import TestMacros
 class ThreebotDeploy(j.baseclasses.object_config):
     """
     create a threebot deployer instance
+    follow readme to know how to deploy
     """
 
     _SCHEMATEXT = """
@@ -38,7 +39,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
     def do_machine(self):
         """
         : get digital ocean up machine
-        : return: digital ocean droplet object and sshclient object
+        : sets self._machine and self.sshcl
         """
         if not self._machine:
             my_droplet = self.do_client._droplet_get(name=self.do_machine_name)
@@ -58,6 +59,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
     def create_new_do_machine(self, size_slug="s-1vcpu-1gb"):
         """
         : get digital ocean up machine
+        : param size_slug: pass your machine specs check DO availabe slugs
         : return: digital ocean droplet object and sshclient object
         """
         my_droplet, sshcl = self.do_client.droplet_create(
@@ -86,37 +88,44 @@ class ThreebotDeploy(j.baseclasses.object_config):
         /tmp/jsx install -s -b development;
         """
         )
-        if rc == 0:
-            print("TEST OK")
-        else:
-            raise RuntimeError("Error occured at\n", err)
+        if rc > 0:
+            raise RuntimeError(out, "Error occured at\n", err)
 
-    def install_tcprouter_coredns(
-        self, subdomain="wikis", domain="web.grid.tf", wikis_machine_ip=None, wikis_machine_port="443"
-    ):
+    def install_tcprouter_coredns(self):
         """
         : deploy tcp router and coredns on digital ocean machine
         """
-        if not wikis_machine_ip:
-            wikis_machine_ip = self.do_machine.ip_address
-        rc, _, err = self.sshcl.execute(
+        rc, out, err = self.sshcl.execute(
             """
         kosmos 'j.builders.network.coredns.install()';
         kosmos 'j.builders.network.tcprouter.install()';
+        """
+        )
+        if rc > 0:
+            raise RuntimeError(out, "Error occured at\n", err)
+
+    def add_dns_record(self, subdomain="wikis", domain="web.grid.tf", wikis_machine_ip=None, wikis_machine_port="443"):
+        """
+        add dns record on the dns server this will use coredns and tfgateway
+        """
+        if not wikis_machine_ip:
+            wikis_machine_ip = self.do_machine.ip_address
+        rc, out, err = self.sshcl.execute(
+            """
+        kosmos 'j.builders.network.coredns.stop()';
+        kosmos 'j.builders.network.tcprouter.stop()';
         kosmos 'j.tools.tf_gateway.tcpservice_register(f"{subdomain}, f"{subdomain}.{domain}", f"{wikis_machine_ip} + ":" + f"{wikis_machine_port})';
         kosmos 'j.tools.tf_gateway.domain_register_a(f"{subdomain}, f"{domain} , f"{wikis_machine_ip})';
         kosmos 'j.builders.network.coredns.start()';
         kosmos 'j.builders.network.tcprouter.start()';
         """
         )
-        if rc == 0:
-            print("TEST OK")
-        else:
-            raise RuntimeError("Error occured at\n", err)
+        if rc > 0:
+            raise RuntimeError(out, "Error occured at\n", err)
 
     def deploy_wikis(self):
         """
-        : deploy 3bot and wikis
+        : deploy 3bot and wikis on the wikis machine
         """
         rc, out, err = self.sshcl.execute(
             """
@@ -138,15 +147,14 @@ class ThreebotDeploy(j.baseclasses.object_config):
         kosmos -p 'wikis = j.servers.threebot.default; wikis.start(ssl=True, web=True)';
         """
         )
-        if rc == 0:
-            print("TEST OK")
-        else:
-            raise RuntimeError("Error occured at\n", err)
+        if rc > 0:
+            raise RuntimeError(out, "Error occured at\n", err)
 
     def test_macros(self):
         """
         : add some wikis tests to test with some macros
         """
+        self.jsx_install()
         self.deploy_wikis()
         # requires import this method from a file
         rc, out, err = self.sshcl.execute(
@@ -154,7 +162,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         """
         )
         if rc > 0:
-            raise RuntimeError("Error occured at\n", err)
+            raise RuntimeError(out, "Error occured at\n", err)
 
 
 class ThreebotDeployFactory(j.baseclasses.object_config_collection):
