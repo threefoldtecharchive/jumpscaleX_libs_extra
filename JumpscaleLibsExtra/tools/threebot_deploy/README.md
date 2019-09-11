@@ -1,0 +1,95 @@
+# Threebot wikis deply
+
+## How to deploy threebot wikis
+
+- You should create/use a machine for DNS hosting to control the subdomains using CoreDNS and TCPRouter (TFGateway).
+- Then create another machine  to deploy the wikis on.
+
+## Deploy DNS Hoster
+
+- create a new instance of threebot deploy tool for dnshoster.
+
+```python
+kosmos
+```
+
+```python
+dns_machine = j.tools.threebot_deploy.get("dns", do_machine_name="dogateway", do_token="YOUR DIGITAL OCEAN TOKEN", do_project_name="codescalers", ssh_key="YOUR SSH KEY")
+```
+
+- Get/Create the machine
+
+If you have a machine already you just make sure by
+
+```python
+dns_machine.do_machine
+```
+
+else create a new one:
+
+```python
+# optional change your machine specs. default(size_slug="s-1vcpu-1gb")
+dns_machine.create_new_do_machine()
+```
+
+- install jumpscale
+
+```python
+dns_machine.jsx_install()
+```
+
+- Deploy DNS Hoster:
+
+```python
+dns_machine.install_tcprouter_coredns(self, subdomain='wikis', domain='web.grid.tf', wikis_machine_ip="YOUR MACHINE IP", wikis_machine_
+port='443')
+```
+
+Now we have the DNS machine up and ready
+
+## Deploy 3bot wikis
+
+- create a new instance of threebot deploy tool.
+
+```python
+kosmos
+```
+
+```python
+wikis_machine = j.tools.threebot_deploy.get("wikis", do_machine_name="wikis", do_token="YOUR DIGITAL OCEAN TOKEN", do_project_name="codescalers", ssh_key="YOUR SSH KEY")
+```
+
+- Get/Create the machine
+
+If you have a machine already you just
+
+```python
+wikis_machine.do_machine
+```
+
+else create a new one:
+
+```python
+# optional change your machine specs. default(size_slug="s-1vcpu-1gb")
+wikis_machine.create_new_do_machine()
+```
+
+- install jumpscale
+
+```python
+wikis_machine.jsx_install()
+```
+
+- Depoloy wikis
+
+```python
+wikis_machine.deploy_wikis()
+```
+
+- to test
+
+```python
+wikis_machine.test_macros()
+```
+
+will be at: domain/wiki/testwikis
