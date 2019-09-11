@@ -72,21 +72,23 @@ class ThreebotDeploy(j.baseclasses.object_config):
         self._machine = my_droplet
         self._sshcl = sshcl
 
-    def jsx_install(self):
+    def jsx_install(self, branch="development"):
         """
         : install jumpscale non-interactivly on digital ocean machine
         """
         rc, out, err = self.sshcl.execute(
             """
         export DEBIAN_FRONTEND=noninteractive;
-        curl https://raw.githubusercontent.com/threefoldtech/jumpscaleX_core/development/install/jsx.py?$RANDOM > /tmp/jsx;
+        curl https://raw.githubusercontent.com/threefoldtech/jumpscaleX_core/{branch}/install/jsx.py?$RANDOM > /tmp/jsx;
         chmod +x /tmp/jsx; \
         eval `ssh-agent -s`; \
         rm -rf ~/.ssh/id_rsa ~/.ssh/id_rsa.pub ~/.ssh/known_hosts;\
         ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa -q -P "";\
         ssh-add ~/.ssh/id_rsa;\
-        /tmp/jsx install -s -b development;
-        """
+        /tmp/jsx install -s -b {branch};
+        """.format(
+                branch=branch
+            )
         )
         if rc > 0:
             raise RuntimeError(out, "Error occured at\n", err)
@@ -129,22 +131,25 @@ class ThreebotDeploy(j.baseclasses.object_config):
         """
         rc, out, err = self.sshcl.execute(
             """
-        . /sandbox/env.sh;
-        js_init generate;
-        cd /sandbox/code/github/threefoldtech/jumpscaleX_core;
-        git checkout 79a930098d114fbf43c98c5d5525d0ed7b599f98;
-        git cherry-pick c2a6a4248dd6a8f3808d633665e18ecf0bb0ed87;
-        git cherry-pick 5015c89be28c8dd9e9d74477fd672a03716c3bbb;
-        git cherry-pick b01bef6a4d09e8a50a49d8f6e24c7f1744d46bb7;
-        git cherry-pick e57cd41b93a5ea7b8eff9712875dc6917b97d659;
+        kosmos -p 'j.threebot.package.wikis.install()';
+        kosmos -p 'j.builders.apps.threebot.install()';
+        kosmos -p 'wikis = j.servers.threebot.default; wikis.start(ssl=True, web=True)';
+        """
+        )
+        if rc > 0:
+            raise RuntimeError(out, "Error occured at\n", err)
+
+    def reset_env(self):
+        """
+        clears bcdb and sonic
+        """
+        rc, out, err = self.sshcl.execute(
+            """
         kosmos 'j.data.bcdb.destroy_all()';
         pkill redis;
         pkill redis-server;
         kosmos 'j.application.bcdb_system_destroy()';
         kosmos 'j.servers.sonic.default.destroy()';
-        kosmos -p 'j.threebot.package.wikis.install()';
-        kosmos -p 'j.builders.apps.threebot.install()';
-        kosmos -p 'wikis = j.servers.threebot.default; wikis.start(ssl=True, web=True)';
         """
         )
         if rc > 0:

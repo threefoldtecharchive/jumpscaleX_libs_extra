@@ -90,6 +90,7 @@ wikis_machine.deploy_wikis()
 ```python
 dns_machine.add_dns_record(subdomain="wikis", domain="web.grid.tf", wikis_machine_ip="WIKIS MACHINE IP", wikis_machine_port="443"):
 ```
+
 Site should be live now, Congrats!
 
 - **to add more tests**
@@ -99,3 +100,11 @@ wikis_machine.test_macros()
 ```
 
 will be at: domain/wiki/testwikis
+
+- **reset_env**
+
+To clear sonic and bcdb
+
+```python
+wikis_machine.reset_env()
+```
