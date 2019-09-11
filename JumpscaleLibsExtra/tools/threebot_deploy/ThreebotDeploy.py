@@ -47,7 +47,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
             )
             self._machine = my_droplet
             self._sshcl = sshcl
-        return my_droplet
+        return self._machine
 
     @property
     def sshcl(self):
@@ -143,14 +143,14 @@ class ThreebotDeploy(j.baseclasses.object_config):
         else:
             raise RuntimeError("Error occured at\n", err)
 
-    def test_wikis(self, name, url):
+    def test_macros(self):
         """
         : add some wikis tests to test with some macros
         """
         self.deploy_wikis()
         # requires import this method from a file
         rc, out, err = self.sshcl.execute(
-            """kosmos 'j.servers.myjobs.schedule(TestMacros.load_wiki, "test", "https://github.com/Dinaamagdy/test_custom_md/tree/master/docs")'
+            """kosmos 'j.servers.myjobs.schedule(TestMacros.load_wiki, "testwikis", "https://github.com/Dinaamagdy/test_custom_md/tree/master/docs")'
         """
         )
         if rc > 0:
