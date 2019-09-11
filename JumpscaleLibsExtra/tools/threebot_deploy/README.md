@@ -41,8 +41,7 @@ dns_machine.jsx_install()
 - Deploy DNS Hoster:
 
 ```python
-dns_machine.install_tcprouter_coredns(self, subdomain='wikis', domain='web.grid.tf', wikis_machine_ip="YOUR MACHINE IP", wikis_machine_
-port='443')
+dns_machine.install_tcprouter_coredns()
 ```
 
 Now we have the DNS machine up and ready
@@ -86,7 +85,14 @@ wikis_machine.jsx_install()
 wikis_machine.deploy_wikis()
 ```
 
-- to test
+- Add dns record to the dns hoster
+
+```python
+dns_machine.add_dns_record(subdomain="wikis", domain="web.grid.tf", wikis_machine_ip="WIKIS MACHINE IP", wikis_machine_port="443"):
+```
+Site should be live now, Congrats!
+
+- to add more tests
 
 ```python
 wikis_machine.test_macros()
