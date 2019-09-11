@@ -76,20 +76,16 @@ class ThreebotDeploy(j.baseclasses.object_config):
         """
         : install jumpscale non-interactivly on digital ocean machine
         """
-        rc, out, err = self.sshcl.execute(
-            """
-        export DEBIAN_FRONTEND=noninteractive;
-        curl https://raw.githubusercontent.com/threefoldtech/jumpscaleX_core/{branch}/install/jsx.py?$RANDOM > /tmp/jsx;
-        chmod +x /tmp/jsx; \
-        eval `ssh-agent -s`; \
-        rm -rf ~/.ssh/id_rsa ~/.ssh/id_rsa.pub ~/.ssh/known_hosts;\
-        ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa -q -P "";\
-        ssh-add ~/.ssh/id_rsa;\
-        /tmp/jsx install -s -b {branch};
-        """.format(
-                branch=branch
-            )
-        )
+        install_cmd = "export DEBIAN_FRONTEND=noninteractive;"
+        install_cmd += f"curl https://raw.githubusercontent.com/threefoldtech/jumpscaleX_core/{branch}/install/jsx.py?$RANDOM > /tmp/jsx;"
+        install_cmd += "chmod +x /tmp/jsx;"
+        install_cmd += "eval `ssh-agent -s`;"
+        install_cmd += "rm -rf ~/.ssh/id_rsa ~/.ssh/id_rsa.pub;"
+        install_cmd += 'ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa -q -P "";'
+        install_cmd += f"/tmp/jsx install -s -b {branch}"
+
+        rc, out, err = self.sshcl.execute(install_cmd)
+
         if rc > 0:
             raise RuntimeError(out, "Error occured at\n", err)
 
@@ -97,12 +93,11 @@ class ThreebotDeploy(j.baseclasses.object_config):
         """
         : deploy tcp router and coredns on digital ocean machine
         """
-        rc, out, err = self.sshcl.execute(
-            """
-        kosmos 'j.builders.network.coredns.install()';
-        kosmos 'j.builders.network.tcprouter.install()';
-        """
-        )
+        install_tcpdns_command = "kosmos 'j.builders.network.coredns.install()';"
+        install_tcpdns_command += "kosmos 'j.builders.network.tcprouter.install()';"
+
+        rc, out, err = self.sshcl.execute(install_tcpdns_command)
+
         if rc > 0:
             raise RuntimeError(out, "Error occured at\n", err)
 
@@ -112,16 +107,16 @@ class ThreebotDeploy(j.baseclasses.object_config):
         """
         if not wikis_machine_ip:
             wikis_machine_ip = self.do_machine.ip_address
-        rc, out, err = self.sshcl.execute(
-            """
-        kosmos 'j.builders.network.coredns.stop()';
-        kosmos 'j.builders.network.tcprouter.stop()';
-        kosmos 'j.tools.tf_gateway.tcpservice_register(f"{subdomain}, f"{subdomain}.{domain}", f"{wikis_machine_ip} + ":" + f"{wikis_machine_port})';
-        kosmos 'j.tools.tf_gateway.domain_register_a(f"{subdomain}, f"{domain} , f"{wikis_machine_ip})';
-        kosmos 'j.builders.network.coredns.start()';
-        kosmos 'j.builders.network.tcprouter.start()';
-        """
-        )
+        add_dns_command = ". /sandbox/env.sh;"
+        add_dns_command += "kosmos 'j.builders.network.coredns.stop()';"
+        add_dns_command += "kosmos 'j.builders.network.tcprouter.stop()';"
+        add_dns_command += f"kosmos 'j.tools.tf_gateway.tcpservice_register({subdomain}, {subdomain}.{domain}, {wikis_machine_ip}:{wikis_machine_port})';"
+        add_dns_command += f"kosmos 'j.tools.tf_gateway.domain_register_a({subdomain}, {domain}, {wikis_machine_ip})';"
+        add_dns_command += "kosmos 'j.builders.network.coredns.start()';"
+        add_dns_command += "kosmos 'j.builders.network.tcprouter.start()';"
+
+        rc, out, err = self.sshcl.execute(add_dns_command)
+
         if rc > 0:
             raise RuntimeError(out, "Error occured at\n", err)
 
@@ -129,29 +124,26 @@ class ThreebotDeploy(j.baseclasses.object_config):
         """
         : deploy 3bot and wikis on the wikis machine
         """
-        rc, out, err = self.sshcl.execute(
-            """
-        kosmos -p 'j.threebot.package.wikis.install()';
-        kosmos -p 'j.builders.apps.threebot.install()';
-        kosmos -p 'wikis = j.servers.threebot.default; wikis.start(ssl=True, web=True)';
-        """
-        )
-        if rc > 0:
-            raise RuntimeError(out, "Error occured at\n", err)
+        wikis_command = ". /sandbox/env.sh;"
+        wikis_command += "kosmos -p 'j.threebot.package.wikis.install()';"
+        wikis_command += "kosmos -p 'j.builders.apps.threebot.install()';"
+        wikis_command += "kosmos -p 'wikis = j.servers.threebot.default; wikis.start(ssl=True, web=True)';"
+
+        self.sshcl.execute(wikis_command)
 
     def reset_env(self):
         """
         clears bcdb and sonic
         """
-        rc, out, err = self.sshcl.execute(
-            """
-        kosmos 'j.data.bcdb.destroy_all()';
-        pkill redis;
-        pkill redis-server;
-        kosmos 'j.application.bcdb_system_destroy()';
-        kosmos 'j.servers.sonic.default.destroy()';
-        """
-        )
+        reset_command = ". /sandbox/env.sh;"
+        reset_command += "kosmos 'j.data.bcdb.destroy_all()';"
+        reset_command += "pkill redis;"
+        reset_command += "pkill redis-server;"
+        reset_command += "kosmos 'j.application.bcdb_system_destroy()';"
+        reset_command += "kosmos 'j.servers.sonic.default.destroy()';"
+
+        rc, out, err = self.sshcl.execute(reset_command)
+
         if rc > 0:
             raise RuntimeError(out, "Error occured at\n", err)
 
@@ -162,12 +154,9 @@ class ThreebotDeploy(j.baseclasses.object_config):
         self.jsx_install()
         self.deploy_wikis()
         # requires import this method from a file
-        rc, out, err = self.sshcl.execute(
-            """kosmos 'j.servers.myjobs.schedule(TestMacros.load_wiki, "testwikis", "https://github.com/Dinaamagdy/test_custom_md/tree/master/docs")'
-        """
-        )
-        if rc > 0:
-            raise RuntimeError(out, "Error occured at\n", err)
+        wikis_test_command = """kosmos 'j.servers.myjobs.schedule(TestMacros.load_wiki, "testwikis", "https://github.com/Dinaamagdy/test_custom_md/tree/master/docs")"""
+
+        self.sshcl.execute(wikis_test_command)
 
 
 class ThreebotDeployFactory(j.baseclasses.object_config_collection):
