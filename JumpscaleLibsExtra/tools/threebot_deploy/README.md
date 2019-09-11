@@ -35,7 +35,8 @@ dns_machine.create_new_do_machine()
 - **install jumpscale**
 
 ```python
-dns_machine.jsx_install()
+# optional: you can pass the branch you want to install from
+dns_machine.jsx_install(branch="development")
 ```
 
 - **Deploy DNS Hoster**
