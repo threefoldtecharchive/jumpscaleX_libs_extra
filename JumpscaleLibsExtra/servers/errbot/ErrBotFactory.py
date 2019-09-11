@@ -17,12 +17,18 @@ class ErrBotFactory(j.baseclasses.object):
         import logging
 
         logger = logging.Logger("installer")
+        j.sal.fs.createDir("/tmp/bot")
 
         import sys
 
         sys.path.append("~/opt/var/build/python3/lib/python3.6/site-packages")
 
-        import errbot
+        try:
+            import errbot
+        except:
+            j.builders.runtimes.python3.pip_package_install("errbot")
+            import errbot
+
         from importlib import util
 
         path = "%s/config.py" % self._dirpath

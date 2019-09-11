@@ -165,18 +165,35 @@ class OdooServer(JSConfigClient):
         Starts odoo server in tmux
         """
         self._log_info("start odoo server")
-        self._write_config()
-        j.builders.db.postgres.start()
-        db = self.databases.new()
-        cl = j.clients.postgres.db_client_get(dbname=db.name)
-        j.builders.apps.odoo.set_dbname(db.name)
-        self.startupcmd.start()
+        for cmd in self.startupcmd:
+            cmd.start()
 
     def stop(self):
         self._log_info("stop odoo server and postgresql")
-        j.builders.db.postgres.stop()
-        self.startupcmd.stop()
+        if not j.core.tools.cmd_installed("postgres"):
+            j.builders.db.psql.install()
+
+        for cmd in self.startupcmd:
+            cmd.stop()
+        j.builders.db.psql.stop()
 
     @property
     def startupcmd(self):
-        return j.builders.apps.odoo.startup_cmds
+        self._write_config()
+        j.builders.db.psql.start()
+        db = self.databases.new()
+        cl = j.clients.postgres.db_client_get(dbname=db.name)
+        j.builders.apps.odoo.set_dbname(db.name)
+
+        odoo_start = j.builders.apps.odoo._replace(
+            "sudo -H -u odoouser python3 /sandbox/apps/odoo/odoo/odoo-bin -c {DIR_CFG}/odoo.conf -d %s -i base"
+            % db.name
+        )
+        odoo_cmd = j.servers.startupcmd.get("odoo")
+        odoo_cmd.cmd_start = odoo_start
+
+        odoo_cmd.process_strings = "/sandbox/apps/odoo/odoo/odoo-bin -c"
+        odoo_cmd.path = "/sandbox/bin"
+        odoo_cmd.ports = [8069]
+
+        return [odoo_cmd]
