@@ -2,12 +2,12 @@
 
 ## How to deploy threebot wikis
 
-- You should create/use a machine for DNS hosting to control the subdomains using CoreDNS and TCPRouter (TFGateway).
-- Then create another machine  to deploy the wikis on.
+- You can create/use a machine for DNS hosting to control the subdomains using [CoreDNS](https://github.com/coredns/coredns) and [TCPRouter](https://github.com/xmonader/tcprouter) (TFGateway) if you don't have a machine with domain.
+- Then create another machine to deploy the wikis on.
 
 ## Deploy DNS Hoster
 
-- create a new instance of threebot deploy tool for dnshoster.
+- **create a new instance of threebot deploy tool for dnshoster.**
 
 ```python
 kosmos
@@ -17,7 +17,7 @@ kosmos
 dns_machine = j.tools.threebot_deploy.get("dns", do_machine_name="dogateway", do_token="YOUR DIGITAL OCEAN TOKEN", do_project_name="codescalers", ssh_key="YOUR SSH KEY")
 ```
 
-- Get/Create the machine
+- **Get/Create the machine**
 
 If you have a machine already you just make sure by
 
@@ -32,13 +32,13 @@ else create a new one:
 dns_machine.create_new_do_machine()
 ```
 
-- install jumpscale
+- **install jumpscale**
 
 ```python
 dns_machine.jsx_install()
 ```
 
-- Deploy DNS Hoster:
+- **Deploy DNS Hoster**
 
 ```python
 dns_machine.install_tcprouter_coredns()
@@ -48,7 +48,7 @@ Now we have the DNS machine up and ready
 
 ## Deploy 3bot wikis
 
-- create a new instance of threebot deploy tool.
+- **create a new instance of threebot deploy tool.**
 
 ```python
 kosmos
@@ -58,7 +58,7 @@ kosmos
 wikis_machine = j.tools.threebot_deploy.get("wikis", do_machine_name="wikis", do_token="YOUR DIGITAL OCEAN TOKEN", do_project_name="codescalers", ssh_key="YOUR SSH KEY")
 ```
 
-- Get/Create the machine
+- **Get/Create the machine**
 
 If you have a machine already you just
 
@@ -73,26 +73,26 @@ else create a new one:
 wikis_machine.create_new_do_machine()
 ```
 
-- install jumpscale
+- **install jumpscale**
 
 ```python
 wikis_machine.jsx_install()
 ```
 
-- Depoloy wikis
+- **Depoloy wikis**
 
 ```python
 wikis_machine.deploy_wikis()
 ```
 
-- Add dns record to the dns hoster
+- **Add dns record to the dns hoster**
 
 ```python
 dns_machine.add_dns_record(subdomain="wikis", domain="web.grid.tf", wikis_machine_ip="WIKIS MACHINE IP", wikis_machine_port="443"):
 ```
 Site should be live now, Congrats!
 
-- to add more tests
+- **to add more tests**
 
 ```python
 wikis_machine.test_macros()
