@@ -154,7 +154,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         self.jsx_install()
         self.deploy_wikis()
         # requires import this method from a file
-        wikis_test_command = """kosmos 'j.servers.myjobs.schedule(TestMacros.load_wiki, "testwikis", "https://github.com/Dinaamagdy/test_custom_md/tree/master/docs")"""
+        wikis_test_command = """kosmos 'j.servers.myjobs.schedule(TestMacros.load_wiki, repo="testwikis", url="https://github.com/Dinaamagdy/test_custom_md/tree/master/docs")"""
 
         self.sshcl.execute(wikis_test_command)
 
