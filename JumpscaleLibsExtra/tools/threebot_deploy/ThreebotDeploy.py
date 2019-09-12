@@ -10,7 +10,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
 
     _SCHEMATEXT = """
     @url = jumpscale.threebot.deploy
-    name* = "" (S)
+    name** = "" (S)
     do_machine_name = "" (S)
     do_token = "" (S)
     do_project_name = "" (S)
