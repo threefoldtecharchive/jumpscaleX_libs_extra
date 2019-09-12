@@ -93,7 +93,8 @@ class ThreebotDeploy(j.baseclasses.object_config):
         """
         : deploy tcp router and coredns on digital ocean machine
         """
-        install_tcpdns_command = "kosmos 'j.builders.network.coredns.install()';"
+        install_tcpdns_command = ". /sandbox/env.sh;"
+        install_tcpdns_command += "kosmos 'j.builders.network.coredns.install()';"
         install_tcpdns_command += "kosmos 'j.builders.network.tcprouter.install()';"
 
         rc, out, err = self.sshcl.execute(install_tcpdns_command)
