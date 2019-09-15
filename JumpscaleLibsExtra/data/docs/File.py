@@ -8,10 +8,10 @@ class File(j.baseclasses.object_config):
 
     _SCHEMATEXT = """
         @url = jumpscale.docs.docsite.1
-        name* = ""
+        name** = ""
         path = ""        
-        state* = "image,html,css" (E)
-        extension* = ""        
+        state** = "image,html,css" (E)
+        extension** =  ""        
 
         """
 

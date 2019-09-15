@@ -7,7 +7,7 @@ JSConfigClient = j.baseclasses.object_config
 class SanicServer(JSConfigClient):
     _SCHEMATEXT = """
            @url =  jumpscale.sanic.server.1
-           name* = "default" (S)
+           name** = "default" (S)
            host = "127.0.0.1" (S)
            port = 8001 (I)
            default_path = "" (S)

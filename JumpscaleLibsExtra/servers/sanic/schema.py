@@ -21,7 +21,7 @@ class Query(graphene.ObjectType, j.baseclasses.object_config_collection_testtool
     def resolve_posts(self, root):
         _SCHEMA_TEXT = """
         @url = graphql.info.schema
-        info_id* = (I)
+        info_id** =  (I)
         title = (S) 
         author = (S)
         name = (S)

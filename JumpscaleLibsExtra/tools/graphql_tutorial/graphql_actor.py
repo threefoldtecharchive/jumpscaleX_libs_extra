@@ -13,7 +13,7 @@ class graphql_actor(JSBASE):
 
     _SCHEMA_TEXT = """
         @url = graphql.info.schema
-        info_id* = (I)
+        info_id** =  (I)
         title = (S) 
         author = (S)
         name = (S)

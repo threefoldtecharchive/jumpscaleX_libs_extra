@@ -26,7 +26,7 @@ JSConfigBase = j.baseclasses.object_config
 class OVCClient(JSConfigBase):
     _SCHEMATEXT = """
     @url = jumpscale.openvcloud.client
-    name* = "" (S)
+    name** = "" (S)
     address = "" (S)
     port = 443 (ipport)
     jwt_ = "" (S)
