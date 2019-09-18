@@ -120,6 +120,15 @@ class ThreebotDeploy(j.baseclasses.object_config):
         if rc > 0:
             raise RuntimeError(out, "Error occured at\n", err)
 
+    def threebot_start(self, web, ssl):
+        cmd = f"""
+        kosmos -p 'threefold = j.servers.threebot.default;\
+        threefold.web={web};\
+        wikis.ssl={ssl};\
+        wikis.start(background=True)'
+        """
+        self.sshcl.execute(cmd)
+
     def deploy_wikis(self):
         """
         : deploy 3bot and wikis on the wikis machine
