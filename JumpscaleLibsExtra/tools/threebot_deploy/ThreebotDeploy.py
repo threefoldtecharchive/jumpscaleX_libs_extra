@@ -35,6 +35,21 @@ class ThreebotDeploy(j.baseclasses.object_config):
             self._do_client = client
         return self._do_client
 
+    def exists(self):
+        return self.do_client.droplet_exists(self.do_machine_name)
+
+    def machine_init(self):
+        """
+        : get digital ocean up machine
+        : sets self._machine and self.sshcl
+        """
+        my_droplet = self.do_client._droplet_get(name=self.do_machine_name)
+        sshcl = j.clients.ssh.get(
+            name=self.do_machine_name, addr=my_droplet.ip_address, client_type="paramiko", sshkey_name=self.ssh_key
+        )
+        self._machine = my_droplet
+        self._sshcl = sshcl
+
     @property
     def do_machine(self):
         """
@@ -42,12 +57,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         : sets self._machine and self.sshcl
         """
         if not self._machine:
-            my_droplet = self.do_client._droplet_get(name=self.do_machine_name)
-            sshcl = j.clients.ssh.get(
-                name=self.do_machine_name, addr=my_droplet.ip_address, client_type="paramiko", sshkey_name=self.ssh_key
-            )
-            self._machine = my_droplet
-            self._sshcl = sshcl
+            self.machine_init()
         return self._machine
 
     @property
@@ -120,13 +130,8 @@ class ThreebotDeploy(j.baseclasses.object_config):
         if rc > 0:
             raise RuntimeError(out, "Error occured at\n", err)
 
-    def threebot_start(self, web, ssl):
-        cmd = f"""
-        kosmos -p 'threefold = j.servers.threebot.default;\
-        threefold.web={web};\
-        wikis.ssl={ssl};\
-        wikis.start(background=True)'
-        """
+    def threebot_start(self, web=True, ssl=True):
+        cmd = f". /sandbox/env.sh; kosmos -p 'j.servers.threebot.install(); threefold = j.servers.threebot.default;threefold.web={web};threefold.ssl={ssl};threefold.start(background=True)'"
         self.sshcl.execute(cmd)
 
     def deploy_wikis(self):
