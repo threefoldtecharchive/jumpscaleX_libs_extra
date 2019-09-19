@@ -1,3 +1,3 @@
-def load_wiki(**kwargs):
-    wiki = j.tools.markdowndocs.load(path=kwargs["url"], name=kwargs["repo"])
+def load_wiki(name, url):
+    wiki = j.tools.markdowndocs.load(path=url, name=name)
     wiki.write()
