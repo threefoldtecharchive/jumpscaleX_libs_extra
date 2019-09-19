@@ -6,6 +6,10 @@ JSBASE = j.baseclasses.object
 class ErrBotFactory(j.baseclasses.object):
     __jslocation__ = "j.servers.errbot"
 
+    def install(self, reset=False):
+        j.builders.runtimes.python3.pip_package_install("errbot")
+        j.builders.runtimes.python3.pip_package_install("python-telegram-bot")
+
     def start(self, reset=False):
         """
         kosmos 'j.servers.errbot.start(reset=True)'
@@ -15,27 +19,22 @@ class ErrBotFactory(j.baseclasses.object):
         #     self.cmd.stop()
 
         import logging
+        import sys
+        import errbot
+        from errbot import BotPlugin, botcmd
+        from errbot.bootstrap import bootstrap
+        from errbot.logs import root_logger
+        from errbot.plugin_wizard import new_plugin_wizard
+        from importlib import util
 
         logger = logging.Logger("installer")
         j.sal.fs.createDir("/tmp/bot")
 
-        import sys
-
         sys.path.append("~/opt/var/build/python3/lib/python3.6/site-packages")
-
-        try:
-            import errbot
-        except:
-            j.builders.runtimes.python3.pip_package_install("errbot")
-            import errbot
-
-        from importlib import util
 
         path = "%s/config.py" % self._dirpath
         spec = util.spec_from_file_location("IT", path)
         config = spec.loader.load_module()
-
-        from errbot import BotPlugin, botcmd
 
         class MyPlugin(BotPlugin):
             def activate(self):
@@ -46,11 +45,7 @@ class ErrBotFactory(j.baseclasses.object):
             def hello(self, msg, args):
                 return self.other.my_variable
 
-        from errbot.bootstrap import bootstrap
-
         backend = config.BACKEND
-        from errbot.logs import root_logger
-        from errbot.plugin_wizard import new_plugin_wizard
 
         bootstrap(backend, root_logger, config)
 
