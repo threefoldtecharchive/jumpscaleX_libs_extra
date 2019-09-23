@@ -17,7 +17,7 @@ class OdooFactory(JSConfigs):
     @property
     def default(self):
         if not self._default:
-            self._default = self.new(name="default")
+            self._default = self.get(name="default")
         return self._default
 
     def install(self, reset=False):

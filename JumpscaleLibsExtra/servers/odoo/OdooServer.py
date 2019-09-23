@@ -49,6 +49,8 @@ class OdooServer(JSConfigClient):
         return p
 
     def _write_config(self):
+        if j.sal.fs.exists(self._config_path):
+            return
         db = self.databases.new()
         C = """
         [options]
@@ -84,11 +86,11 @@ class OdooServer(JSConfigClient):
         API_DROP = "http://{}:{}/web/database/drop".format(self.host, self.port)
         if db_name:
             db = self._database_obj_get(db_name)
-            data = {"master_pwd": db.db_secret_, "name": db_name}
+            data = {"master_pwd": db.admin_passwd_, "name": db_name}
             res = requests.post(url=API_DROP, data=data)
         else:
-            for db in self.databases_list():
-                data = {"master_pwd": db.db_secret_, "name": db}
+            for db in self.databases:
+                data = {"master_pwd": db.admin_passwd_, "name": db}
                 res = requests.post(url=API_DROP, data=data)
         return res
 
@@ -97,7 +99,8 @@ class OdooServer(JSConfigClient):
         list databases from postgresql
         :return:
         """
-        return self.client.databases_list()
+        if self.databases:
+            return j.clients.postgres.db_client_get(self.databases[0].name).db_names_get()
 
     def databases_create(self, reset=False):
         """
@@ -164,31 +167,39 @@ class OdooServer(JSConfigClient):
         """
         Starts odoo server in tmux
         """
-        self._log_info("start odoo server")
-        for cmd in self.startupcmd:
-            cmd.start()
-
-    def stop(self):
-        self._log_info("stop odoo server and postgresql")
-        if not j.core.tools.cmd_installed("postgres"):
-            j.builders.db.psql.install()
-
-        for cmd in self.startupcmd:
-            cmd.stop()
-        j.builders.db.psql.stop()
-
-    @property
-    def startupcmd(self):
         self._write_config()
         j.builders.db.psql.start()
-        db = self.databases.new()
+        if self.databases == []:
+            db = self.databases.new()
+            db.admin_email = self.admin_login
+            db.admin_passwd_ = self.admin_passwd_
+            self.save()
+        else:
+            db = self.databases[0]
         cl = j.clients.postgres.db_client_get(dbname=db.name)
         j.builders.apps.odoo.set_dbname(db.name)
-
-        odoo_start = j.builders.apps.odoo._replace(
-            "sudo -H -u odoouser python3 /sandbox/apps/odoo/odoo/odoo-bin -c {DIR_CFG}/odoo.conf -d %s -i base"
-            % db.name
+        j.sal.process.execute(
+            """psql -h localhost -U postgres \
+                --command="CREATE TABLE IF NOT EXISTS initialize_table (available boolean);" """
         )
+        search = j.sal.process.execute(
+            """psql -h localhost -U postgres \
+                --command="SELECT * FROM initialize_table WHERE available = 'yes';" """
+        )
+        if int(search[1].split("\n")[-3].split(" ")[0].split("(")[1]) > 0:
+            odoo_start = j.builders.apps.odoo._replace(
+                "sudo -H -u odoouser python3 /sandbox/apps/odoo/odoo/odoo-bin -c {DIR_CFG}/odoo.conf"
+            )
+        else:
+            odoo_start = j.builders.apps.odoo._replace(
+                "sudo -H -u odoouser python3 /sandbox/apps/odoo/odoo/odoo-bin -c {DIR_CFG}/odoo.conf -d %s -i base"
+                % db.name
+            )
+            j.sal.process.execute(
+                """psql -h localhost -U postgres \
+                --command='INSERT INTO initialize_table (available) VALUES (TRUE);' """
+            )
+
         odoo_cmd = j.servers.startupcmd.get("odoo")
         odoo_cmd.cmd_start = odoo_start
 
@@ -196,4 +207,14 @@ class OdooServer(JSConfigClient):
         odoo_cmd.path = "/sandbox/bin"
         odoo_cmd.ports = [8069]
 
-        return [odoo_cmd]
+        self._log_info("start odoo server")
+        odoo_cmd.start()
+
+    def stop(self):
+        self._log_info("stop odoo server and postgresql")
+        if not j.core.tools.cmd_installed("postgres"):
+            j.builders.db.psql.install()
+
+        odoo_cmd = j.servers.startupcmd.get("odoo")
+        odoo_cmd.stop()
+        j.builders.db.psql.stop()
