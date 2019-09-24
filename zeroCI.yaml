@@ -1,0 +1,15 @@
+prequisties:
+  - jsx
+
+install:
+  - apt-get update
+  - pip3 install click nose nose-progressive nose-testconfig loguru parameterized
+  - eval `ssh-agent -s`; ssh-add
+  - rm -rf /sandbox/code/github/threefoldtech/*
+  - cd /sandbox/code/github/threefoldtech/
+  - declare strs=('core' 'libs' 'builders' 'threebot') && for s in ${strs[@]}; do git clone https://github.com/threefoldtech/jumpscaleX_$s.git --branch development; done
+  - cp -r /opt/code/github/threefoldtech/jumpscaleX_libs_extra /sandbox/code/github/threefoldtech/jumpscaleX_libs_extra
+  - source /sandbox/env.sh; js_init generate
+
+script:
+  - source /sandbox/env.sh; nosetests-3.4 -v /sandbox/code/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra --with-xunit --xunit-file=/test.xml --xunit-testsuite-name=jumpscaleX_libs_extra
