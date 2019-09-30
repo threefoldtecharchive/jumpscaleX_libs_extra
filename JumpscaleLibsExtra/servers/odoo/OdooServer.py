@@ -99,8 +99,14 @@ class OdooServer(JSConfigClient):
         list databases from postgresql
         :return:
         """
-        if self.databases:
-            return j.clients.postgres.db_client_get(self.databases[0].name).db_names_get()
+        if j.builders.db.psql.running():
+            res = j.sal.process.execute('psql -h localhost -U postgres --command="SELECT datname FROM pg_database;"')
+            if res:
+                return res[1].split("\n")[2:-3]
+        else:
+            raise j.exceptions.Base(
+                "postgres is not running! To run postgres and odoo servers : \n j.servers.odoo.default.start()"
+            )
 
     def databases_create(self, reset=False):
         """
