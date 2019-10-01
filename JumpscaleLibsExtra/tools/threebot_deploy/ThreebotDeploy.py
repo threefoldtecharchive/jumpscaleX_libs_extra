@@ -122,7 +122,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         add_dns_command += "kosmos 'j.builders.network.coredns.stop()';"
         add_dns_command += "kosmos 'j.builders.network.tcprouter.stop()';"
         add_dns_command += f'kosmos "j.tools.tf_gateway.tcpservice_register(\\"{subdomain}\\", \\"{subdomain}.{domain}\\", \\"{wikis_machine_ip}:{wikis_machine_port}\\")";'
-        add_dns_command += f'kosmos "j.tools.tf_gateway.domain_register_a(\\"{subdomain}\\", \\"{domain}\\", \\"{wikis_machine_ip}\\")";'
+        add_dns_command += f'kosmos "j.tools.tf_gateway.domain_register_ipv4(\\"{subdomain}\\", \\"{domain}\\", \\"{wikis_machine_ip}\\")";'
         add_dns_command += "kosmos 'j.builders.network.coredns.start()';"
         add_dns_command += "kosmos 'j.builders.network.tcprouter.start()';"
         rc, out, err = self.sshcl.execute(add_dns_command)

@@ -6,7 +6,7 @@ JSBASE = j.baseclasses.object
 This module assume having tcprouter and coredns installed.
 
 j.tools.tf_gateway.tcpservice_register("bing", "www.bing.com", "122.124.214.21")
-j.tools.tf_gateway.domain_register_a("ahmed", "bots.grid.tf.", "123.3.23.54")  
+j.tools.tf_gateway.domain_register_ipv4("ahmed", "bots.grid.tf.", "123.3.23.54")  
 
 """
 
@@ -73,7 +73,7 @@ class TFGateway(j.baseclasses.object):
         data[record_type] = records
         j.core.db.hset(domain, name, j.data.serializers.json.dumps(data))
 
-    def domain_register_a(self, name, domain, record_ip):
+    def domain_register_ipv4(self, name, domain, record_ips):
         """registers A domain in coredns (needs to be authoritative)
         
         e.g: ahmed.bots.grid.tf
@@ -86,15 +86,18 @@ class TFGateway(j.baseclasses.object):
         :type name: str
         :param domain: str, defaults to "grid.tf."
         :type domain: str, optional
-        :param record_ip: machine ip in ipv4 format
-        :type record_ip: str
+        :param record_ips: machine ips in ipv4 format
+        :type record_ips: list of str
         """
-        if j.data.types.ipaddr.check(record_ip):
-            return self.domain_register(name, domain, record_type="a", records=[{"ip": record_ip}])
-        else:
-            raise j.exceptions.Value("invalid ip {record_ip}".format(**locals()))
+        records = []
+        for ip in record_ips:
+            if j.data.types.ipaddr.check(ip):
+                records.append({"ip": ip})
+            else:
+                raise j.exceptions.Value("invalid ip {}".format(ip))
+        return self.domain_register(name, domain, record_type="a", records=records)
 
-    def domain_register_aaaa(self, name, domain, record_ip):
+    def domain_register_ipv6(self, name, domain, record_ips):
         """registers A domain in coredns (needs to be authoritative)
         
         e.g: ahmed.bots.grid.tf
@@ -107,13 +110,16 @@ class TFGateway(j.baseclasses.object):
         :type name: str
         :param domain: str, defaults to "bots.grid.tf."
         :type domain: str, optional
-        :param record_ip: machine ip in ipv6 format
-        :type record_ip: str
+        :param record_ips: machine ips in ipv6 format
+        :type record_ips: list of str
         """
-        if j.data.types.ipaddr.check(record_ip):
-            return self.domain_register(name, domain, record_type="aaaa", records=[{"ip": record_ip}])
-        else:
-            raise j.exceptions.Value("invalid ip {record_ip}".format(**locals()))
+        records = []
+        for ip in record_ips:
+            if j.data.types.ipaddr.check(ip):
+                records.append({"ip": ip})
+            else:
+                raise j.exceptions.Value("invalid ip {}".format(ip))
+        return self.domain_register(name, domain, record_type="aaaa", records=records)
 
     def domain_register_cname(self, name, domain, host):
         """Register CNAME record
@@ -196,8 +202,8 @@ class TFGateway(j.baseclasses.object):
 
         :return:
         """
-        self.domain_register_a("ns", "3bot.me", "134.209.90.92")
-        self.domain_register_a("a", "3bot.me", "134.209.90.92")
+        self.domain_register_ipv4("ns", "3bot.me", "134.209.90.92")
+        self.domain_register_ipv4("a", "3bot.me", "134.209.90.92")
 
         # to test
         # dig @ns1.name.com a.test.3bot.me
