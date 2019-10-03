@@ -69,7 +69,9 @@ class TFGateway(j.baseclasses.object):
             data = j.data.serializers.json.loads(j.core.db.hget(domain, name))
 
         if record_type in data:
-            records.extend(data[record_type])
+            for record in data[record_type]:
+                if record not in records:
+                    records.append(record)
         data[record_type] = records
         j.core.db.hset(domain, name, j.data.serializers.json.dumps(data))
 
