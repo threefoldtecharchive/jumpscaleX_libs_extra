@@ -143,7 +143,8 @@ class ThreebotDeploy(j.baseclasses.object_config):
         wikis_command = ". /sandbox/env.sh;"
         wikis_command += "kosmos -p 'j.threebot.package.wikis.install()';"
         wikis_command += "kosmos -p 'j.builders.apps.threebot.install()';"
-        wikis_command += "kosmos -p 'wikis = j.servers.threebot.default; wikis.web=True; wikis.ssl=True; wikis.start(background=True)';"
+        wikis_command += "kosmos -p 'j.tools.threebot_packages.get(\"wikis\")'"
+        wikis_command += "kosmos -p 'j.servers.threebot.local_start_default(web=True)'"
 
         self.sshcl.execute(wikis_command)
 
