@@ -104,8 +104,8 @@ class ThreebotDeploy(j.baseclasses.object_config):
         : deploy tcp router and coredns on digital ocean machine
         """
         install_tcpdns_command = ". /sandbox/env.sh;"
-        install_tcpdns_command += "kosmos 'j.builders.network.coredns.install()';"
         install_tcpdns_command += "kosmos 'j.builders.network.tcprouter.install()';"
+        install_tcpdns_command += "kosmos 'j.builders.network.coredns.install()';"
 
         rc, out, err = self.sshcl.execute(install_tcpdns_command)
 
@@ -170,7 +170,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         self.jsx_install()
         self.deploy_wikis()
         # requires import this method from a file
-        wikis_test_command = "kosmos 'j.servers.myjobs.schedule(TestMacros.load_wiki, repo='testwikis', url='https://github.com/waleedhammam/test_custom_md/tree/master/docs')'"
+        wikis_test_command = "kosmos -p 'j.servers.myjobs.schedule(TestMacros.load_wiki, repo='testwikis', url='https://github.com/waleedhammam/test_custom_md/tree/master/docs')'"
 
         self.sshcl.execute(wikis_test_command)
 
