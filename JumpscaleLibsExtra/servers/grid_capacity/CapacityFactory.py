@@ -19,7 +19,7 @@ class CapacityFactory(JSConfigBase):
             j.servers.tmux.execute(
                 cmd, session="capacity_server", window=instance, pane="main", session_reset=False, window_reset=True
             )
-            res = j.sal.nettools.waitConnectionTest("localhost", int(server.config.data["port"]), timeoutTotal=1000)
+            res = j.sal.nettools.waitConnectionTest("localhost", int(server.config.data["port"]), timeout=1000)
             if res == False:
                 raise j.exceptions.Base("Could not start capacity server on port:%s" % int(server.config.data["port"]))
         else:
