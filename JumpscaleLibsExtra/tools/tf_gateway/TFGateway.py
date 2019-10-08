@@ -4,10 +4,9 @@ JSBASE = j.baseclasses.object
 
 """
 This module assume having tcprouter and coredns installed.
-
-j.tools.tf_gateway.tcpservice_register("bing", "www.bing.com", "122.124.214.21")
-j.tools.tf_gateway.domain_register_ipv4("ahmed", "bots.grid.tf.", "123.3.23.54")  
-
+tfgateway = j.tools.tf_gateway.get(j.core.db) # or another redisclient
+tfgateway.tcpservice_register("bing", "www.bing.com", "122.124.214.21")
+tfgateway.domain_register_a("ahmed", "bots.grid.tf.", "123.3.23.54")
 """
 
 
@@ -16,7 +15,10 @@ class TFGateway(j.baseclasses.object):
     tool to register tcpservices in tcprouter and coredns records
     """
 
-    __jslocation__ = "j.tools.tf_gateway"
+    def __init__(self, redisclient, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.redisclient = redisclient
+
 
     def install(self):
         j.builders.network.tcprouter.install()
@@ -41,7 +43,7 @@ class TFGateway(j.baseclasses.object):
         json_dumped_record_bytes = j.data.serializers.json.dumps(record).encode()
         b64_record = j.data.serializers.base64.encode(json_dumped_record_bytes).decode()
         service["Value"] = b64_record
-        j.core.db.set(service["Key"], j.data.serializers.json.dumps(service))
+        self.redisclient.set(service["Key"], j.data.serializers.json.dumps(service))
 
     def domain_register(self, name, domain="bots.grid.tf.", record_type="a", records=None):
         """registers domain in coredns (needs to be authoritative)
@@ -65,15 +67,26 @@ class TFGateway(j.baseclasses.object):
             domain += "."
         data = {}
         records = records or []
-        if j.core.db.hexists(domain, name):
-            data = j.data.serializers.json.loads(j.core.db.hget(domain, name))
+        if self.redisclient.hexists(domain, name):
+            data = j.data.serializers.json.loads(self.redisclient.hget(domain, name))
 
         if record_type in data:
             for record in data[record_type]:
                 if record not in records:
                     records.append(record)
         data[record_type] = records
-        j.core.db.hset(domain, name, j.data.serializers.json.dumps(data))
+        self.redisclient.hset(domain, name, j.data.serializers.json.dumps(data))
+
+    def domain_list(self):
+        return self.redisclient.keys("*.")
+
+    def domain_dump(self, domain):
+        if not domain.endswith("."):
+            domain += "."
+        resulset = {}
+        for key, value in self.redisclient.hgetall(domain).items():
+            resulset[key.decode()] =  j.data.serializers.json.loads(value)
+        return resulset
 
     def domain_register_ipv4(self, name, domain, record_ips):
         """registers A domain in coredns (needs to be authoritative)
