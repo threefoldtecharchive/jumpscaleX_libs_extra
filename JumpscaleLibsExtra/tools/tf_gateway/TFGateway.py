@@ -19,7 +19,6 @@ class TFGateway(j.baseclasses.object):
         super().__init__(*args, **kwargs)
         self.redisclient = redisclient
 
-
     def install(self):
         j.builders.network.tcprouter.install()
         j.builders.network.tcprouter.start()
@@ -85,7 +84,7 @@ class TFGateway(j.baseclasses.object):
             domain += "."
         resulset = {}
         for key, value in self.redisclient.hgetall(domain).items():
-            resulset[key.decode()] =  j.data.serializers.json.loads(value)
+            resulset[key.decode()] = j.data.serializers.json.loads(value)
         return resulset
 
     def domain_register_ipv4(self, name, domain, record_ips):
