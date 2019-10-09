@@ -102,7 +102,7 @@ class OdooServer(JSConfigClient):
         if j.builders.db.psql.running():
             res = j.sal.process.execute('psql -h localhost -U postgres --command="SELECT datname FROM pg_database;"')
             if res:
-                return res[1].split("\n")[2:-3]
+                return res[1].replace(" ", "").split("\n")[2:-3]
         else:
             raise j.exceptions.Base(
                 "postgres is not running! To run postgres and odoo servers : \n j.servers.odoo.default.start()"
