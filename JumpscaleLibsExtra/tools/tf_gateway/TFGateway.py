@@ -23,6 +23,18 @@ class TFGateway(j.baseclasses.object):
         if not j.data.types.ipaddr.check(ip):
             raise j.exceptions.Value("invalid ip {}".format(ip))
 
+    def _records_get(self, record_ip):
+        records = []
+        if isinstance(record_ip, str):
+            self._validate_ip(record_ip)
+            records = [{"ip": record_ip}]
+
+        elif isinstance(record_ip, list):
+            for ip in record_ip:
+                self._validate_ip(ip)
+                records.append({"ip": ip})
+        return records
+
     def install(self):
         j.builders.network.tcprouter.install()
         j.builders.network.tcprouter.start()
@@ -91,6 +103,10 @@ class TFGateway(j.baseclasses.object):
             resulset[key.decode()] = j.data.serializers.json.loads(value)
         return resulset
 
+    def subdomain_get(self, domain, subdomain):
+        domain_info = self.domain_dump(domain)
+        return domain_info.get(subdomain, None)
+
     def domain_register_a(self, name, domain, record_ip):
         """registers A domain in coredns (needs to be authoritative)
         
@@ -107,16 +123,7 @@ class TFGateway(j.baseclasses.object):
         :param record_ip: machine ip in ipv4 format
         :type record_ip: str or list of str
         """
-        records = []
-        if isinstance(record_ip, str):
-            self._validate_ip(record_ip)
-            records = [{"ip": record_ip}]
-
-        elif isinstance(record_ip, list):
-            for ip in record_ip:
-                self._validate_ip(ip)
-                records.append({"ip": ip})
-
+        records = self._records_get(record_ip)
         return self.domain_register(name, domain, record_type="a", records=records)
 
     def domain_register_aaaa(self, name, domain, record_ip):
@@ -135,16 +142,7 @@ class TFGateway(j.baseclasses.object):
         :param record_ip: machine ips in ipv6 format
         :type record_ip: list of str
         """
-        records = []
-        if isinstance(record_ip, str):
-            self._validate_ip(record_ip)
-            records = [{"ip": record_ip}]
-
-        elif isinstance(record_ip, list):
-            for ip in record_ip:
-                self._validate_ip(ip)
-                records.append({"ip": ip})
-
+        records = self._records_get(record_ip)
         return self.domain_register(name, domain, record_type="aaaa", records=records)
 
     def domain_register_cname(self, name, domain, host):
