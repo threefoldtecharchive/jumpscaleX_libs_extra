@@ -104,8 +104,10 @@ class TFGateway(j.baseclasses.object):
         return resulset
 
     def subdomain_get(self, domain, subdomain):
-        domain_info = self.domain_dump(domain)
-        return domain_info.get(subdomain, None)
+        if not domain.endswith("."):
+            domain += "."
+        subdomain_info = self.redisclient.hget(domain, subdomain)
+        return j.data.serializers.json.loads(subdomain_info)
 
     def domain_register_a(self, name, domain, record_ip):
         """registers A domain in coredns (needs to be authoritative)
