@@ -165,6 +165,8 @@ class TFGateway(j.baseclasses.object):
         :param host: cname
         :type host: str
         """
+        if not host.endswith("."):
+            host += "."
         self.domain_register(name, domain, "cname", records=[{"host": host}])
 
     def domain_register_ns(self, name, domain, host):
