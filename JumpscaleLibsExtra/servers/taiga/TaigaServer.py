@@ -12,6 +12,9 @@ class TaigaServer(j.baseclasses.object_config):
            backend_repo = "https://github.com/taigaio/taiga-back.git" (S)
            frontend_repo = "https://github.com/taigaio/taiga-front-dist.git" (S)
            events_repo = "https://github.com/taigaio/taiga-events.git" (S)
+           branch_backend = "stable" (S)
+           branch_frontend = "stable" (S)
+           branch_events = "master" (S)
            secret_ = "" (S)
            """
 
@@ -23,10 +26,14 @@ class TaigaServer(j.baseclasses.object_config):
 
     def install(self, reset=False):
         j.builders.apps.taiga.install_deps(reset=reset)
-        j.builders.apps.taiga._backend_install(backend_repo=self.backend_repo)
+        j.builders.apps.taiga._backend_install(backend_repo=self.backend_repo, branch=branch_backend)
         j.sal.fs.createDir(self.NGINX_LOG_DIR)
-        j.builders.apps.taiga._frontend_install(frontend_repo=self.frontend_repo, host=self.host, port=self.port)
-        j.builders.apps.taiga._events_install(events_repo=self.events_repo, rabbitmq_secret=self.secret_)
+        j.builders.apps.taiga._frontend_install(
+            frontend_repo=self.frontend_repo, host=self.host, port=self.port, branch=branch_frontend
+        )
+        j.builders.apps.taiga._events_install(
+            events_repo=self.events_repo, rabbitmq_secret=self.secret_, branch=branch_events
+        )
 
     def start(self):
         """
