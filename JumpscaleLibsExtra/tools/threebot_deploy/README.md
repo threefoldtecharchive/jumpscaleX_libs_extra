@@ -14,7 +14,7 @@ kosmos
 ```
 
 ```python
-dns_machine = j.tools.threebot_deploy.get("dns", do_machine_name="dogateway", do_token="YOUR DIGITAL OCEAN TOKEN", do_project_name="codescalers", ssh_key="YOUR SSH KEY")
+dns_machine = j.tools.threebot_deploy.get("dns", do_machine_name="dogateway", do_token="YOUR DIGITAL OCEAN TOKEN", ssh_key="YOUR SSH KEY")
 ```
 
 - **Get/Create the machine**
