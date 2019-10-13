@@ -84,6 +84,7 @@ class OdooServer(JSConfigClient):
         :return:
         """
         API_DROP = "http://{}:{}/web/database/drop".format(self.host, self.port)
+        res = None
         if db_name:
             db = self._database_obj_get(db_name)
             data = {"master_pwd": db.admin_passwd_, "name": db_name}

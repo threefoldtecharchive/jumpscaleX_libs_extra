@@ -101,7 +101,7 @@ class TFGateway(j.baseclasses.object):
         if self.redisclient.exists(domain):
             return True
         subdomain, domain = domain.split(".", 1)
-        return self.redisclient.hexist(domain, subdomain)
+        return self.redisclient.hexists(domain, subdomain)
 
     def domain_dump(self, domain):
         if not domain.endswith("."):
