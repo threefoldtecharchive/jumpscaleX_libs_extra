@@ -13,7 +13,6 @@ class ThreebotDeploy(j.baseclasses.object_config):
     name** = "" (S)
     do_machine_name = "" (S)
     do_token = "" (S)
-    do_project_name = "" (S)
     ssh_key = "" (S)
     """
 
@@ -29,9 +28,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         : return: jsx client object
         """
         if not self._do_client:
-            client = j.clients.digitalocean.get(
-                name=self.do_machine_name, token_=self.do_token, project_name=self.do_project_name
-            )
+            client = j.clients.digitalocean.get(name=self.do_machine_name, token_=self.do_token)
             self._do_client = client
         return self._do_client
 
@@ -123,8 +120,8 @@ class ThreebotDeploy(j.baseclasses.object_config):
         add_dns_command = ". /sandbox/env.sh;"
         add_dns_command += "kosmos 'j.builders.network.coredns.stop()';"
         add_dns_command += "kosmos 'j.builders.network.tcprouter.stop()';"
-        add_dns_command += f'kosmos "j.tools.tf_gateway.tcpservice_register(\\"{subdomain}\\", \\"{subdomain}.{domain}\\", \\"{wikis_machine_ip}:{wikis_machine_port}\\")";'
-        add_dns_command += f'kosmos "j.tools.tf_gateway.domain_register_a(\\"{subdomain}\\", \\"{domain}\\", [\\"{wikis_machine_ip}\\"])";'
+        add_dns_command += f'kosmos "redis_client = j.clients.redis.get(); j.tools.tf_gateway.get(redis_client).tcpservice_register(\\"{subdomain}.{domain}\\", \\"{wikis_machine_ip}\\", {wikis_machine_port})";'
+        add_dns_command += f'kosmos "redis_client = j.clients.redis.get(); j.tools.tf_gateway.get(redis_client).domain_register_a(\\"{subdomain}\\", \\"{domain}\\", [\\"{wikis_machine_ip}\\"])";'
         add_dns_command += "kosmos 'j.builders.network.coredns.start()';"
         add_dns_command += "kosmos 'j.builders.network.tcprouter.start()';"
         rc, out, err = self.sshcl.execute(add_dns_command)
