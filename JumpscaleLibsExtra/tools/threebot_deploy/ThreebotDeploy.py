@@ -120,7 +120,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         add_dns_command = ". /sandbox/env.sh;"
         add_dns_command += "kosmos 'j.builders.network.coredns.stop()';"
         add_dns_command += "kosmos 'j.builders.network.tcprouter.stop()';"
-        add_dns_command += f'kosmos "redis_client = j.clients.redis.get(); j.tools.tf_gateway.get(redis_client).tcpservice_register(\\"{subdomain}\\", \\"{subdomain}.{domain}\\", \\"{wikis_machine_ip}:{wikis_machine_port}\\")";'
+        add_dns_command += f'kosmos "redis_client = j.clients.redis.get(); j.tools.tf_gateway.get(redis_client).tcpservice_register(\\"{subdomain}.{domain}\\", \\"{wikis_machine_ip}\\", {wikis_machine_port})";'
         add_dns_command += f'kosmos "redis_client = j.clients.redis.get(); j.tools.tf_gateway.get(redis_client).domain_register_a(\\"{subdomain}\\", \\"{domain}\\", [\\"{wikis_machine_ip}\\"])";'
         add_dns_command += "kosmos 'j.builders.network.coredns.start()';"
         add_dns_command += "kosmos 'j.builders.network.tcprouter.start()';"
