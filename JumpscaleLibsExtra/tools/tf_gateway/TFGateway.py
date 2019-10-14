@@ -41,20 +41,22 @@ class TFGateway(j.baseclasses.object):
         j.builders.network.coredns.install()
         j.builders.network.coredns.start()
 
-    def tcpservice_register(self, service_name, domain, service_endpoint):
+    def tcpservice_register(self, domain, service_addr, service_port=443, service_http_port=80):
         """
         register a tcpservice to be used by tcprouter in j.core.db
 
-        :param service_name: service name to register in tcprouter
-        :type service_name: str
         :param domain: (Server Name Indicator SNI) (e.g www.facebook.com)
         :type domain: str
-        :param service_endpoint: TLS endpoint 102.142.96.34:443 "ip:port"
+        :param service_addr: IPAddress of the service
         :type service_endpoint: string 
+        :param service_port: Port of the tls services
+        :type service_port: int
+        :param service_http_port: Port of the service
+        :type service_http_port: int
         """
         service = {}
-        service["Key"] = "/tcprouter/service/{}".format(service_name)
-        record = {"addr": service_endpoint, "sni": domain, "name": service_name}
+        service["Key"] = "/tcprouter/service/{}".format(domain)
+        record = {"addr": service_addr, "tlsport": service_port, "httpport": service_http_port}
         json_dumped_record_bytes = j.data.serializers.json.dumps(record).encode()
         b64_record = j.data.serializers.base64.encode(json_dumped_record_bytes).decode()
         service["Value"] = b64_record
