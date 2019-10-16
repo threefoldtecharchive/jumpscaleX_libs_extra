@@ -164,8 +164,8 @@ class ThreebotDeploy(j.baseclasses.object_config):
         """
         : add some wikis tests to test with some macros
         """
-        self.deploy_wikis()
         test_command = ". /sandbox/env.sh;"
+        test_command += "kosmos -p 'cl = j.servers.threebot.local_start_default(web=True);"
         test_command += "jsx wiki-load -u https://github.com/threefoldtech/jumpscaleX_threebot/tree/development/docs/wikis/examples/docs -n examples -f"
         rc, out, err = self.sshcl.execute(test_command)
 
