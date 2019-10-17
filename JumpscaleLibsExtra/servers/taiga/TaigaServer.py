@@ -15,7 +15,7 @@ class TaigaServer(j.baseclasses.object_config):
            branch_backend = "stable" (S)
            branch_frontend = "stable" (S)
            branch_events = "master" (S)
-           secret_ = "" (S)
+           secret_ = "123123" (S)
            """
 
     def _init(self, **kwargs):
@@ -23,10 +23,13 @@ class TaigaServer(j.baseclasses.object_config):
         self.NGINX_LOG_DIR = f"/home/{self.taiga_user}/logs"
         self.backend_repo_dir = j.builders.apps.taiga.backend_repo_dir
         self.frontend_repo_dir = j.builders.apps.taiga.frontend_repo_dir
+        self.events_repo_dir = j.builders.apps.taiga.events_repo_dir
 
     def install(self, reset=False):
         j.builders.apps.taiga.install_deps(reset=reset)
-        j.builders.apps.taiga._backend_install(backend_repo=self.backend_repo, branch=self.branch_backend)
+        j.builders.apps.taiga._backend_install(
+            backend_repo=self.backend_repo, rabbitmq_secret=self.secret_, branch=self.branch_backend
+        )
         j.sal.fs.createDir(self.NGINX_LOG_DIR)
         j.builders.apps.taiga._frontend_install(
             frontend_repo=self.frontend_repo, host=self.host, port=self.port, branch=self.branch_frontend
@@ -66,9 +69,9 @@ class TaigaServer(j.baseclasses.object_config):
         taiga_startup_cmd.cmd_start = f"su {self.taiga_user} -c '/home/{self.taiga_user}/.virtualenvs/{self.taiga_user}/bin/gunicorn --workers 4 --timeout 60 -b 127.0.0.1:8001 taiga.wsgi'"
 
         taiga_events = j.servers.startupcmd.get("taiga_events")
-        taiga_events.path = f"{self.events_repo_dir}"
-        taiga_events.cmd_start = (
-            f"su {self.taiga_user} -c '/bin/bash -c 'node_modules/coffeescript/bin/coffee index.coffee''"
-        )
+        taiga_events.path = f"{self.events_repo}"
+        taiga_events.cmd_start = f"""
+            su {self.taiga_user} -c 'export PATH=$PATH:/sandbox/bin;cd {self.events_repo_dir}; /bin/bash -c \\"node_modules/coffeescript/bin/coffee index.coffee\\"'
+            """
 
         return [taiga_events, taiga_startup_cmd]

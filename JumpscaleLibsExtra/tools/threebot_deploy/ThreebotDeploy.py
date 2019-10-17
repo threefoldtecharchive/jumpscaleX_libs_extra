@@ -160,16 +160,17 @@ class ThreebotDeploy(j.baseclasses.object_config):
         if rc > 0:
             raise RuntimeError(out, "Error occured at\n", err)
 
-    def test_macros(self):
+    def test_wikis(self):
         """
         : add some wikis tests to test with some macros
         """
-        self.jsx_install()
-        self.deploy_wikis()
-        # requires import this method from a file
-        wikis_test_command = "kosmos -p 'j.servers.myjobs.schedule(TestMacros.load_wiki, repo='testwikis', url='https://github.com/waleedhammam/test_custom_md/tree/master/docs')'"
+        test_command = ". /sandbox/env.sh;"
+        test_command += "kosmos -p 'cl = j.servers.threebot.local_start_default(web=True);"
+        test_command += "jsx wiki-load -u https://github.com/threefoldtech/jumpscaleX_threebot/tree/development/docs/wikis/examples/docs -n examples -f"
+        rc, out, err = self.sshcl.execute(test_command)
 
-        self.sshcl.execute(wikis_test_command)
+        if rc > 0:
+            raise RuntimeError(out, "Error occured at\n", err)
 
 
 class ThreebotDeployFactory(j.baseclasses.object_config_collection):
