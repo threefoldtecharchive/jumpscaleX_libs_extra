@@ -13,6 +13,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
     name** = "" (S)
     do_machine_name = "" (S)
     do_token = "" (S)
+    do_project_name = "" (S)
     ssh_key = "" (S)
     """
 
@@ -28,7 +29,9 @@ class ThreebotDeploy(j.baseclasses.object_config):
         : return: jsx client object
         """
         if not self._do_client:
-            client = j.clients.digitalocean.get(name=self.do_machine_name, token_=self.do_token)
+            client = j.clients.digitalocean.get(
+                name=self.do_machine_name, token_=self.do_token, project_name=self.do_project_name
+            )
             self._do_client = client
         return self._do_client
 
@@ -41,6 +44,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         : sets self._machine and self.sshcl
         """
         my_droplet = self.do_client._droplet_get(name=self.do_machine_name)
+        j.sal.nettools.waitConnectionTest(my_droplet.ip_address, 22, 180)
         sshcl = j.clients.ssh.get(
             name=self.do_machine_name, addr=my_droplet.ip_address, client_type="paramiko", sshkey_name=self.ssh_key
         )
@@ -132,15 +136,17 @@ class ThreebotDeploy(j.baseclasses.object_config):
     def threebot_start(self, web=True, ssl=True):
         cmd = f". /sandbox/env.sh; kosmos -p 'j.servers.threebot.install(); threefold = j.servers.threebot.default;threefold.web={web};threefold.ssl={ssl};threefold.start(background=True)'"
         self.sshcl.execute(cmd)
+        return j.clients.gedis.get(name=self.do_machine.name, port=8901, host=self.do_machine.ip_address)
 
     def deploy_wikis(self):
         """
         : deploy 3bot and wikis on the wikis machine
         """
-        wikis_command = ". /sandbox/env.sh;"
+        wikis_command = "apt-get install -y graphviz;"
+        wikis_command += ". /sandbox/env.sh;"
         wikis_command += "kosmos -p 'j.threebot.package.wikis.install()';"
         wikis_command += "kosmos -p 'j.builders.apps.threebot.install()';"
-        wikis_command += """kosmos -p 'cl = j.servers.threebot.local_start_default(web=True); cl.actors.package_manager.package_add(path=\\"/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/threebot/wiki\\")';"""
+        wikis_command += "kosmos -p 'cl = j.servers.threebot.local_start_default(web=True)"
         wikis_command += "jsx wiki-load;"
         self.sshcl.execute(wikis_command)
 
@@ -165,8 +171,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         : add some wikis tests to test with some macros
         """
         test_command = ". /sandbox/env.sh;"
-        test_command += "kosmos -p 'cl = j.servers.threebot.local_start_default(web=True)';"
-        test_command += "jsx wiki-load;"
+        test_command += "jsx threebot-test -d -w;"
         rc, out, err = self.sshcl.execute(test_command)
 
         if rc > 0:

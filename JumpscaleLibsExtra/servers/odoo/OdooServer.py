@@ -87,11 +87,11 @@ class OdooServer(JSConfigClient):
         res = None
         if db_name:
             db = self._database_obj_get(db_name)
-            data = {"master_pwd": db.admin_passwd_, "name": db_name}
+            data = {"master_pwd": self.admin_passwd_, "name": db_name}
             res = requests.post(url=API_DROP, data=data)
         else:
             for db in self.databases:
-                data = {"master_pwd": db.admin_passwd_, "name": db}
+                data = {"master_pwd": self.admin_passwd_, "name": db}
                 res = requests.post(url=API_DROP, data=data)
         return res
 
