@@ -13,6 +13,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
     name** = "" (S)
     do_machine_name = "" (S)
     do_token = "" (S)
+    do_project_name = "" (S)
     ssh_key = "" (S)
     """
 
@@ -28,7 +29,9 @@ class ThreebotDeploy(j.baseclasses.object_config):
         : return: jsx client object
         """
         if not self._do_client:
-            client = j.clients.digitalocean.get(name=self.do_machine_name, token_=self.do_token)
+            client = j.clients.digitalocean.get(
+                name=self.do_machine_name, token_=self.do_token, project_name=self.do_project_name
+            )
             self._do_client = client
         return self._do_client
 
