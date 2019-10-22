@@ -1,5 +1,5 @@
 from Jumpscale import j
-from . import TestMacros
+import os
 
 
 class ThreebotDeploy(j.baseclasses.object_config):
@@ -21,6 +21,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         self._do_client = None
         self._machine = None
         self._sshcl = None
+        self._container_ssh = None
 
     @property
     def do_client(self):
@@ -67,6 +68,17 @@ class ThreebotDeploy(j.baseclasses.object_config):
             self.do_machine
         return self._sshcl
 
+    @property
+    def container_ssh(self):
+        if not self._container_ssh:
+            self._container_ssh = j.clients.ssh.get(
+                name=f"{self.do_machine_name}_docker",
+                addr=self._machine.ip_address,
+                port=9000,
+                sshkey_name=self.ssh_key,
+            )
+        return self._container_ssh
+
     def create_new_do_machine(self, size_slug="s-1vcpu-1gb"):
         """
         : get digital ocean up machine
@@ -90,10 +102,11 @@ class ThreebotDeploy(j.baseclasses.object_config):
         install_cmd = "export DEBIAN_FRONTEND=noninteractive;"
         install_cmd += f"curl https://raw.githubusercontent.com/threefoldtech/jumpscaleX_core/{branch}/install/jsx.py?$RANDOM > /tmp/jsx;"
         install_cmd += "chmod +x /tmp/jsx;"
-        install_cmd += "eval `ssh-agent -s`;"
-        install_cmd += "rm -rf ~/.ssh/id_rsa ~/.ssh/id_rsa.pub;"
-        install_cmd += 'ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa -q -P "";'
-        install_cmd += f"/tmp/jsx install -s -b {branch}"
+        if not os.environ.get("SSH_AUTH_SOCK"):
+            install_cmd += "eval `ssh-agent -s`;"
+            install_cmd += "rm -rf ~/.ssh/id_rsa ~/.ssh/id_rsa.pub;"
+            install_cmd += 'ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa -q -P "";'
+        install_cmd += f"/tmp/jsx container-install -s -b {branch} --ports 80:80 --ports 443:443 --ports 8901:8901"
 
         rc, out, err = self.sshcl.execute(install_cmd)
 
@@ -108,7 +121,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         install_tcpdns_command += "kosmos 'j.builders.network.tcprouter.install()';"
         install_tcpdns_command += "kosmos 'j.builders.network.coredns.install()';"
 
-        rc, out, err = self.sshcl.execute(install_tcpdns_command)
+        rc, out, err = self.container_ssh.execute(install_tcpdns_command)
 
         if rc > 0:
             raise RuntimeError(out, "Error occured at\n", err)
@@ -128,14 +141,14 @@ class ThreebotDeploy(j.baseclasses.object_config):
         add_dns_command += f'kosmos "redis_client = j.clients.redis.get(); j.tools.tf_gateway.get(redis_client).domain_register_a(\\"{subdomain}\\", \\"{domain}\\", [\\"{wikis_machine_ip}\\"])";'
         add_dns_command += "kosmos 'j.builders.network.coredns.start()';"
         add_dns_command += "kosmos 'j.builders.network.tcprouter.start()';"
-        rc, out, err = self.sshcl.execute(add_dns_command)
+        rc, out, err = self.container_ssh.execute(add_dns_command)
 
         if rc > 0:
             raise RuntimeError(out, "Error occured at\n", err)
 
     def threebot_start(self, web=True, ssl=True):
         cmd = f". /sandbox/env.sh; kosmos -p 'j.servers.threebot.install(); threefold = j.servers.threebot.default;threefold.web={web};threefold.ssl={ssl};threefold.start(background=True)'"
-        self.sshcl.execute(cmd)
+        self.container_ssh.execute(cmd)
         return j.clients.gedis.get(name=self.do_machine.name, port=8901, host=self.do_machine.ip_address)
 
     def deploy_wikis(self):
@@ -148,7 +161,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         wikis_command += "kosmos -p 'j.builders.apps.threebot.install()';"
         wikis_command += "kosmos -p 'cl = j.servers.threebot.local_start_default(web=True)"
         wikis_command += "jsx wiki-load;"
-        self.sshcl.execute(wikis_command)
+        self.container_ssh.execute(wikis_command)
 
     def reset_env(self):
         """
@@ -161,7 +174,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         reset_command += "kosmos 'j.application.bcdb_system_destroy()';"
         reset_command += "kosmos 'j.servers.sonic.default.destroy()';"
 
-        rc, out, err = self.sshcl.execute(reset_command)
+        rc, out, err = self.container_ssh.execute(reset_command)
 
         if rc > 0:
             raise RuntimeError(out, "Error occured at\n", err)
@@ -172,7 +185,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         """
         test_command = ". /sandbox/env.sh;"
         test_command += "jsx threebot-test -d -w;"
-        rc, out, err = self.sshcl.execute(test_command)
+        rc, out, err = self.container_ssh.execute(test_command)
 
         if rc > 0:
             raise RuntimeError(out, "Error occured at\n", err)
