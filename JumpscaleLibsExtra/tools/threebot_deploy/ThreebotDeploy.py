@@ -79,6 +79,9 @@ class ThreebotDeploy(j.baseclasses.object_config):
             )
         return self._container_ssh
 
+    def wireguard_install(self):
+        j.tools.wireguard.new(name=self.do_machine_name, sshclient_name=self.do_machine_name, autosave=False).install()
+
     def create_new_do_machine(self, size_slug="s-1vcpu-1gb"):
         """
         : get digital ocean up machine
@@ -149,6 +152,10 @@ class ThreebotDeploy(j.baseclasses.object_config):
     def threebot_start(self, web=True, ssl=True):
         cmd = f". /sandbox/env.sh; kosmos -p 'j.servers.threebot.install(); threefold = j.servers.threebot.default;threefold.web={web};threefold.ssl={ssl};threefold.start(background=True)'"
         self.container_ssh.execute(cmd)
+        return self.threebot_client()
+
+    def threebot_client(self):
+        j.sal.nettools.waitConnectionTest(self.do_machine.ip_address, 8901, 600)
         return j.clients.gedis.get(name=self.do_machine.name, port=8901, host=self.do_machine.ip_address)
 
     def deploy_wikis(self):
