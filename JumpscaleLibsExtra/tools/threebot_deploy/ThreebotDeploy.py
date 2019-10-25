@@ -89,7 +89,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         : return: digital ocean droplet object and sshclient object
         """
         my_droplet, sshcl = self.do_client.droplet_create(
-            name=self.do_machine_name, sshkey=self.ssh_key, size_slug=size_slug
+            name=self.do_machine_name, sshkey=self.ssh_key, size_slug=size_slug, project_name=self.do_project_name
         )
 
         if not my_droplet and not sshcl:
