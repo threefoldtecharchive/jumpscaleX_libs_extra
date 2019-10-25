@@ -107,8 +107,8 @@ class ThreebotDeploy(j.baseclasses.object_config):
         install_cmd += "chmod +x /tmp/jsx;"
         if not os.environ.get("SSH_AUTH_SOCK"):
             install_cmd += "eval `ssh-agent -s`;"
-            install_cmd += "rm -rf ~/.ssh/id_rsa ~/.ssh/id_rsa.pub;"
-            install_cmd += 'ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa -q -P "";'
+        install_cmd += "rm -rf ~/.ssh/id_rsa ~/.ssh/id_rsa.pub;"
+        install_cmd += 'ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa -q -P "";'
         install_cmd += f"/tmp/jsx container-install -s -b {branch} --ports 80:80 --ports 443:443 --ports 8901:8901"
 
         rc, out, err = self.sshcl.execute(install_cmd)
