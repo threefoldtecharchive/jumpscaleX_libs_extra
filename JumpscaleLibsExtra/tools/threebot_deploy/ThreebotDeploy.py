@@ -152,7 +152,9 @@ class ThreebotDeploy(j.baseclasses.object_config):
     def threebot_start(self, web=True, ssl=True):
         cmd = f". /sandbox/env.sh; kosmos -p 'j.servers.threebot.install(); threefold = j.servers.threebot.default;threefold.web={web};threefold.ssl={ssl};threefold.start(background=True)'"
         self.container_ssh.execute(cmd)
-        return self.threebot_client()
+        client = self.threebot_client()
+        client.actors.package_manager.package_add(path="/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/threebot/registration/")
+        return client
 
     def threebot_client(self):
         j.sal.nettools.waitConnectionTest(self.do_machine.ip_address, 8901, 600)
