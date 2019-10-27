@@ -79,6 +79,9 @@ class ThreebotDeploy(j.baseclasses.object_config):
             )
         return self._container_ssh
 
+    def wireguard_install(self):
+        j.tools.wireguard.new(name=self.do_machine_name, sshclient_name=self.do_machine_name, autosave=False).install()
+
     def create_new_do_machine(self, size_slug="s-1vcpu-1gb"):
         """
         : get digital ocean up machine
@@ -86,7 +89,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         : return: digital ocean droplet object and sshclient object
         """
         my_droplet, sshcl = self.do_client.droplet_create(
-            name=self.do_machine_name, sshkey=self.ssh_key, size_slug=size_slug
+            name=self.do_machine_name, sshkey=self.ssh_key, size_slug=size_slug, project_name=self.do_project_name
         )
 
         if not my_droplet and not sshcl:
@@ -104,8 +107,8 @@ class ThreebotDeploy(j.baseclasses.object_config):
         install_cmd += "chmod +x /tmp/jsx;"
         if not os.environ.get("SSH_AUTH_SOCK"):
             install_cmd += "eval `ssh-agent -s`;"
-            install_cmd += "rm -rf ~/.ssh/id_rsa ~/.ssh/id_rsa.pub;"
-            install_cmd += 'ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa -q -P "";'
+        install_cmd += "rm -rf ~/.ssh/id_rsa ~/.ssh/id_rsa.pub;"
+        install_cmd += 'ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa -q -P "";'
         install_cmd += f"/tmp/jsx container-install -s -b {branch} --ports 80:80 --ports 443:443 --ports 8901:8901"
 
         rc, out, err = self.sshcl.execute(install_cmd)
@@ -149,6 +152,12 @@ class ThreebotDeploy(j.baseclasses.object_config):
     def threebot_start(self, web=True, ssl=True):
         cmd = f". /sandbox/env.sh; kosmos -p 'j.servers.threebot.install(); threefold = j.servers.threebot.default;threefold.web={web};threefold.ssl={ssl};threefold.start(background=True)'"
         self.container_ssh.execute(cmd)
+        client = self.threebot_client()
+        client.actors.package_manager.package_add(path="/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/threebot/registration/")
+        return client
+
+    def threebot_client(self):
+        j.sal.nettools.waitConnectionTest(self.do_machine.ip_address, 8901, 600)
         return j.clients.gedis.get(name=self.do_machine.name, port=8901, host=self.do_machine.ip_address)
 
     def deploy_wikis(self):
