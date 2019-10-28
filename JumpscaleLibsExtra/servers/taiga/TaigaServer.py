@@ -26,7 +26,7 @@ class TaigaServer(j.baseclasses.object_config):
         self.events_repo_dir = j.builders.apps.taiga.events_repo_dir
 
     def install(self, reset=False):
-        j.builders.apps.taiga.install_deps(reset=reset)
+        j.builders.apps.taiga.install_deps(reset=reset, rabbitmq_secret=self.secret_)
         j.builders.apps.taiga._backend_install(
             backend_repo=self.backend_repo, rabbitmq_secret=self.secret_, branch=self.branch_backend
         )
