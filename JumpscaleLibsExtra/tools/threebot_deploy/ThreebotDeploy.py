@@ -80,7 +80,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         return self._container_ssh
 
     def wireguard_install(self):
-        j.tools.wireguard.new(name=self.do_machine_name, sshclient_name=self.do_machine_name, autosave=False).install()
+        j.tools.wireguard.get(name=self.do_machine_name, sshclient_name=self.do_machine_name, autosave=False).install()
 
     def create_new_do_machine(self, size_slug="s-1vcpu-1gb"):
         """
@@ -154,6 +154,7 @@ class ThreebotDeploy(j.baseclasses.object_config):
         self.container_ssh.execute(cmd)
         client = self.threebot_client()
         client.actors.package_manager.package_add(path="/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/threebot/registration/")
+        client.reload()
         return client
 
     def threebot_client(self):
