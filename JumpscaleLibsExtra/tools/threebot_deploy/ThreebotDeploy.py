@@ -21,10 +21,10 @@ class ThreebotDeploy(j.baseclasses.factory_data):
         self._sshcl = None
         self._container_ssh = None
 
-    def get_by_douple_name(self, name):
+    def get_by_double_name(self, name):
         """
         searches for the threebot in all machines
-        :param name: douple name to look for
+        :param name: double name to look for
         :return:
         """
         for machine in self.machines.find():
