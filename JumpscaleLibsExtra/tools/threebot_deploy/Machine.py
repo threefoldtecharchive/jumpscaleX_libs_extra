@@ -85,7 +85,7 @@ class Machine(j.baseclasses.factory_data):
                 " use machines.get_available() to get an available machine"
             )
         order = self.containers.count()
-        container = self.containers.get(name, branch=self.branch, gedis_port=8900 + order, ssh_port=9200 + order)
+        container = self.containers.get(name, branch=self.branch, gedis_port=8900 + order, ssh_port=2200 + order)
         container.deploy(start=start)
         return container
 
