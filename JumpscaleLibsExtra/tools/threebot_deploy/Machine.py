@@ -10,7 +10,7 @@ class Machine(j.baseclasses.factory_data):
     name** = (S)
     installed = False (B)
     capacity = 5 (I)
-    size_slug = "s-1vcpu-1gb"
+    size_slug = "s-1vcpu-3gb"
     branch = "development"
     """
 

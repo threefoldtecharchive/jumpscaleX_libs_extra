@@ -30,7 +30,7 @@ dns_machine.do_machine
 else create a new one:
 
 ```python
-# optional change your machine specs. default(size_slug="s-1vcpu-1gb")
+# optional change your machine specs. default(size_slug="s-1vcpu-3gb")
 dns_machine.create_new_do_machine()
 ```
 
@@ -74,7 +74,7 @@ wikis_machine.do_machine
 else create a new one:
 
 ```python
-# optional change your machine specs. default(size_slug="s-1vcpu-1gb")
+# optional change your machine specs. default(size_slug="s-1vcpu-3gb")
 wikis_machine.create_new_do_machine()
 ```
 
