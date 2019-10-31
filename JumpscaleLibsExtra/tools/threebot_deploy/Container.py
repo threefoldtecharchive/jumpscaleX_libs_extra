@@ -35,6 +35,7 @@ class Container(j.baseclasses.object_config):
         self.ssh_client.execute(cmd)
         client = self.threebot_client
         client.actors.package_manager.package_add(path="/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/threebot/registration/")
+        client.reload()
         return client
 
     @property
