@@ -73,7 +73,9 @@ class Machine(j.baseclasses.factory_data):
 
     def wireguard_install(self):
         j.sal.nettools.waitConnectionTest(self.ip_address, 22, 180)
-        j.tools.wireguard.get(name=self.do_machine_name, sshclient_name=f"do_{self.do_machine_name}", autosave=False).install()
+        j.tools.wireguard.get(
+            name=self.do_machine_name, sshclient_name=f"do_{self.do_machine_name}", autosave=False
+        ).install()
 
     def threebot_deploy(self, name, start=True):
         if self.containers.exists(name):

@@ -2,11 +2,13 @@ from Jumpscale import j
 import os
 from .Machine import Machines
 
+
 class ThreebotDeploy(j.baseclasses.factory_data):
     """
     create a threebot deployer instance
     follow readme to know how to deploy
     """
+
     _CHILDCLASSES = [Machines]
     _SCHEMATEXT = """
     @url = jumpscale.threebot.deploy

@@ -1,6 +1,7 @@
 from Jumpscale import j
 from .ThreebotDeploy import ThreebotDeploy
 
+
 class ThreebotDeployFactory(j.baseclasses.object_config_collection):
     """
     Factory for threebot deployment

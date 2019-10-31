@@ -10,13 +10,16 @@ class Container(j.baseclasses.object_config):
         branch = "development"
         deployed = False
         """
+
     def _init(self, **kwargs):
         self._machine = self._parent._parent
         self.ip_address = self._machine.ip_address
 
     def deploy(self, start=True, web=True, ssl=True):
-        install_cmd = f"/tmp/jsx container-install -n {self.name} -s -b {self.branch}" \
-                      f" --ports {self.ssh_port}:22 --ports {self.gedis_port}:8901"
+        install_cmd = (
+            f"/tmp/jsx container-install -n {self.name} -s -b {self.branch}"
+            f" --ports {self.ssh_port}:22 --ports {self.gedis_port}:8901"
+        )
 
         rc, out, err = self._machine.sshcl.execute(install_cmd)
 
@@ -28,14 +31,13 @@ class Container(j.baseclasses.object_config):
 
         self.deployed = True
 
-
     def threebot_start(self, web=True, ssl=True):
-        cmd = f". /sandbox/env.sh; kosmos -p 'j.servers.threebot.install(); threefold = j.servers.threebot.default;" \
-              f"threefold.web={web};threefold.ssl={ssl};threefold.start(background=True)'"
+        cmd = (
+            f". /sandbox/env.sh; kosmos -p 'j.servers.threebot.install(); j.threebot.package.registration.install(); threefold = j.servers.threebot.default;"
+            f"threefold.web={web};threefold.ssl={ssl};threefold.start(background=True)'"
+        )
         self.ssh_client.execute(cmd)
         client = self.threebot_client
-        client.actors.package_manager.package_add(path="/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/threebot/registration/")
-        client.reload()
         return client
 
     @property
