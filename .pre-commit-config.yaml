@@ -13,3 +13,4 @@ repos:
     hooks:
       - id: black
         args: [--line-length=120, --target-version=py37]
+        exclude: ^templates/
