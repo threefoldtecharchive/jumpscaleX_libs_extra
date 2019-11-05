@@ -15,7 +15,7 @@ class DocsFactory(j.baseclasses.object_config_collection_testtools):
         self._macros_modules = {}
         self._macros = {}
 
-    def macros_load(self, pathOrUrl="https://github.com/threefoldtech/jumpscale_weblibs/tree/master/macros"):
+    def macros_load(self, pathOrUrl="https://github.com/threefoldtech/jumpscaleX_weblibs/tree/master/macros"):
         """
         @param pathOrUrl can be existing path or url
         e.g. https://github.com/threefoldtech/jumpscale_lib/docsite/tree/master/examples
