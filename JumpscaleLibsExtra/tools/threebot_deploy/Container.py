@@ -40,8 +40,8 @@ class Container(j.baseclasses.object_config):
         client = self.threebot_client
         return client
 
-    def set_identity(self, name):
-        cmd = f". /sandbox/env.sh; kosmos -p 'j.tools.threebot.init_my_threebot(name={name})'"
+    def set_identity(self, record):
+        cmd = f'. /sandbox/env.sh; kosmos -p \'j.tools.threebot.me.get(name="default", tid={record.id}, tname="{record.name}", email="{record.email}", pubkey="{record.pubkey}")\''
         self.ssh_client.execute(cmd)
 
     @property
