@@ -88,7 +88,14 @@ class Machine(j.baseclasses.factory_data):
             )
         order = self.containers.count()
         container = self.containers.get(name, branch=self.branch, gedis_port=8900 + order, ssh_port=2200 + order)
-        container.deploy(start=start)
+        try:
+            container.deploy(start=start)
+        except RuntimeError:
+            destroy_cmd = f"docker container stop {name}; docker container rm {name}"
+            self.sshcl.execute(destroy_cmd)
+            container.delete()
+            raise
+
         return container
 
     @property
