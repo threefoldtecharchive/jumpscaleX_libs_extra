@@ -40,6 +40,10 @@ class Container(j.baseclasses.object_config):
         client = self.threebot_client
         return client
 
+    def set_identity(self, name):
+        cmd = f". /sandbox/env.sh; kosmos -p 'j.tools.threebot.init_my_threebot(name={name})'"
+        self.ssh_client.execute(cmd)
+
     @property
     def threebot_client(self):
         j.sal.nettools.waitConnectionTest(self.ip_address, self.gedis_port, 600)
