@@ -93,7 +93,7 @@ class Machine(j.baseclasses.factory_data):
         return container
 
     def destroy_container(self, name):
-        destroy_cmd = f"docker container stop {name}; docker container rm {name}"
+        destroy_cmd = f"docker rm -f {name}"
         self.sshcl.execute(destroy_cmd)
         self.containers.delete(name)
 
