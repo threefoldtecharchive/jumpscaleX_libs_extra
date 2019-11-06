@@ -33,4 +33,4 @@ class ThreebotDeploy(j.baseclasses.factory_data):
             for container in machine.containers.find():
                 if container.name == name:
                     return container
-        raise RuntimeError(f"3bot with name {name} isn't found")
+        raise j.exceptions.NotFound(f"3bot with name {name} isn't found")
