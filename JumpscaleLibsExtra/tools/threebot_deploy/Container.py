@@ -47,7 +47,9 @@ class Container(j.baseclasses.object_config):
     @property
     def threebot_client(self):
         j.sal.nettools.waitConnectionTest(self.ip_address, self.gedis_port, 600)
-        return j.clients.gedis.get(name=self.name, port=self.gedis_port, host=self._machine.ip_address)
+        return j.clients.gedis.get(
+            name=self.name.replace(".", "_"), port=self.gedis_port, host=self._machine.ip_address
+        )
 
     @property
     def ssh_client(self):
