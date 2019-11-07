@@ -33,11 +33,18 @@ class Container(j.baseclasses.object_config):
 
     def threebot_start(self, web=True, ssl=True):
         cmd = (
-            f". /sandbox/env.sh; kosmos -p 'j.servers.threebot.install(); j.threebot.package.grid_network.install(); j.threebot.package.registration.install(); threefold = j.servers.threebot.default;"
+            f". /sandbox/env.sh; kosmos -p 'j.servers.threebot.install(); j.threebot.package.grid_network.install(); threefold = j.servers.threebot.default;"
             f"threefold.web={web};threefold.ssl={ssl};threefold.start(background=True)'"
         )
         self.ssh_client.execute(cmd)
         client = self.threebot_client
+        client.actors.package_manager.package_add(
+            "/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/registration"
+        )
+        client.actors.package_manager.package_add(
+            "/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/tfgrid_network"
+        )
+        client.reload()
         return client
 
     def set_identity(self, record):
