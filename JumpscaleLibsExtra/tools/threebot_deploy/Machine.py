@@ -88,6 +88,7 @@ class Machine(j.baseclasses.factory_data):
             )
         order = self.containers.count()
         container = self.containers.get(name, branch=self.branch, gedis_port=8900 + order, ssh_port=2200 + order)
+        container.save()
         container.deploy(start=start)
 
         return container
