@@ -49,7 +49,7 @@ class Container(j.baseclasses.object_config):
 
     @property
     def threebot_client(self):
-        j.sal.nettools.waitConnectionTest(self.ip_address, self.gedis_port, 600)
+        j.sal.nettools.waitConnectionTest(self.ip_address, self.gedis_port, 900)
         name = self.name.replace(".", "_")
         try:
             j.clients.gedis._model.get_by_name(name=name).delete()
