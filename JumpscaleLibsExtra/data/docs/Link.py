@@ -55,7 +55,9 @@ class Link(JSBASE):
             self.link_source_original = self.link_source
             if self.source.startswith("!"):
                 if not self.extension in ["png", "jpg", "jpeg", "mov", "mp4"]:
-                    self.extension = "jpeg"  # to support url's like https://images.unsplash.com/photo-1533157961145-8cb586c448e1?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=4e252bcd55caa8958985866ad15ec954&auto=format&fit=crop&w=1534&q=80
+                    self.extension = (
+                        "jpeg"
+                    )  # to support url's like https://images.unsplash.com/photo-1533157961145-8cb586c448e1?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=4e252bcd55caa8958985866ad15ec954&auto=format&fit=crop&w=1534&q=80
             else:
                 # check link exists
                 self.cat = "link"
