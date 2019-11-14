@@ -32,10 +32,7 @@ class Container(j.baseclasses.object_config):
         self.deployed = True
 
     def threebot_start(self, web=True, ssl=True):
-        cmd = (
-            f". /sandbox/env.sh; kosmos -p 'j.servers.threebot.install(); threefold = j.servers.threebot.default;"
-            f"threefold.web={web};threefold.ssl={ssl};threefold.start(background=True)'"
-        )
+        cmd = f". /sandbox/env.sh; kosmos -p 'j.servers.threebot.local_start_default(web={web}, ssl={ssl})"
         self.ssh_client.execute(cmd)
         client = self.threebot_client
         client.actors.package_manager.package_add(
