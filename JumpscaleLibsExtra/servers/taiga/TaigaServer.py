@@ -71,7 +71,8 @@ class TaigaServer(j.baseclasses.object_config):
         taiga_events = j.servers.startupcmd.get("taiga_events")
         taiga_events.path = f"{self.events_repo}"
         taiga_events.cmd_start = f"""
-            su {self.taiga_user} -c 'export PATH=$PATH:/sandbox/bin;cd {self.events_repo_dir}; /bin/bash -c \\"node_modules/coffeescript/bin/coffee index.coffee\\"'
+            su {self.taiga_user} -c 'export PATH=$PATH:{DIR_BASE}/bin;cd {self.events_repo_dir}; /bin/bash -c \\"node_modules/coffeescript/bin/coffee index.coffee\\"'
             """
 
         return [taiga_events, taiga_startup_cmd]
+

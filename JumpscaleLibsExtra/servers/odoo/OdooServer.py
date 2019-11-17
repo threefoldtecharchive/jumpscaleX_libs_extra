@@ -195,11 +195,11 @@ class OdooServer(JSConfigClient):
         )
         if int(search[1].split("\n")[-3].split(" ")[0].split("(")[1]) > 0:
             odoo_start = j.builders.apps.odoo._replace(
-                "sudo -H -u odoouser python3 /sandbox/apps/odoo/odoo/odoo-bin -c {DIR_CFG}/odoo.conf"
+                "sudo -H -u odoouser python3 {DIR_BASE}/apps/odoo/odoo/odoo-bin -c {DIR_CFG}/odoo.conf"
             )
         else:
             odoo_start = j.builders.apps.odoo._replace(
-                "sudo -H -u odoouser python3 /sandbox/apps/odoo/odoo/odoo-bin -c {DIR_CFG}/odoo.conf -d %s -i base"
+                "sudo -H -u odoouser python3 {DIR_BASE}/apps/odoo/odoo/odoo-bin -c {DIR_CFG}/odoo.conf -d %s -i base"
                 % db.name
             )
             j.sal.process.execute(
@@ -225,4 +225,5 @@ class OdooServer(JSConfigClient):
         odoo_cmd = j.servers.startupcmd.get("odoo")
         odoo_cmd.stop()
         j.builders.db.psql.stop()
+
 
