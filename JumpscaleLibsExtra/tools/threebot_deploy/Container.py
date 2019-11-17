@@ -36,10 +36,10 @@ class Container(j.baseclasses.object_config):
         self.ssh_client.execute(cmd)
         client = self.threebot_client
         client.actors.package_manager.package_add(
-            "/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/registration"
+            j.core.tools.text_replace("{DIR_BASE}/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/registration")
         )
         client.actors.package_manager.package_add(
-            "/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/tfgrid_network"
+            j.core.tools.text_replace("{DIR_BASE}/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/tfgrid_network")
         )
         client.reload()
         return client
@@ -68,3 +68,4 @@ class Container(j.baseclasses.object_config):
 class Containers(j.baseclasses.object_config_collection):
 
     _CHILDCLASS = Container
+

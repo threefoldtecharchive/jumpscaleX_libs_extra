@@ -63,7 +63,7 @@ class OdooServer(JSConfigClient):
         """
         args = self._data._ddict
         j.sal.fs.writeFile(self._config_path, j.core.tools.text_replace(C, args=args, text_strip=True))
-        j.sal.fs.copyFile(self._config_path, "/sandbox/cfg/odoo.conf")
+        j.sal.fs.copyFile(self._config_path, j.core.tools.text_replace("{DIR_BASE}/cfg/odoo.conf"))
 
     def client_get(self, name):
         db = self._database_obj_get(name)
@@ -210,8 +210,8 @@ class OdooServer(JSConfigClient):
         odoo_cmd = j.servers.startupcmd.get("odoo")
         odoo_cmd.cmd_start = odoo_start
 
-        odoo_cmd.process_strings = "/sandbox/apps/odoo/odoo/odoo-bin -c"
-        odoo_cmd.path = "/sandbox/bin"
+        odoo_cmd.process_strings = j.core.tools.text_replace("{DIR_BASE}/apps/odoo/odoo/odoo-bin -c")
+        odoo_cmd.path = j.core.tools.text_replace("{DIR_BASE}/bin")
         odoo_cmd.ports = [8069]
 
         self._log_info("start odoo server")
@@ -225,3 +225,4 @@ class OdooServer(JSConfigClient):
         odoo_cmd = j.servers.startupcmd.get("odoo")
         odoo_cmd.stop()
         j.builders.db.psql.stop()
+

@@ -69,7 +69,7 @@ class UserBot(Service):
             "ports": {self.gedis_port: GEDIS_PORT, self.lapis_port: LAPIS_PORT},
             "nics": [{"type": "default"}],
             "env": envs,
-            "mounts": {fs.path: "/sandbox/var"},
+            "mounts": {fs.path: j.core.tools.text_replace("{DIR_BASE}/var")},
             "cpu": 2,
             "memory": 4906,  # 4GiB
         }
@@ -100,3 +100,4 @@ class UserBot(Service):
                 break
             except ValueError:
                 continue
+
