@@ -17,7 +17,7 @@ class Container(j.baseclasses.object_config):
 
     def deploy(self, start=True, web=True, ssl=True):
         install_cmd = (
-            f"/tmp/jsx container-install -n {self.name} -s -b {self.branch}"
+            f"/tmp/jsx container-install -n {self.name} -s -b {self.branch} --image threefoldtech/3bot-production"
             f" --ports {self.ssh_port}:22 --ports {self.gedis_port}:8901"
         )
 

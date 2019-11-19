@@ -17,11 +17,10 @@ class Machine(j.baseclasses.factory_data):
     def _init(self, **kwargs):
         self._deployer = self._parent._parent
         self.do_machine_name = self.name.replace("_", "-")
-        self.ssh_client = None
+        self.sshcl = None
         self.ip_address = None
         self._machine = None
         self._do_client = None
-        self._machine_init()
 
     def _machine_init(self):
         """
@@ -120,6 +119,8 @@ class Machines(j.baseclasses.object_config_collection):
 
     def machine_create(self, name, capacity, install=True):
         machine = self.get(name, capacity=capacity)
+        machine._machine_init()
+
         if install:
             machine.install()
         return machine
