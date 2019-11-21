@@ -11,7 +11,7 @@ class Machine(j.baseclasses.factory_data):
     installed = False (B)
     capacity = 5 (I)
     size_slug = "s-1vcpu-3gb"
-    branch = "master"
+    branch = "development"
     """
 
     def _init(self, **kwargs):
