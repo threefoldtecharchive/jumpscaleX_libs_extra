@@ -14,7 +14,7 @@ class graphql_actor(JSBASE):
     _SCHEMA_TEXT = """
         @url = graphql.info.schema
         info_id** =  (I)
-        title = (S) 
+        title = (S)
         author = (S)
         name = (S)
         """
@@ -32,7 +32,7 @@ class graphql_actor(JSBASE):
         if request_encoded["method"] == "POST":
             data = self.parse_data(request_encoded["body"].decode("utf-8"))
             # Create a model with the data and save the model for later retrieval
-            model = j.application.bcdb_system.model_get(schema=self._SCHEMA_TEXT)
+            model = j.data.bcdb.system.model_get(schema=self._SCHEMA_TEXT)
             model_objects = model.new()
             model_objects.info_id = data["id"]
             model_objects.title = data["title"]

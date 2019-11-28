@@ -22,11 +22,11 @@ class Query(graphene.ObjectType, j.baseclasses.object_config):
         _SCHEMA_TEXT = """
         @url = graphql.info.schema
         info_id** =  (I)
-        title = (S) 
+        title = (S)
         author = (S)
         name = (S)
         """
-        model = j.application.bcdb_system.model_get(schema=_SCHEMA_TEXT)
+        model = j.data.bcdb.system.model_get(schema=_SCHEMA_TEXT)
 
         results = []
         for item in model.iterate():
