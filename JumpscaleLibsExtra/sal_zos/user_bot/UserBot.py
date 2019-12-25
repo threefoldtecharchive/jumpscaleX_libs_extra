@@ -100,4 +100,3 @@ class UserBot(Service):
                 break
             except ValueError:
                 continue
-

@@ -37,11 +37,13 @@ class Container(j.baseclasses.object_config):
         client = self.threebot_client
         client.actors.package_manager.package_add(
             j.core.tools.text_replace(
-                "{DIR_BASE}/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/registration")
+                "{DIR_BASE}/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/registration"
+            )
         )
         client.actors.package_manager.package_add(
             j.core.tools.text_replace(
-                "{DIR_BASE}/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/tfgrid_network")
+                "{DIR_BASE}/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/tfgrid_network"
+            )
         )
         client.reload()
         return client
