@@ -33,7 +33,7 @@ class CollectionHistoryMixin:
         """
         history_folder = os.path.join(self._filesystem_path, ".Radicale.cache", "history")
         try:
-            contents = j.sal.bcdbfs.file_get(os.path.join(history_folder, href)
+            contents = j.sal.bcdbfs.file_get(os.path.join(history_folder, href))
             cache_etag, history_etag = pickle.loads(contents)
         except (FileNotFoundError, pickle.UnpicklingError, ValueError) as e:
             if isinstance(e, (pickle.UnpicklingError, ValueError)):

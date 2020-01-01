@@ -15,17 +15,17 @@ class OdooServer(JSConfigClient):
            admin_passwd_ = "admin" (S)
            admin_email = "info@example.com" (S)
            db_login = "odoouser"
-           db_passwd_ = "admin"            
+           db_passwd_ = "admin"
            databases = (LO) !jumpscale.odoo.server.db.1
-           
+
            @url =  jumpscale.odoo.server.db.1
            name** = "odoo_test" (S)
-           admin_email = "info@example.com" (S)                      
+           admin_email = "info@example.com" (S)
            admin_passwd_ = "123456" (S)
            country_code = "be"
            lang="en_US"
            phone = "0100425887"
-           
+
            """
 
     def _init(self, **kwargs):
@@ -225,5 +225,3 @@ class OdooServer(JSConfigClient):
         odoo_cmd = j.servers.startupcmd.get("odoo")
         odoo_cmd.stop()
         j.builders.db.psql.stop()
-
-

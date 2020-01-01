@@ -73,7 +73,7 @@ class ApplicationPutMixin:
                     radicale_item.check_and_sanitize_items(vobject_items, is_collection=write_whole_collection, tag=tag)
                     if write_whole_collection and tag == "VCALENDAR":
                         vobject_components = []
-                        vobject_item, = vobject_items
+                        (vobject_item,) = vobject_items
                         for content in ("vevent", "vtodo", "vjournal"):
                             vobject_components.extend(getattr(vobject_item, "%s_list" % content, []))
                         vobject_components_by_uid = itertools.groupby(
@@ -92,7 +92,7 @@ class ApplicationPutMixin:
                             item.prepare()
                             items.append(item)
                     elif not write_whole_collection:
-                        vobject_item, = vobject_items
+                        (vobject_item,) = vobject_items
                         item = radicale_item.Item(collection_path=collection_path, vobject_item=vobject_item)
                         item.prepare()
                         items.append(item)
@@ -183,7 +183,7 @@ class ApplicationPutMixin:
                     logger.warning("Bad PUT request on %r: %s", path, e, exc_info=True)
                     return httputils.BAD_REQUEST
             else:
-                prepared_item, = prepared_items
+                (prepared_item,) = prepared_items
                 if item and item.uid != prepared_item.uid or not item and parent_item.has_uid(prepared_item.uid):
                     return self.webdav_error_response("C" if tag == "VCALENDAR" else "CR", "no-uid-conflict")
 

@@ -75,4 +75,3 @@ class TaigaServer(j.baseclasses.object_config):
             """
 
         return [taiga_events, taiga_startup_cmd]
-
