@@ -9,6 +9,7 @@ class Container(j.baseclasses.object_config):
         ssh_port = (I)
         branch = "development"
         deployed = False
+        mother_id** = 0 (I)
         """
 
     def _init(self, **kwargs):
