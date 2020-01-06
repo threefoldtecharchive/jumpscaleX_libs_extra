@@ -15,6 +15,7 @@ class ThreebotDeploy(j.baseclasses.factory_data):
     do_token = "" (S)
     do_project_name = "" (S)
     ssh_key = "" (S)
+    mother_id** = 0 (I)
     """
 
     def _init(self, **kwargs):

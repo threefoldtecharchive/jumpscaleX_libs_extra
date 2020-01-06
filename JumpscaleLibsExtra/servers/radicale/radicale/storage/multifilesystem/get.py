@@ -77,7 +77,7 @@ class CollectionGetMixin:
                     try:
                         vobject_items = tuple(vobject.readComponents(raw_text.decode(self._encoding)))
                         radicale_item.check_and_sanitize_items(vobject_items, tag=self.get_meta("tag"))
-                        vobject_item, = vobject_items
+                        (vobject_item,) = vobject_items
                         temp_item = radicale_item.Item(collection=self, vobject_item=vobject_item)
                         cache_hash, uid, etag, text, name, tag, start, end = self._store_item_cache(
                             href, temp_item, input_hash

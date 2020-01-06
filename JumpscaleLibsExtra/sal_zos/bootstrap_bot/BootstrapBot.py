@@ -98,4 +98,3 @@ class BootstrapBot(Service):
                 break
             except ValueError:
                 continue
-
