@@ -1,6 +1,6 @@
 /**
  * This file is part of Radicale Server - Calendar Server
- * Copyright © 2017-2018 Unrud <unrud@outlook.com>
+ * Copyright (C) 2017 Unrud <unrud@outlook.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,14 +22,20 @@
  * @type {string}
  */
 var SERVER = (location.protocol + '//' + location.hostname +
-              (location.port ? ':' + location.port : ''));
-
+    (location.port ? ':' + location.port : ''));
 /**
  * Path of the root collection on the server (must end with /)
  * @const
  * @type {string}
  */
 var ROOT_PATH = location.pathname.replace(new RegExp("/+[^/]+/*(/index\\.html?)?$"), "") + '/';
+
+/**
+ * time between updates of collections (milliseconds)
+ * @const
+  * @type {?int}
+ */
+var UPDATE_INTERVAL = null;
 
 /**
  * Regex to match and normalize color
@@ -44,11 +50,11 @@ var COLOR_RE = new RegExp("^(#[0-9A-Fa-f]{6})(?:[0-9A-Fa-f]{2})?$");
  */
 function escape_xml(s) {
     return (s
-            .replace("&", "&amp;")
-            .replace('"', "&quot;")
-            .replace("'", "&apos;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;"));
+        .replace("&", "&amp;")
+        .replace('"', "&quot;")
+        .replace("'", "&apos;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;"));
 }
 
 /**
@@ -64,7 +70,7 @@ var CollectionType = {
     CALENDAR: "CALENDAR",
     JOURNAL: "JOURNAL",
     TASKS: "TASKS",
-    is_subset: function(a, b) {
+    is_subset: function (a, b) {
         var components = a.split("_");
         var i;
         for (i = 0; i < components.length; i++) {
@@ -74,7 +80,7 @@ var CollectionType = {
         }
         return true;
     },
-    union: function(a, b) {
+    union: function (a, b) {
         if (a.search(this.ADDRESSBOOK) !== -1 || b.search(this.ADDRESSBOOK) !== -1) {
             if (a && a !== this.ADDRESSBOOK || b && b !== this.ADDRESSBOOK) {
                 throw "Invalid union: " + a + " " + b;
@@ -122,7 +128,7 @@ function Collection(href, type, displayname, description, color) {
 function get_principal(user, password, callback) {
     var request = new XMLHttpRequest();
     request.open("PROPFIND", SERVER + ROOT_PATH, true, user, password);
-    request.onreadystatechange = function() {
+    request.onreadystatechange = function () {
         if (request.readyState !== 4) {
             return;
         }
@@ -145,12 +151,12 @@ function get_principal(user, password, callback) {
         }
     };
     request.send('<?xml version="1.0" encoding="utf-8" ?>' +
-                 '<propfind xmlns="DAV:">' +
-                     '<prop>' +
-                         '<current-user-principal />' +
-                         '<displayname />' +
-                     '</prop>' +
-                 '</propfind>');
+        '<propfind xmlns="DAV:">' +
+        '<prop>' +
+        '<current-user-principal />' +
+        '<displayname />' +
+        '</prop>' +
+        '</propfind>');
     return request;
 }
 
@@ -164,9 +170,9 @@ function get_principal(user, password, callback) {
  */
 function get_collections(user, password, collection, callback) {
     var request = new XMLHttpRequest();
-    request.open("PROPFIND", SERVER + collection.href, true, user, password);
+    request.open("PROPFIND", SERVER + ROOT_PATH + collection.href, true, user, password);
     request.setRequestHeader("depth", "1");
-    request.onreadystatechange = function() {
+    request.onreadystatechange = function () {
         if (request.readyState !== 4) {
             return;
         }
@@ -227,7 +233,7 @@ function get_collections(user, password, collection, callback) {
                     collections.push(new Collection(href, type, displayname, description, sane_color));
                 }
             }
-            collections.sort(function(a, b) {
+            collections.sort(function (a, b) {
                 /** @type {string} */ var ca = a.displayname || a.href;
                 /** @type {string} */ var cb = b.displayname || b.href;
                 return ca.localeCompare(cb);
@@ -238,47 +244,21 @@ function get_collections(user, password, collection, callback) {
         }
     };
     request.send('<?xml version="1.0" encoding="utf-8" ?>' +
-                 '<propfind xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav" ' +
-                         'xmlns:CR="urn:ietf:params:xml:ns:carddav" ' +
-                         'xmlns:I="http://apple.com/ns/ical/" ' +
-                         'xmlns:INF="http://inf-it.com/ns/ab/" ' +
-                         'xmlns:RADICALE="http://radicale.org/ns/">' +
-                     '<prop>' +
-                         '<resourcetype />' +
-                         '<RADICALE:displayname />' +
-                         '<I:calendar-color />' +
-                         '<INF:addressbook-color />' +
-                         '<C:calendar-description />' +
-                         '<C:supported-calendar-component-set />' +
-                         '<CR:addressbook-description />' +
-                     '</prop>' +
-                 '</propfind>');
-    return request;
-}
-
-/**
- * @param {string} user
- * @param {string} password
- * @param {string} collection_href Must always start and end with /.
- * @param {File} file
- * @param {function(?string)} callback Returns error or null
- * @return {XMLHttpRequest}
- */
-function upload_collection(user, password, collection_href, file, callback) {
-    var request = new XMLHttpRequest();
-    request.open("PUT", SERVER + collection_href, true, user, password);
-    request.onreadystatechange = function() {
-        if (request.readyState !== 4) {
-            return;
-        }
-        if (200 <= request.status && request.status < 300) {
-            callback(null);
-        } else {
-            callback(request.status + " " + request.statusText);
-        }
-    };
-    request.setRequestHeader("If-None-Match", "*");
-    request.send(file);
+        '<propfind xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav" ' +
+        'xmlns:CR="urn:ietf:params:xml:ns:carddav" ' +
+        'xmlns:I="http://apple.com/ns/ical/" ' +
+        'xmlns:INF="http://inf-it.com/ns/ab/" ' +
+        'xmlns:RADICALE="http://radicale.org/ns/">' +
+        '<prop>' +
+        '<resourcetype />' +
+        '<RADICALE:displayname />' +
+        '<I:calendar-color />' +
+        '<INF:addressbook-color />' +
+        '<C:calendar-description />' +
+        '<C:supported-calendar-component-set />' +
+        '<CR:addressbook-description />' +
+        '</prop>' +
+        '</propfind>');
     return request;
 }
 
@@ -291,8 +271,8 @@ function upload_collection(user, password, collection_href, file, callback) {
  */
 function delete_collection(user, password, collection, callback) {
     var request = new XMLHttpRequest();
-    request.open("DELETE", SERVER + collection.href, true, user, password);
-    request.onreadystatechange = function() {
+    request.open("DELETE", SERVER + ROOT_PATH + collection.href, true, user, password);
+    request.onreadystatechange = function () {
         if (request.readyState !== 4) {
             return;
         }
@@ -316,8 +296,8 @@ function delete_collection(user, password, collection, callback) {
  */
 function create_edit_collection(user, password, collection, create, callback) {
     var request = new XMLHttpRequest();
-    request.open(create ? "MKCOL" : "PROPPATCH", SERVER + collection.href, true, user, password);
-    request.onreadystatechange = function() {
+    request.open(create ? "MKCOL" : "PROPPATCH", SERVER + ROOT_PATH + collection.href, true, user, password);
+    request.onreadystatechange = function () {
         if (request.readyState !== 4) {
             return;
         }
@@ -354,29 +334,29 @@ function create_edit_collection(user, password, collection, create, callback) {
     }
     var xml_request = create ? "mkcol" : "propertyupdate";
     request.send('<?xml version="1.0" encoding="UTF-8" ?>' +
-                 '<' + xml_request + ' xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav" xmlns:CR="urn:ietf:params:xml:ns:carddav" xmlns:I="http://apple.com/ns/ical/" xmlns:INF="http://inf-it.com/ns/ab/">' +
-                     '<set>' +
-                         '<prop>' +
-                             (create ? '<resourcetype><collection />' + resourcetype + '</resourcetype>' : '') +
-                             (components ? '<C:supported-calendar-component-set>' + components + '</C:supported-calendar-component-set>' : '') +
-                             (displayname ? '<displayname>' + displayname + '</displayname>' : '') +
-                             (calendar_color ? '<I:calendar-color>' + calendar_color + '</I:calendar-color>' : '') +
-                             (addressbook_color ? '<INF:addressbook-color>' + addressbook_color + '</INF:addressbook-color>' : '') +
-                             (addressbook_description ? '<CR:addressbook-description>' + addressbook_description + '</CR:addressbook-description>' : '') +
-                             (calendar_description ? '<C:calendar-description>' + calendar_description + '</C:calendar-description>' : '') +
-                         '</prop>' +
-                     '</set>' +
-                     (!create ? ('<remove>' +
-                         '<prop>' +
-                             (!components ? '<C:supported-calendar-component-set />' : '') +
-                             (!displayname ? '<displayname />' : '') +
-                             (!calendar_color ? '<I:calendar-color />' : '') +
-                             (!addressbook_color ? '<INF:addressbook-color />' : '') +
-                             (!addressbook_description ? '<CR:addressbook-description />' : '') +
-                             (!calendar_description ? '<C:calendar-description />' : '') +
-                         '</prop>' +
-                     '</remove>'): '') +
-                 '</' + xml_request + '>');
+        '<' + xml_request + ' xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav" xmlns:CR="urn:ietf:params:xml:ns:carddav" xmlns:I="http://apple.com/ns/ical/" xmlns:INF="http://inf-it.com/ns/ab/">' +
+        '<set>' +
+        '<prop>' +
+        (create ? '<resourcetype><collection />' + resourcetype + '</resourcetype>' : '') +
+        (components ? '<C:supported-calendar-component-set>' + components + '</C:supported-calendar-component-set>' : '') +
+        (displayname ? '<displayname>' + displayname + '</displayname>' : '') +
+        (calendar_color ? '<I:calendar-color>' + calendar_color + '</I:calendar-color>' : '') +
+        (addressbook_color ? '<INF:addressbook-color>' + addressbook_color + '</INF:addressbook-color>' : '') +
+        (addressbook_description ? '<CR:addressbook-description>' + addressbook_description + '</CR:addressbook-description>' : '') +
+        (calendar_description ? '<C:calendar-description>' + calendar_description + '</C:calendar-description>' : '') +
+        '</prop>' +
+        '</set>' +
+        (!create ? ('<remove>' +
+            '<prop>' +
+            (!components ? '<C:supported-calendar-component-set />' : '') +
+            (!displayname ? '<displayname />' : '') +
+            (!calendar_color ? '<I:calendar-color />' : '') +
+            (!addressbook_color ? '<INF:addressbook-color />' : '') +
+            (!addressbook_description ? '<CR:addressbook-description />' : '') +
+            (!calendar_description ? '<C:calendar-description />' : '') +
+            '</prop>' +
+            '</remove>') : '') +
+        '</' + xml_request + '>');
     return request;
 }
 
@@ -403,28 +383,21 @@ function edit_collection(user, password, collection, callback) {
 }
 
 /**
- * @return {string}
-*/
-function random_uuid() {
-    return randHex(8) + "-" + randHex(4) + "-" + randHex(4) + "-" + randHex(4) + "-" + randHex(12);
-}
-
-/**
  * @interface
  */
-function Scene() {}
+function Scene() { }
 /**
  * Scene is on top of stack and visible.
  */
-Scene.prototype.show = function() {};
+Scene.prototype.show = function () { };
 /**
  * Scene is no longer visible.
  */
-Scene.prototype.hide = function() {};
+Scene.prototype.hide = function () { };
 /**
  * Scene is removed from scene stack.
  */
-Scene.prototype.release = function() {};
+Scene.prototype.release = function () { };
 
 
 /**
@@ -485,6 +458,7 @@ function LoginScene() {
     var logout_view = document.getElementById("logoutview");
     var logout_user_form = logout_view.querySelector("[name=user]");
     var logout_btn = logout_view.querySelector("[name=link]");
+    var first_show = true;
 
     /** @type {?number} */ var scene_index = null;
     var user = "";
@@ -514,7 +488,7 @@ function LoginScene() {
                 // Fetch principal
                 var loading_scene = new LoadingScene();
                 push_scene(loading_scene, false);
-                principal_req = get_principal(user, password, function(collection, error1) {
+                principal_req = get_principal(user, password, function (collection, error1) {
                     if (scene_index === null) {
                         return;
                     }
@@ -526,12 +500,12 @@ function LoginScene() {
                         // show collections
                         var saved_user = user;
                         user = "";
-                        if (typeof(sessionStorage) !== "undefined") {
+                        if (typeof (sessionStorage) !== "undefined") {
                             sessionStorage.setItem("radicale_user", saved_user);
                             sessionStorage.setItem("radicale_password", password);
                         }
                         var collections_scene = new CollectionsScene(
-                            saved_user, password, collection, function(error1) {
+                            saved_user, password, collection, function (error1) {
                                 error = error1;
                                 user = saved_user;
                             });
@@ -542,7 +516,7 @@ function LoginScene() {
                 error = "Username is empty";
                 fill_form();
             }
-        } catch(err) {
+        } catch (err) {
             console.error(err);
         }
         return false;
@@ -561,49 +535,42 @@ function LoginScene() {
         return false;
     }
 
-    function remove_logout() {
-        logout_view.style.display = "none";
-        logout_btn.onclick = null;
-        logout_user_form.textContent = "";
-    }
-
-    this.show = function() {
-        remove_logout();
+    this.show = function () {
+        var saved_first_show = first_show;
+        first_show = false;
+        this.release();
         fill_form();
         form.onsubmit = onlogin;
         html_scene.style.display = "block";
-        var direct_login = false;
-        if (typeof(sessionStorage) !== "undefined") {
-            // Try direct login when scene is shown for the first time and credentials are stored
-            if (scene_index === null && sessionStorage.getItem("radicale_user")) {
+        user_form.focus();
+        scene_index = scene_stack.length - 1;
+        if (typeof (sessionStorage) !== "undefined") {
+            if (saved_first_show && sessionStorage.getItem("radicale_user")) {
                 user_form.value = sessionStorage.getItem("radicale_user");
                 password_form.value = sessionStorage.getItem("radicale_password");
-                direct_login = true;
+                onlogin();
             } else {
                 sessionStorage.setItem("radicale_user", "");
                 sessionStorage.setItem("radicale_password", "");
             }
         }
-        scene_index = scene_stack.length - 1;
-        if (direct_login) {
-            onlogin();
-        } else {
-            user_form.focus();
-        }
     };
-    this.hide = function() {
+    this.hide = function () {
         read_form();
         html_scene.style.display = "none";
         form.onsubmit = null;
     };
-    this.release = function() {
+    this.release = function () {
         scene_index = null;
         // cancel pending requests
         if (principal_req !== null) {
             principal_req.abort();
             principal_req = null;
         }
-        remove_logout();
+        // remove logout
+        logout_view.style.display = "none";
+        logout_btn.onclick = null;
+        logout_user_form.textContent = "";
     };
 }
 
@@ -613,13 +580,13 @@ function LoginScene() {
  */
 function LoadingScene() {
     var html_scene = document.getElementById("loadingscene");
-    this.show = function() {
+    this.show = function () {
         html_scene.style.display = "block";
     };
-    this.hide = function() {
+    this.hide = function () {
         html_scene.style.display = "none";
     };
-    this.release = function() {};
+    this.release = function () { };
 }
 
 /**
@@ -635,43 +602,20 @@ function CollectionsScene(user, password, collection, onerror) {
     var html_scene = document.getElementById("collectionsscene");
     var template = html_scene.querySelector("[name=collectiontemplate]");
     var new_btn = html_scene.querySelector("[name=new]");
-    var upload_btn = html_scene.querySelector("[name=upload]");
 
     /** @type {?number} */ var scene_index = null;
     var saved_template_display = null;
     /** @type {?XMLHttpRequest} */ var collections_req = null;
+    var timer = null;
+    var from_update = false;
     /** @type {?Array<Collection>} */ var collections = null;
     /** @type {Array<Node>} */ var nodes = [];
-    var filesInput = document.createElement("input");
-    filesInput.setAttribute("type", "file");
-    filesInput.setAttribute("accept", ".ics, .vcf");
-    filesInput.setAttribute("multiple", "");
-    var filesInputForm = document.createElement("form");
-    filesInputForm.appendChild(filesInput);
 
     function onnew() {
         try {
             var create_collection_scene = new CreateEditCollectionScene(user, password, collection);
             push_scene(create_collection_scene, false);
-        } catch(err) {
-            console.error(err);
-        }
-        return false;
-    }
-
-    function onupload() {
-        filesInput.click();
-        return false;
-    }
-
-    function onfileschange(e) {
-        try {
-            var files = filesInput.files;
-            if (files.length > 0) {
-                var upload_scene = new UploadCollectionScene(user, password, collection, files);
-                push_scene(upload_scene);
-            }
-        } catch(err) {
+        } catch (err) {
             console.error(err);
         }
         return false;
@@ -681,7 +625,7 @@ function CollectionsScene(user, password, collection, onerror) {
         try {
             var edit_collection_scene = new CreateEditCollectionScene(user, password, collection);
             push_scene(edit_collection_scene, false);
-        } catch(err) {
+        } catch (err) {
             console.error(err);
         }
         return false;
@@ -691,13 +635,17 @@ function CollectionsScene(user, password, collection, onerror) {
         try {
             var delete_collection_scene = new DeleteCollectionScene(user, password, collection);
             push_scene(delete_collection_scene, false);
-        } catch(err) {
+        } catch (err) {
             console.error(err);
         }
         return false;
     }
 
     function show_collections(collections) {
+        nodes.forEach(function (node) {
+            template.parentNode.removeChild(node);
+        });
+        nodes = [];
         collections.forEach(function (collection) {
             var node = template.cloneNode(true);
             var title_form = node.querySelector("[name=title]");
@@ -712,27 +660,27 @@ function CollectionsScene(user, password, collection, onerror) {
                 color_form.style.display = "none";
             }
             var possible_types = [CollectionType.ADDRESSBOOK];
-            [CollectionType.CALENDAR, ""].forEach(function(e) {
-                [CollectionType.union(e, CollectionType.JOURNAL), e].forEach(function(e) {
-                    [CollectionType.union(e, CollectionType.TASKS), e].forEach(function(e) {
+            [CollectionType.CALENDAR, ""].forEach(function (e) {
+                [CollectionType.union(e, CollectionType.JOURNAL), e].forEach(function (e) {
+                    [CollectionType.union(e, CollectionType.TASKS), e].forEach(function (e) {
                         if (e) {
                             possible_types.push(e);
                         }
                     });
                 });
             });
-            possible_types.forEach(function(e) {
+            possible_types.forEach(function (e) {
                 if (e !== collection.type) {
                     node.querySelector("[name=" + e + "]").style.display = "none";
                 }
             });
             title_form.textContent = collection.displayname || collection.href;
             description_form.textContent = collection.description;
-            var href = SERVER + collection.href;
+            var href = SERVER + ROOT_PATH + collection.href;
             url_form.href = href;
             url_form.textContent = href;
-            delete_btn.onclick = function(ev) {return ondelete(collection);};
-            edit_btn.onclick = function(ev) {return onedit(collection);};
+            delete_btn.onclick = function (ev) { return ondelete(collection); };
+            edit_btn.onclick = function (ev) { return onedit(collection); };
             node.style.display = saved_template_display;
             nodes.push(node);
             template.parentNode.insertBefore(node, template);
@@ -740,9 +688,11 @@ function CollectionsScene(user, password, collection, onerror) {
     }
 
     function update() {
-        var loading_scene = new LoadingScene();
-        push_scene(loading_scene, false);
-        collections_req = get_collections(user, password, collection, function(collections1, error) {
+        if (collections === null) {
+            var loading_scene = new LoadingScene();
+            push_scene(loading_scene, false);
+        }
+        collections_req = get_collections(user, password, collection, function (collections1, error) {
             if (scene_index === null) {
                 return;
             }
@@ -751,176 +701,64 @@ function CollectionsScene(user, password, collection, onerror) {
                 onerror(error);
                 pop_scene(scene_index - 1);
             } else {
+                var old_collections = collections;
                 collections = collections1;
-                pop_scene(scene_index);
+                if (UPDATE_INTERVAL !== null) {
+                    timer = window.setTimeout(update, UPDATE_INTERVAL);
+                }
+                from_update = true;
+                if (old_collections === null) {
+                    pop_scene(scene_index);
+                } else {
+                    show_collections(collections);
+                }
             }
         });
     }
 
-    this.show = function() {
+    this.show = function () {
         saved_template_display = template.style.display;
         template.style.display = "none";
         html_scene.style.display = "block";
         new_btn.onclick = onnew;
-        upload_btn.onclick = onupload;
-        filesInputForm.reset();
-        filesInput.onchange = onfileschange;
-        if (collections === null) {
+        if (scene_index === null) {
+            scene_index = scene_stack.length - 1;
+            if (collections === null && collections_req !== null) {
+                pop_scene(scene_index - 1);
+                return;
+            }
             update();
+        } else if (collections === null) {
+            pop_scene(scene_index - 1);
         } else {
-            // from update loading scene
-            show_collections(collections);
+            if (from_update) {
+                show_collections(collections);
+            } else {
+                collections = null;
+                update();
+            }
         }
     };
-    this.hide = function() {
+    this.hide = function () {
         html_scene.style.display = "none";
         template.style.display = saved_template_display;
-        scene_index = scene_stack.length - 1;
         new_btn.onclick = null;
-        upload_btn.onclick = null;
-        filesInput.onchange = null;
-        collections = null;
-        // remove collection
-        nodes.forEach(function(node) {
-            template.parentNode.removeChild(node);
-        });
-        nodes = [];
+        if (timer !== null) {
+            window.clearTimeout(timer);
+            timer = null;
+        }
+        from_update = false;
+        if (collections !== null && collections_req !== null) {
+            collections_req.abort();
+            collections_req = null;
+        }
+        show_collections([]);
     };
-    this.release = function() {
+    this.release = function () {
         scene_index = null;
         if (collections_req !== null) {
             collections_req.abort();
             collections_req = null;
-        }
-        collections = null;
-        filesInputForm.reset();
-    };
-}
-
-/**
- * @constructor
- * @implements {Scene}
- * @param {string} user
- * @param {string} password
- * @param {Collection} collection parent collection
- * @param {Array<File>} files
- */
-function UploadCollectionScene(user, password, collection, files) {
-    var html_scene = document.getElementById("uploadcollectionscene");
-    var template = html_scene.querySelector("[name=filetemplate]");
-    var template_pending_form = template.querySelector("[name=pending]");
-    var template_success_form = template.querySelector("[name=success]");
-    var template_error_form = template.querySelector("[name=error]");
-    var saved_template_display = null;
-    var close_btn = html_scene.querySelector("[name=close]");
-    var saved_close_btn_display = null;
-
-    /** @type {?number} */ var scene_index = null;
-    /** @type {?XMLHttpRequest} */ var upload_req = null;
-    /** @type {Array<string>} */ var errors = [];
-    /** @type {?Array<Node>} */ var nodes = null;
-
-    function upload_next() {
-        try {
-            if (files.length === errors.length) {
-                if (errors.every(error => error === null)) {
-                    pop_scene(scene_index - 1);
-                } else {
-                    close_btn.style.display = saved_close_btn_display;
-                }
-            } else {
-                var file = files[errors.length];
-                var upload_href = collection.href + random_uuid() + "/";
-                upload_req = upload_collection(user, password, upload_href, file, function(error) {
-                    if (scene_index === null) {
-                        return;
-                    }
-                    upload_req = null;
-                    errors.push(error);
-                    updateFileStatus(errors.length - 1);
-                    upload_next();
-                });
-            }
-        } catch(err) {
-            console.error(err);
-        }
-        return false;
-    }
-
-    function onclose() {
-        try {
-            pop_scene(scene_index - 1);
-        } catch(err) {
-            console.error(err);
-        }
-        return false;
-    }
-
-    function updateFileStatus(i) {
-        if (nodes === null) {
-            return;
-        }
-        var pending_form = nodes[i].querySelector("[name=pending]");
-        var success_form = nodes[i].querySelector("[name=success]");
-        var error_form = nodes[i].querySelector("[name=error]");
-        if (errors.length > i) {
-            pending_form.style.display = "none";
-            if (errors[i]) {
-                success_form.style.display = "none";
-                error_form.textContent = "Error: " + errors[i];
-                error_form.style.display = template_error_form.style.display;
-            } else {
-              success_form.style.display = template_success_form.style.display;
-              error_form.style.display = "none";
-            }
-        } else {
-            pending_form.style.display = template_pending_form.style.display;
-            success_form.style.display = "none";
-            error_form.style.display = "none";
-        }
-    }
-
-    this.show = function() {
-        saved_template_display = template.style.display;
-        template.style.display = "none";
-        html_scene.style.display = "block";
-        saved_close_btn_display = close_btn.style.display;
-        if (errors.length < files.length) {
-            close_btn.style.display = "none";
-        }
-        close_btn.onclick = onclose;
-        nodes = [];
-        for (var i = 0; i < files.length; i++) {
-            var file = files[i];
-            var node = template.cloneNode(true);
-            var name_form = node.querySelector("[name=name]");
-            name_form.textContent = file.name;
-            node.style.display = saved_template_display;
-            nodes.push(node);
-            updateFileStatus(i);
-            template.parentNode.insertBefore(node,template);
-        }
-        if (scene_index === null) {
-            scene_index = scene_stack.length - 1;
-            upload_next();
-        }
-    };
-
-    this.hide = function() {
-        html_scene.style.display = "none";
-        template.style.display = saved_template_display;
-        close_btn.style.display = saved_close_btn_display;
-        close_btn.onclick = null;
-        nodes.forEach(function(node) {
-            template.parentNode.removeChild(node);
-        });
-        nodes = null;
-    };
-    this.release = function() {
-        scene_index = null;
-        if (upload_req !== null) {
-            upload_req.abort();
-            upload_req = null;
         }
     };
 }
@@ -948,7 +786,7 @@ function DeleteCollectionScene(user, password, collection) {
         try {
             var loading_scene = new LoadingScene();
             push_scene(loading_scene);
-            delete_req = delete_collection(user, password, collection, function(error1) {
+            delete_req = delete_collection(user, password, collection, function (error1) {
                 if (scene_index === null) {
                     return;
                 }
@@ -960,7 +798,7 @@ function DeleteCollectionScene(user, password, collection) {
                     pop_scene(scene_index - 1);
                 }
             });
-        } catch(err) {
+        } catch (err) {
             console.error(err);
         }
         return false;
@@ -969,13 +807,13 @@ function DeleteCollectionScene(user, password, collection) {
     function oncancel() {
         try {
             pop_scene(scene_index - 1);
-        } catch(err) {
+        } catch (err) {
             console.error(err);
         }
         return false;
     }
 
-    this.show = function() {
+    this.show = function () {
         this.release();
         scene_index = scene_stack.length - 1;
         html_scene.style.display = "block";
@@ -984,12 +822,12 @@ function DeleteCollectionScene(user, password, collection) {
         delete_btn.onclick = ondelete;
         cancel_btn.onclick = oncancel;
     };
-    this.hide = function() {
+    this.hide = function () {
         html_scene.style.display = "none";
         cancel_btn.onclick = null;
         delete_btn.onclick = null;
     };
-    this.release = function() {
+    this.release = function () {
         scene_index = null;
         if (delete_req !== null) {
             delete_req.abort();
@@ -1037,7 +875,9 @@ function CreateEditCollectionScene(user, password, collection) {
     var error = "";
     /** @type {?Element} */ var saved_type_form = null;
 
-    var href = edit ? collection.href : collection.href + random_uuid() + "/";
+    var href = edit ? collection.href : (
+        collection.href + randHex(8) + "-" + randHex(4) + "-" + randHex(4) +
+        "-" + randHex(4) + "-" + randHex(12) + "/");
     var displayname = edit ? collection.displayname : "";
     var description = edit ? collection.description : "";
     var type = edit ? collection.type : CollectionType.CALENDAR_JOURNAL_TASKS;
@@ -1088,7 +928,7 @@ function CreateEditCollectionScene(user, password, collection) {
             var loading_scene = new LoadingScene();
             push_scene(loading_scene);
             var collection = new Collection(href, type, displayname, description, sane_color);
-            var callback = function(error1) {
+            var callback = function (error1) {
                 if (scene_index === null) {
                     return;
                 }
@@ -1105,7 +945,7 @@ function CreateEditCollectionScene(user, password, collection) {
             } else {
                 create_edit_req = create_collection(user, password, collection, callback);
             }
-        } catch(err) {
+        } catch (err) {
             console.error(err);
         }
         return false;
@@ -1114,13 +954,13 @@ function CreateEditCollectionScene(user, password, collection) {
     function oncancel() {
         try {
             pop_scene(scene_index - 1);
-        } catch(err) {
+        } catch (err) {
             console.error(err);
         }
         return false;
     }
 
-    this.show = function() {
+    this.show = function () {
         this.release();
         scene_index = scene_stack.length - 1;
         // Clone type_form because it's impossible to hide options without removing them
@@ -1136,7 +976,7 @@ function CreateEditCollectionScene(user, password, collection) {
         submit_btn.onclick = onsubmit;
         cancel_btn.onclick = oncancel;
     };
-    this.hide = function() {
+    this.hide = function () {
         read_form();
         html_scene.style.display = "none";
         // restore type_form
@@ -1146,7 +986,7 @@ function CreateEditCollectionScene(user, password, collection) {
         submit_btn.onclick = null;
         cancel_btn.onclick = null;
     };
-    this.release = function() {
+    this.release = function () {
         scene_index = null;
         if (create_edit_req !== null) {
             create_edit_req.abort();

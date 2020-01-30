@@ -1,6 +1,5 @@
 # This file is part of Radicale Server - Calendar Server
 # Copyright © 2012-2017 Guillaume Ayoub
-# Copyright © 2017-2019 Unrud <unrud@outlook.com>
 #
 # This library is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -12,6 +11,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
+# You should have received a copy of the GNU General Public License
+# along with Radicale.  If not, see <http://www.gnu.org/licenses/>.
+
 """
 Radicale tests with simple requests.
 
@@ -28,7 +30,7 @@ from functools import partial
 
 import pytest
 
-from radicale import Application, config, storage
+from radicale import Application, config
 
 from . import BaseTest
 from .helpers import get_file_content
@@ -36,9 +38,6 @@ from .helpers import get_file_content
 
 class BaseRequestsMixIn:
     """Tests with simple requests."""
-
-    # Allow skipping sync-token tests, when not fully supported by the backend
-    full_sync_token_support = True
 
     def test_root(self):
         """GET request at "/"."""
@@ -79,7 +78,21 @@ class BaseRequestsMixIn:
         assert "\nUID:" not in event
         path = "/calendar.ics/event.ics"
         status, _, _ = self.request("PUT", path, event)
-        assert status == 400
+        assert status == 201
+        status, _, answer = self.request("GET", path)
+        assert status == 200
+        uids = []
+        for line in answer.split("\r\n"):
+            if line.startswith("UID:"):
+                uids.append(line[len("UID:") :])
+        assert len(uids) == 1 and uids[0]
+        # Overwrite the event with an event without UID and check that the UID
+        # is still the same
+        status, _, _ = self.request("PUT", path, event)
+        assert status == 201
+        status, _, answer = self.request("GET", path)
+        assert status == 200
+        assert "\r\nUID:%s\r\n" % uids[0] in answer
 
     def test_add_todo(self):
         """Add a todo."""
@@ -134,14 +147,28 @@ class BaseRequestsMixIn:
         assert "UID:contact1" in answer
 
     def test_add_contact_without_uid(self):
-        """Add a contact without UID."""
+        """Add a contact."""
         status, _, _ = self._create_addressbook("/contacts.vcf/")
         assert status == 201
         contact = get_file_content("contact1.vcf").replace("UID:contact1\n", "")
         assert "\nUID" not in contact
         path = "/contacts.vcf/contact.vcf"
         status, _, _ = self.request("PUT", path, contact)
-        assert status == 400
+        assert status == 201
+        status, _, answer = self.request("GET", path)
+        assert status == 200
+        uids = []
+        for line in answer.split("\r\n"):
+            if line.startswith("UID:"):
+                uids.append(line[len("UID:") :])
+        assert len(uids) == 1 and uids[0]
+        # Overwrite the contact with an contact without UID and check that the
+        # UID is still the same
+        status, _, _ = self.request("PUT", path, contact)
+        assert status == 201
+        status, _, answer = self.request("GET", path)
+        assert status == 200
+        assert "\r\nUID:%s\r\n" % uids[0] in answer
 
     def test_update(self):
         """Update an event."""
@@ -243,17 +270,6 @@ class BaseRequestsMixIn:
             assert uid1
             for uid2 in uids[i + 1 :]:
                 assert uid1 != uid2
-
-    def test_verify(self):
-        """Verify the storage."""
-        contacts = get_file_content("contact_multiple.vcf")
-        status, _, _ = self.request("PUT", "/contacts.vcf/", contacts)
-        assert status == 201
-        events = get_file_content("event_multiple.ics")
-        status, _, _ = self.request("PUT", "/calendar.ics/", events)
-        assert status == 201
-        s = storage.load(self.configuration)
-        assert s.verify()
 
     def test_delete(self):
         """Delete an event."""
@@ -447,7 +463,7 @@ class BaseRequestsMixIn:
             namespace = "urn:ietf:params:xml:ns:carddav"
             report = "addressbook-query"
         else:
-            raise j.exceptions.Value("Unsupported kind: %r" % kind)
+            raise ValueError("Unsupported kind: %r" % kind)
         status, _, _ = self.request("DELETE", path)
         assert status in (200, 404)
         status, _, _ = create_collection_fn(path)
@@ -1532,8 +1548,6 @@ class BaseRequestsMixIn:
         sync_token, xml = self._report_sync_token(calendar_path)
         assert xml.find("{DAV:}response") is not None
         new_sync_token, xml = self._report_sync_token(calendar_path, sync_token)
-        if not self.full_sync_token_support and not new_sync_token:
-            pytest.skip("storage backend does not support sync-token")
         assert sync_token == new_sync_token
         assert xml.find("{DAV:}response") is None
 
@@ -1548,7 +1562,7 @@ class BaseRequestsMixIn:
         status, _, _ = self.request("PUT", event_path, event)
         assert status == 201
         sync_token, xml = self._report_sync_token(calendar_path, sync_token)
-        if not self.full_sync_token_support and not sync_token:
+        if not sync_token:
             pytest.skip("storage backend does not support sync-token")
         assert xml.find("{DAV:}response") is not None
         assert xml.find("{DAV:}response/{DAV:}status") is None
@@ -1566,7 +1580,7 @@ class BaseRequestsMixIn:
         status, _, _ = self.request("DELETE", event_path)
         assert status == 200
         sync_token, xml = self._report_sync_token(calendar_path, sync_token)
-        if not self.full_sync_token_support and not sync_token:
+        if not sync_token:
             pytest.skip("storage backend does not support sync-token")
         assert "404" in xml.find("{DAV:}response/{DAV:}status").text
 
@@ -1583,7 +1597,7 @@ class BaseRequestsMixIn:
         status, _, _ = self.request("DELETE", event_path)
         assert status == 200
         sync_token, xml = self._report_sync_token(calendar_path, sync_token)
-        if not self.full_sync_token_support and not sync_token:
+        if not sync_token:
             pytest.skip("storage backend does not support sync-token")
         assert "404" in xml.find("{DAV:}response/{DAV:}status").text
 
@@ -1593,7 +1607,7 @@ class BaseRequestsMixIn:
         status, _, _ = self.request("MKCALENDAR", calendar_path)
         assert status == 201
         event1 = get_file_content("event1.ics")
-        event2 = get_file_content("event1_modified.ics")
+        event2 = get_file_content("event2.ics")
         event_path = posixpath.join(calendar_path, "event1.ics")
         status, _, _ = self.request("PUT", event_path, event1)
         assert status == 201
@@ -1603,7 +1617,7 @@ class BaseRequestsMixIn:
         status, _, _ = self.request("PUT", event_path, event1)
         assert status == 201
         sync_token, xml = self._report_sync_token(calendar_path, sync_token)
-        if not self.full_sync_token_support and not sync_token:
+        if not sync_token:
             pytest.skip("storage backend does not support sync-token")
         assert xml.find("{DAV:}response") is not None
         assert xml.find("{DAV:}response/{DAV:}status") is None
@@ -1622,7 +1636,7 @@ class BaseRequestsMixIn:
         status, _, _ = self.request("MOVE", event1_path, HTTP_DESTINATION=event2_path, HTTP_HOST="")
         assert status == 201
         sync_token, xml = self._report_sync_token(calendar_path, sync_token)
-        if not self.full_sync_token_support and not sync_token:
+        if not sync_token:
             pytest.skip("storage backend does not support sync-token")
         for response in xml.findall("{DAV:}response"):
             if response.find("{DAV:}status") is None:
@@ -1647,7 +1661,7 @@ class BaseRequestsMixIn:
         status, _, _ = self.request("MOVE", event2_path, HTTP_DESTINATION=event1_path, HTTP_HOST="")
         assert status == 201
         sync_token, xml = self._report_sync_token(calendar_path, sync_token)
-        if not self.full_sync_token_support and not sync_token:
+        if not sync_token:
             pytest.skip("storage backend does not support sync-token")
         created = deleted = 0
         for response in xml.findall("{DAV:}response"):
@@ -1688,8 +1702,6 @@ class BaseRequestsMixIn:
         assert status == 201
         sync_token, xml = self._report_sync_token(calendar_path)
         new_sync_token, xml = self._report_sync_token(calendar_path, sync_token)
-        if not self.full_sync_token_support and not new_sync_token:
-            pytest.skip("storage backend does not support sync-token")
         assert sync_token == new_sync_token
 
     def test_calendar_getcontenttype(self):
@@ -1698,8 +1710,6 @@ class BaseRequestsMixIn:
         assert status == 201
         for component in ("event", "todo", "journal"):
             event = get_file_content("{}1.ics".format(component))
-            status, _, _ = self.request("DELETE", "/test/test.ics")
-            assert status in (200, 404)
             status, _, _ = self.request("PUT", "/test/test.ics", event)
             assert status == 201
             status, _, answer = self.request(
@@ -1753,14 +1763,11 @@ class BaseRequestsMixIn:
 
     def test_authentication(self):
         """Test if server sends authentication request."""
-        self.configuration.update(
-            {
-                "auth": {"type": "htpasswd", "htpasswd_filename": os.devnull, "htpasswd_encryption": "plain"},
-                "rights": {"type": "owner_only"},
-            },
-            "test",
-        )
-        self.application = Application(self.configuration)
+        self.configuration["auth"]["type"] = "htpasswd"
+        self.configuration["auth"]["htpasswd_filename"] = os.devnull
+        self.configuration["auth"]["htpasswd_encryption"] = "plain"
+        self.configuration["rights"]["type"] = "owner_only"
+        self.application = Application(self.configuration, self.logger)
         status, headers, _ = self.request("MKCOL", "/user/")
         assert status in (401, 403)
         assert headers.get("WWW-Authenticate")
@@ -1784,8 +1791,9 @@ class BaseRequestsMixIn:
         assert status == 207
 
     def test_custom_headers(self):
-        self.configuration.update({"headers": {"test": "123"}}, "test")
-        self.application = Application(self.configuration)
+        if not self.configuration.has_section("headers"):
+            self.configuration.add_section("headers")
+        self.configuration.set("headers", "test", "123")
         # Test if header is set on success
         status, headers, _ = self.request("OPTIONS", "/")
         assert status == 200
@@ -1804,6 +1812,28 @@ class BaseRequestsMixIn:
         status, _, _ = self.request("PUT", "/calendar.ics/event.ics", event)
         assert status == 201
 
+    def test_missing_uid(self):
+        """Verify that missing UIDs are added in a stable manner."""
+        status, _, _ = self.request("MKCALENDAR", "/calendar.ics/")
+        assert status == 201
+        event_without_uid = get_file_content("event1.ics").replace("UID:event1\n", "")
+        assert "UID" not in event_without_uid
+        path = "/calendar.ics/event1.ics"
+        status, _, _ = self.request("PUT", path, event_without_uid)
+        assert status == 201
+        status, _, answer = self.request("GET", path)
+        assert status == 200
+        uid = None
+        for line in answer.split("\r\n"):
+            if line.startswith("UID:"):
+                uid = line[len("UID:") :]
+        assert uid
+        status, _, _ = self.request("PUT", path, event_without_uid)
+        assert status == 201
+        status, _, answer = self.request("GET", path)
+        assert status == 200
+        assert "UID:%s\r\n" % uid in answer
+
 
 class BaseFileSystemTest(BaseTest):
     """Base class for filesystem backend tests."""
@@ -1812,27 +1842,14 @@ class BaseFileSystemTest(BaseTest):
 
     def setup(self):
         self.configuration = config.load()
+        self.configuration["storage"]["type"] = self.storage_type
         self.colpath = tempfile.mkdtemp()
-        # Allow access to anything for tests
-        rights_file_path = os.path.join(self.colpath, "rights")
-        with open(rights_file_path, "w") as f:
-            f.write(
-                """\
-[allow all]
-user: .*
-collection: .*
-permissions: RrWw"""
-            )
-        self.configuration.update(
-            {
-                "storage": {"type": self.storage_type, "filesystem_folder": self.colpath},
-                # Disable syncing to disk for better performance
-                "internal": {"filesystem_fsync": "False"},
-                "rights": {"file": rights_file_path, "type": "from_file"},
-            },
-            "test",
-        )
-        self.application = Application(self.configuration)
+        self.configuration["storage"]["filesystem_folder"] = self.colpath
+        # Disable syncing to disk for better performance
+        self.configuration["storage"]["filesystem_fsync"] = "False"
+        # Required on Windows, doesn't matter on Unix
+        self.configuration["storage"]["filesystem_close_lock_file"] = "True"
+        self.application = Application(self.configuration, self.logger)
 
     def teardown(self):
         shutil.rmtree(self.colpath)
@@ -1845,17 +1862,13 @@ class TestMultiFileSystem(BaseFileSystemTest, BaseRequestsMixIn):
 
     def test_fsync(self):
         """Create a directory and file with syncing enabled."""
-        self.configuration.update({"internal": {"filesystem_fsync": "True"}}, "test")
-        self.application = Application(self.configuration)
+        self.configuration["storage"]["filesystem_fsync"] = "True"
         status, _, _ = self.request("MKCALENDAR", "/calendar.ics/")
         assert status == 201
 
     def test_hook(self):
         """Run hook."""
-        self.configuration.update(
-            {"storage": {"hook": ("mkdir %s" % os.path.join("collection-root", "created_by_hook"))}}, "test"
-        )
-        self.application = Application(self.configuration)
+        self.configuration["storage"]["hook"] = "mkdir %s" % os.path.join("collection-root", "created_by_hook")
         status, _, _ = self.request("MKCALENDAR", "/calendar.ics/")
         assert status == 201
         status, _, _ = self.request("PROPFIND", "/created_by_hook/")
@@ -1863,10 +1876,7 @@ class TestMultiFileSystem(BaseFileSystemTest, BaseRequestsMixIn):
 
     def test_hook_read_access(self):
         """Verify that hook is not run for read accesses."""
-        self.configuration.update(
-            {"storage": {"hook": ("mkdir %s" % os.path.join("collection-root", "created_by_hook"))}}, "test"
-        )
-        self.application = Application(self.configuration)
+        self.configuration["storage"]["hook"] = "mkdir %s" % os.path.join("collection-root", "created_by_hook")
         status, _, _ = self.request("PROPFIND", "/")
         assert status == 207
         status, _, _ = self.request("PROPFIND", "/created_by_hook/")
@@ -1875,17 +1885,13 @@ class TestMultiFileSystem(BaseFileSystemTest, BaseRequestsMixIn):
     @pytest.mark.skipif(os.system("type flock") != 0, reason="flock command not found")
     def test_hook_storage_locked(self):
         """Verify that the storage is locked when the hook runs."""
-        self.configuration.update({"storage": {"hook": ("flock -n .Radicale.lock || exit 0; exit 1")}}, "test")
-        self.application = Application(self.configuration)
+        self.configuration["storage"]["hook"] = "flock -n .Radicale.lock || exit 0; exit 1"
         status, _, _ = self.request("MKCALENDAR", "/calendar.ics/")
         assert status == 201
 
     def test_hook_principal_collection_creation(self):
         """Verify that the hooks runs when a new user is created."""
-        self.configuration.update(
-            {"storage": {"hook": ("mkdir %s" % os.path.join("collection-root", "created_by_hook"))}}, "test"
-        )
-        self.application = Application(self.configuration)
+        self.configuration["storage"]["hook"] = "mkdir %s" % os.path.join("collection-root", "created_by_hook")
         status, _, _ = self.request(
             "PROPFIND", "/", HTTP_AUTHORIZATION=("Basic " + base64.b64encode(b"user:").decode())
         )
@@ -1895,8 +1901,7 @@ class TestMultiFileSystem(BaseFileSystemTest, BaseRequestsMixIn):
 
     def test_hook_fail(self):
         """Verify that a request fails if the hook fails."""
-        self.configuration.update({"storage": {"hook": "exit 1"}}, "test")
-        self.application = Application(self.configuration)
+        self.configuration["storage"]["hook"] = "exit 1"
         status, _, _ = self.request("MKCALENDAR", "/calendar.ics/")
         assert status != 201
 
@@ -1917,54 +1922,6 @@ class TestMultiFileSystem(BaseFileSystemTest, BaseRequestsMixIn):
         assert status == 200
         assert answer1 == answer2
         assert os.path.exists(os.path.join(cache_folder, "event1.ics"))
-
-    @pytest.mark.skipif(os.name not in ("nt", "posix"), reason="Only supported on 'nt' and 'posix'")
-    def test_put_whole_calendar_uids_used_as_file_names(self):
-        """Test if UIDs are used as file names."""
-        BaseRequestsMixIn.test_put_whole_calendar(self)
-        for uid in ("todo", "event"):
-            status, _, answer = self.request("GET", "/calendar.ics/%s.ics" % uid)
-            assert status == 200
-            assert "\r\nUID:%s\r\n" % uid in answer
-
-    @pytest.mark.skipif(os.name not in ("nt", "posix"), reason="Only supported on 'nt' and 'posix'")
-    def test_put_whole_calendar_random_uids_used_as_file_names(self):
-        """Test if UIDs are used as file names."""
-        BaseRequestsMixIn.test_put_whole_calendar_without_uids(self)
-        status, _, answer = self.request("GET", "/calendar.ics")
-        assert status == 200
-        uids = []
-        for line in answer.split("\r\n"):
-            if line.startswith("UID:"):
-                uids.append(line[len("UID:") :])
-        for uid in uids:
-            status, _, answer = self.request("GET", "/calendar.ics/%s.ics" % uid)
-            assert status == 200
-            assert "\r\nUID:%s\r\n" % uid in answer
-
-    @pytest.mark.skipif(os.name not in ("nt", "posix"), reason="Only supported on 'nt' and 'posix'")
-    def test_put_whole_addressbook_uids_used_as_file_names(self):
-        """Test if UIDs are used as file names."""
-        BaseRequestsMixIn.test_put_whole_addressbook(self)
-        for uid in ("contact1", "contact2"):
-            status, _, answer = self.request("GET", "/contacts.vcf/%s.vcf" % uid)
-            assert status == 200
-            assert "\r\nUID:%s\r\n" % uid in answer
-
-    @pytest.mark.skipif(os.name not in ("nt", "posix"), reason="Only supported on 'nt' and 'posix'")
-    def test_put_whole_addressbook_random_uids_used_as_file_names(self):
-        """Test if UIDs are used as file names."""
-        BaseRequestsMixIn.test_put_whole_addressbook_without_uids(self)
-        status, _, answer = self.request("GET", "/contacts.vcf")
-        assert status == 200
-        uids = []
-        for line in answer.split("\r\n"):
-            if line.startswith("UID:"):
-                uids.append(line[len("UID:") :])
-        for uid in uids:
-            status, _, answer = self.request("GET", "/contacts.vcf/%s.vcf" % uid)
-            assert status == 200
-            assert "\r\nUID:%s\r\n" % uid in answer
 
 
 class TestCustomStorageSystem(BaseFileSystemTest):
