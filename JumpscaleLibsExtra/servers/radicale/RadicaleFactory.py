@@ -1,19 +1,16 @@
+import sys
+import os
+
 from Jumpscale import j
-from .RadicaleServer import RadicaleServer
-
-JSConfigs = j.baseclasses.object_config_collection
 
 
-class RadicaleFactory(JSConfigs):
+class RadicaleFactory(j.baseclasses.object):
+
     __jslocation__ = "j.servers.radicale"
-    _CHILDCLASS = RadicaleServer
-
-    def __init__(self):
-        JSConfigs.__init__(self)
-        self._default = None
 
     @property
-    def default(self):
-        if not self._default:
-            self._default = self.get("default")
-        return self._default
+    def wsgi_app(self):
+        sys.path.append(os.path.dirname(__file__))
+        from .radicale import application
+
+        return application

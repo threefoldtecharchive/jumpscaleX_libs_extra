@@ -1,7 +1,6 @@
 # This file is part of Radicale Server - Calendar Server
 # Copyright © 2012-2016 Jean-Marc Martins
 # Copyright © 2012-2017 Guillaume Ayoub
-# Copyright © 2017-2019 Unrud <unrud@outlook.com>
 #
 # This library is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,6 +12,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
+# You should have received a copy of the GNU General Public License
+# along with Radicale.  If not, see <http://www.gnu.org/licenses/>.
+
 """
 Radicale tests with simple requests and authentication.
 
@@ -40,16 +42,13 @@ class TestBaseAuthRequests(BaseTest):
     def setup(self):
         self.configuration = config.load()
         self.colpath = tempfile.mkdtemp()
-        self.configuration.update(
-            {
-                "storage": {"filesystem_folder": self.colpath},
-                # Disable syncing to disk for better performance
-                "internal": {"filesystem_fsync": "False"},
-                # Set incorrect authentication delay to a very low value
-                "auth": {"delay": "0.002"},
-            },
-            "test",
-        )
+        self.configuration["storage"]["filesystem_folder"] = self.colpath
+        # Disable syncing to disk for better performance
+        self.configuration["storage"]["filesystem_fsync"] = "False"
+        # Required on Windows, doesn't matter on Unix
+        self.configuration["storage"]["filesystem_close_lock_file"] = "True"
+        # Set incorrect authentication delay to a very low value
+        self.configuration["auth"]["delay"] = "0.002"
 
     def teardown(self):
         shutil.rmtree(self.colpath)
@@ -59,17 +58,10 @@ class TestBaseAuthRequests(BaseTest):
         htpasswd_file_path = os.path.join(self.colpath, ".htpasswd")
         with open(htpasswd_file_path, "w") as f:
             f.write(htpasswd_content)
-        self.configuration.update(
-            {
-                "auth": {
-                    "type": "htpasswd",
-                    "htpasswd_filename": htpasswd_file_path,
-                    "htpasswd_encryption": htpasswd_encryption,
-                }
-            },
-            "test",
-        )
-        self.application = Application(self.configuration)
+        self.configuration["auth"]["type"] = "htpasswd"
+        self.configuration["auth"]["htpasswd_filename"] = htpasswd_file_path
+        self.configuration["auth"]["htpasswd_encryption"] = htpasswd_encryption
+        self.application = Application(self.configuration, self.logger)
         if test_matrix is None:
             test_matrix = (
                 ("tmp", "bepo", 207),
@@ -120,7 +112,7 @@ class TestBaseAuthRequests(BaseTest):
         except ImportError:
             pytest.skip("passlib is not installed")
         try:
-            bcrypt.hash("test-bcrypt-backend")
+            bcrypt.encrypt("test-bcrypt-backend")
         except MissingBackendError:
             pytest.skip("bcrypt backend for passlib is not installed")
         self._test_htpasswd("bcrypt", "tmp:$2y$05$oD7hbiQFQlvCM7zoalo/T.MssV3VNTRI3w5KDnj8NTUKJNWfVpvRq")
@@ -139,8 +131,8 @@ class TestBaseAuthRequests(BaseTest):
         self._test_htpasswd("plain", "#comment\n #comment\n \ntmp:bepo\n\n")
 
     def test_remote_user(self):
-        self.configuration.update({"auth": {"type": "remote_user"}}, "test")
-        self.application = Application(self.configuration)
+        self.configuration["auth"]["type"] = "remote_user"
+        self.application = Application(self.configuration, self.logger)
         status, _, answer = self.request(
             "PROPFIND",
             "/",
@@ -156,8 +148,8 @@ class TestBaseAuthRequests(BaseTest):
         assert ">/test/<" in answer
 
     def test_http_x_remote_user(self):
-        self.configuration.update({"auth": {"type": "http_x_remote_user"}}, "test")
-        self.application = Application(self.configuration)
+        self.configuration["auth"]["type"] = "http_x_remote_user"
+        self.application = Application(self.configuration, self.logger)
         status, _, answer = self.request(
             "PROPFIND",
             "/",
@@ -174,8 +166,8 @@ class TestBaseAuthRequests(BaseTest):
 
     def test_custom(self):
         """Custom authentication."""
-        self.configuration.update({"auth": {"type": "tests.custom.auth"}}, "test")
-        self.application = Application(self.configuration)
+        self.configuration["auth"]["type"] = "tests.custom.auth"
+        self.application = Application(self.configuration, self.logger)
         status, _, answer = self.request(
             "PROPFIND", "/tmp", HTTP_AUTHORIZATION="Basic %s" % base64.b64encode(("tmp:").encode()).decode()
         )

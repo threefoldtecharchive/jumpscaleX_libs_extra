@@ -2,7 +2,6 @@
 # Copyright © 2008 Nicolas Kandel
 # Copyright © 2008 Pascal Halter
 # Copyright © 2008-2017 Guillaume Ayoub
-# Copyright © 2017-2018 Unrud <unrud@outlook.com>
 #
 # This library is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,6 +13,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
+# You should have received a copy of the GNU General Public License
+# along with Radicale.  If not, see <http://www.gnu.org/licenses/>.
+
 """
 Custom authentication.
 
@@ -25,7 +27,5 @@ from radicale import auth
 
 
 class Auth(auth.BaseAuth):
-    def login(self, login, password):
-        if login == "tmp":
-            return login
-        return ""
+    def is_authenticated(self, user, password):
+        return user == "tmp"
