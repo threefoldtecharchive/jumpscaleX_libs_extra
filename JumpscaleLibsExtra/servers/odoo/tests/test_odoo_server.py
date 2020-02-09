@@ -17,13 +17,6 @@ def info(message):
     LOGGER.info(message)
 
 
-def os_command(command):
-    info("Execute : {} ".format(command))
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    output, error = process.communicate()
-    return output, error
-
-
 def set_database_data(database):
     database.name = str(uuid.uuid4()).replace("-", "")[1:10]
     database.admin_email = "{}@example.com".format(database.name)
@@ -148,10 +141,10 @@ def test04_export_import_databases(self):
 
     info("Export created database, check that zip file exist.")
     export_dir = "/root/exports/"
-    output, error = os_command("mkdir {}".format(export_dir))
+    result = j.sal.process.execute("mkdir {}".format(export_dir))
     odoo_server.database_export(db.name, export_dir)
-    output, error = os_command(" ls /root/exports")
-    assert "{}.zip".format(db.name) in output.decode()
+    result = j.sal.process.execute(" ls /root/exports")
+    assert "{}.zip".format(db.name) in result[1]
 
     info("Import database, check that imported database exist in database list")
     odoo_server.databases_reset()
