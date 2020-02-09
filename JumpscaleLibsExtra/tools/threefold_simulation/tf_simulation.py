@@ -82,7 +82,7 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
 
         return environment
 
-    def start(self):
+    def start(self, voila=False):
         """
         to run:
 
@@ -95,5 +95,6 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
         # e = self.calc()
 
         j.servers.notebook.start(
-            path="{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks"
+            path="{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks",
+            voila=voila
         )  # it will open a browser with access to the right output
