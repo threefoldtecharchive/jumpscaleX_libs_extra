@@ -71,6 +71,9 @@ class Simulation(j.baseclasses.object_config):
         s = Environment(name=name, description=description)
         return s
 
+    def run(self):
+        return SimulationRun()
+
 
 class Component(j.baseclasses.object):
     def _init(self, **kwargs):
@@ -291,7 +294,7 @@ class NodesBatch(j.baseclasses.object_config):
         pass
 
 
-class Simulation(j.baseclasses.object):
+class SimulationRun(j.baseclasses.object):
     def _init(self, **kwargs):
         # self.nr_nodes_new=[]  #% growth per month
         self.sheet = j.data.worksheets.sheet_new("growth")
@@ -382,16 +385,29 @@ class Simulation(j.baseclasses.object):
     def calc(self, nodes_batch_template, nr_start_nodes=1500, months_remaining_start_nodes=36):
         row = self.sheet.addRow("nrnodes_new", nrfloat=0)
         row2 = self.sheet.addRow("nrnodes", nrfloat=0)
-        row_rev = self.sheet.addRow("revenue")
-        row2.cells[0] = nr_start_nodes
-        self._nodes_batch_add(0, nodes_batch_template, nr_start_nodes, months_max=months_remaining_start_nodes)
-        for x in range(1, self.sheet.nrcols):
-            nr_new = self.growth_perc_get(x) * row2.cells[x - 1]
-            row.cells[x] = nr_new
-            row2.cells[x] = int(row2.cells[x - 1] + nr_new)
-            self._nodes_batch_add(x, nodes_batch_template, nr_new)
+        row_rev = self.sheet.addRow("revenue_month")
+        row_cost = self.sheet.addRow("cost_month")
+        row_investment = self.sheet.addRow("investment")
+        row_power = self.sheet.addRow("powerkw")
+        row_racks = self.sheet.addRow("nrracks")
+
+        for x in range(0, self.sheet.nrcols):
+            if x > 0:
+                nr_new = self.growth_perc_get(x) * row2.cells[x - 1]
+                row2.cells[x] = int(row2.cells[x - 1] + nr_new)
+                self._nodes_batch_add(x, nodes_batch_template, nr_new)
+                row.cells[x] = nr_new
+            else:
+                row.cells[x] = nr_start_nodes
+                row2.cells[x] = nr_start_nodes
+                self._nodes_batch_add(0, nodes_batch_template, nr_start_nodes, months_max=months_remaining_start_nodes)
+
             r = self.result_get(x)
-            j.shell()
+            row_rev.cells[x] = r.revenue / 1000
+            row_cost.cells[x] = r.cost / 1000
+            row_investment.cells[x] = r.investments_done / 1000
+            row_power.cells[x] = r.power_usage_kw / 1000
+            row_racks.cells[x] = r.rackspace_usage_u / 44
 
     def _nodes_batch_add(self, month, nodes_batch_template, nr_nodes, months_max=60):
         while len(self.nodes_added) < month + 1:
@@ -417,13 +433,18 @@ class Simulation(j.baseclasses.object):
             utilization = self.sheet.rows["utilization"].cells[month]
         utilization = j.data.types.percent.clean(utilization)
         cpr_sales_price_decline = self.sheet.rows["cpr_sales_price_decline"].cells[month]
+        cpr_sales_price_decline = j.data.types.percent.clean(cpr_sales_price_decline)
 
         r = self.result_schema.new()
         r.revenue = 0
         r.cost = 0
+        r.investments_done = 0
+        r.power_usage_kw = 0
+        r.rackspace_usage_u = 0
+        r.nrnodes_active = 0
         for i in range(0, month):
             na = self.nodes_added[i]
-            if na.month < month and month < na.months_max + 1:
+            if na.month < month:  # and i < na.months_max + 1:
                 # now the node batch counts
                 r.revenue += na.sales_price_cpr_unit * cpr_sales_price_decline * na.cpr * utilization * na.count
                 r.cost += (na.cost / 60 + na.cost_power_month + na.cost_rackspace_month) * na.count
@@ -431,6 +452,8 @@ class Simulation(j.baseclasses.object):
                 r.power_usage_kw += na.power * na.count / 1000
                 r.rackspace_usage_u += na.rackspace_u * na.count
                 r.nrnodes_active += na.count
+
+        return r
 
     _SCHEMATEXT = """
         @url = threefold.simulation.nodes
