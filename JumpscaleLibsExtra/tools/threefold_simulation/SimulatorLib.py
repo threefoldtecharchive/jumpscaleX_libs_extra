@@ -308,6 +308,10 @@ class SimulationRun(j.baseclasses.object):
         power_usage_kw =  (I)
         rackspace_usage_u = (I)
         nrnodes_active  = (I)
+        tft_farmed = (I)
+        tft_burned = (I)
+        cpr_available = (I)
+        
         """
         self.result_schema = j.data.schema.get_from_text(result_schema_text)
 
@@ -382,6 +386,14 @@ class SimulationRun(j.baseclasses.object):
     def growth_perc_get(self, month):
         return self.sheet.rows["growth_percent"].cells[month] / 100
 
+    def tft_create(self, month, revenue, tftprice, cpr):
+        j.shell()
+        w
+
+    def tft_burn(self, month, revenue, tftprice, cpr):
+        j.shell()
+        w
+
     def calc(self, nodes_batch_template, nr_start_nodes=1500, months_remaining_start_nodes=36):
         row = self.sheet.addRow("nrnodes_new", nrfloat=0)
         row2 = self.sheet.addRow("nrnodes", nrfloat=0)
@@ -390,6 +402,9 @@ class SimulationRun(j.baseclasses.object):
         row_investment = self.sheet.addRow("investment")
         row_power = self.sheet.addRow("powerkw")
         row_racks = self.sheet.addRow("nrracks")
+        row_tft_created = self.sheet.addRow("tokens_farmed")
+        row_tft_used = self.sheet.addRow("tokens_used")
+        row_tft_burned = self.sheet.addRow("tokens_burned")
 
         for x in range(0, self.sheet.nrcols):
             if x > 0:
@@ -442,9 +457,11 @@ class SimulationRun(j.baseclasses.object):
         r.power_usage_kw = 0
         r.rackspace_usage_u = 0
         r.nrnodes_active = 0
-        for i in range(0, month):
+        r.cpr_available = 0
+        for i in range(0, month + 1):
             na = self.nodes_added[i]
             if na.month < month:  # and i < na.months_max + 1:
+                # TODO: something wrong here, I removed for now, but the first batch should not generate revenue after the deadline which is months_max
                 # now the node batch counts
                 r.revenue += na.sales_price_cpr_unit * cpr_sales_price_decline * na.cpr * utilization * na.count
                 r.cost += (na.cost / 60 + na.cost_power_month + na.cost_rackspace_month) * na.count
@@ -452,20 +469,26 @@ class SimulationRun(j.baseclasses.object):
                 r.power_usage_kw += na.power * na.count / 1000
                 r.rackspace_usage_u += na.rackspace_u * na.count
                 r.nrnodes_active += na.count
+                r.cpr_available += na.cpr * na.count
+
+        tftprice = self.sheet.rows["tokenprice"].cells[month]
+
+        # r.tft_farmed = self.tft_create(month=month, revenue=r.revenue, tftprice=tftprice, cpr=r.cpr_available)
+        # r.tft_burned = self.tft_burn(month=month, revenue=r.revenue, tftprice=tftprice, cpr=r.cpr_available)
 
         return r
 
-    _SCHEMATEXT = """
-        @url = threefold.simulation.nodes
-        name** = ""
-        cost = (N)
-        power = (I)
-        cost_power_month = (N)
-        cost_rackspace_month = (N)
-        rackspace_u = (F)
-        cpr = (I)  #cloud production rate
-        count = 0 #nr of nodes
-        month = 0
-        months_max = 60
-        sales_price_cpr_unit = 0 (N)
-        """
+    def __repr__(self):
+        out = ""
+        for key in self.sheet.rows.keys():
+            row = self.sheet.rows[key]
+            if row.cells[1] and float(row.cells[1]) < 3:
+                res = row.aggregate("Q", "FIRST", 1)
+            else:
+                res = row.aggregate("Q", "FIRST", 0)
+            res = [str(i) for i in res]
+            res2 = ", ".join(res)
+            out += " - %-20s %s\n" % (key, res2)
+        return out
+
+    __str__ = __repr__

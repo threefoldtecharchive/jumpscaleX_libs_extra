@@ -26,7 +26,7 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
 
     def calc(self):
         """
-        c=j.tools.tfsimulation.test()
+        kosmos 'j.tools.tfsimulation.calc()'
         :return:
         """
 
@@ -63,7 +63,7 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
 
         # price of a capacity unit goes down over time, here we say it will go down 40%
         # means we expect price to be lowered by X e.g. 40 (*0.6)
-        simulation_run.cpr_sales_price_decline_set("0:100,71:40")
+        simulation_run.cpr_sales_price_decline_set("0:0,71:40")
 
         # utilization of the nodes, strating with 0
         simulation_run.utilization_set("30:80,71:90")
@@ -78,7 +78,7 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
         # do the calculation of the simulation
         simulation_run.calc(nr_start_nodes=1500, months_remaining_start_nodes=36, nodes_batch_template=nb)
 
-        j.shell()
+        print(simulation_run)
 
         return environment
 
