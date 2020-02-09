@@ -458,12 +458,13 @@ class SimulationRun(j.baseclasses.object):
         r.rackspace_usage_u = 0
         r.nrnodes_active = 0
         r.cpr_available = 0
+        # j.debug()
         for i in range(0, month + 1):
             na = self.nodes_added[i]
-            if na.month < month:  # and i < na.months_max + 1:
-                # TODO: something wrong here, I removed for now, but the first batch should not generate revenue after the deadline which is months_max
+            if na.month < month + 1 and month < (na.month + na.months_max):
                 # now the node batch counts
-                r.revenue += na.sales_price_cpr_unit * cpr_sales_price_decline * na.cpr * utilization * na.count
+                r.revenue += na.sales_price_cpr_unit * (1 - cpr_sales_price_decline) * na.cpr * utilization * na.count
+                # na.cpr goes up over time
                 r.cost += (na.cost / 60 + na.cost_power_month + na.cost_rackspace_month) * na.count
                 r.investments_done += na.cost * na.count
                 r.power_usage_kw += na.power * na.count / 1000
@@ -483,7 +484,7 @@ class SimulationRun(j.baseclasses.object):
         for key in self.sheet.rows.keys():
             row = self.sheet.rows[key]
             if row.cells[1] and float(row.cells[1]) < 3:
-                res = row.aggregate("Q", "FIRST", 1)
+                res = row.aggregate("Q", "FIRST", 2)
             else:
                 res = row.aggregate("Q", "FIRST", 0)
             res = [str(i) for i in res]
