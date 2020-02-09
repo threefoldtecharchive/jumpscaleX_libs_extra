@@ -1,6 +1,5 @@
 # This file is part of Radicale Server - Calendar Server
 # Copyright © 2012-2017 Guillaume Ayoub
-# Copyright © 2017-2018 Unrud <unrud@outlook.com>
 #
 # This library is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -12,6 +11,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
+# You should have received a copy of the GNU General Public License
+# along with Radicale.  If not, see <http://www.gnu.org/licenses/>.
+
 """
 Tests for Radicale.
 
@@ -22,37 +24,20 @@ import os
 import sys
 from io import BytesIO
 
-from pytest_cov import embed
-
-import radicale
-from radicale import server
-
-# Measure coverage of forked processes
-finish_request = server.ParallelHTTPServer.finish_request
-pid = os.getpid()
-
-
-def finish_request_cov(self, request, client_address):
-    cov = None
-    if pid != os.getpid():
-        cov = embed.init()
-    try:
-        return finish_request(self, request, client_address)
-    finally:
-        if cov:
-            embed.cleanup(cov)
-
-
-server.ParallelHTTPServer.finish_request = finish_request_cov
-
-# Allow importing of tests.custom....
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-# Enable debug output
-radicale.log.logger.setLevel(logging.DEBUG)
+
+logger = logging.getLogger("radicale_test")
+if not logger.hasHandlers():
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+    logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 
 class BaseTest:
     """Base class for tests."""
+
+    logger = logger
 
     def request(self, method, path, data=None, **args):
         """Send a request."""
@@ -68,14 +53,15 @@ class BaseTest:
             data = data.encode("utf-8")
             args["wsgi.input"] = BytesIO(data)
             args["CONTENT_LENGTH"] = str(len(data))
-        args["wsgi.errors"] = sys.stderr
-        status = headers = None
+        self.application._answer = self.application(args, self.start_response)
 
-        def start_response(status_, headers_):
-            nonlocal status, headers
-            status = status_
-            headers = headers_
+        return (
+            int(self.application._status.split()[0]),
+            dict(self.application._headers),
+            self.application._answer[0].decode("utf-8") if self.application._answer else None,
+        )
 
-        answer = self.application(args, start_response)
-
-        return (int(status.split()[0]), dict(headers), answer[0].decode("utf-8") if answer else None)
+    def start_response(self, status, headers):
+        """Put the response values into the current application."""
+        self.application._status = status
+        self.application._headers = headers
