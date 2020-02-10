@@ -288,6 +288,7 @@ class NodesBatch(j.baseclasses.object_config):
         month = 0
         months_max = 60
         sales_price_cpr_unit = 0 (N)
+        tft_farmed = 0 (F)
         """
 
     def nrtokens_farmed(self, growth, month):
@@ -298,7 +299,9 @@ class SimulationRun(j.baseclasses.object):
     def _init(self, **kwargs):
         # self.nr_nodes_new=[]  #% growth per month
         self.sheet = j.data.worksheets.sheet_new("growth")
-        self.nodes_added = []
+        self._nodes_added_batch = []
+        self.cpr_sum = 0
+        self.tft_sum = 0
 
         result_schema_text = """
         @url = threefold.simulation.result.month
@@ -308,9 +311,7 @@ class SimulationRun(j.baseclasses.object):
         power_usage_kw =  (I)
         rackspace_usage_u = (I)
         nrnodes_active  = (I)
-        tft_farmed = (I)
-        tft_burned = (I)
-        cpr_available = (I)
+        # cpr_available = (I)
         
         """
         self.result_schema = j.data.schema.get_from_text(result_schema_text)
@@ -363,6 +364,14 @@ class SimulationRun(j.baseclasses.object):
         """
         self._interpolate("tokenprice", args)
 
+    def difficulty_level_set(self, args):
+        """
+        difficulty level changes over time
+        :param args:
+        :return:
+        """
+        self._interpolate("difficulty_level", args)
+
     def _interpolate(self, name, args):
         args = [i.strip().split(":") for i in args.split(",") if i.strip()]
         row = self.sheet.addRow(name, nrfloat=2)
@@ -380,21 +389,50 @@ class SimulationRun(j.baseclasses.object):
         nb.cost_power_month = environment.cost_power / environment.nr_devices
         nb.cost_rackspace_month = environment.cost_rack / environment.nr_devices
         nb.cpr = environment.cpr / environment.nr_devices
-        nb.sales_price_cpr_unit = environment.sales_price_cpr_unit
         return nb
 
     def growth_perc_get(self, month):
         return self.sheet.rows["growth_percent"].cells[month] / 100
 
-    def tft_create(self, month, revenue, tftprice, cpr):
+    def tft_price_get(self, month):
+        return round(float(self.sheet.rows["tokenprice"].cells[month]), 2)
+
+    def difficulty_level_get(self, month):
+        return round(float(self.sheet.rows["difficulty_level"].cells[month]), 1)
+
+    def nodes_batch_get(self, month):
+        return self._nodes_added_batch[month]
+
+    def tft_create(self, month_now, month_added):
+        """
+        @param month_now is the month to calculate the added tft for
+        @param month_added is when the node batch was originally added
+        """
+        nodes_batch = self.nodes_batch_get(month_added)
+        tftprice_now = self.tft_price_get(month_now)
+        nodes_batch_investment = nodes_batch.cost * nodes_batch.count
+        tft_new = nodes_batch_investment / tftprice_now / self.difficulty_level_get(month_now) / 30
+        self.cpr_sum += nodes_batch.cpr * nodes_batch.count
+        tft_new = float(tft_new)
+        nodes_batch.tft_farmed += tft_new
+        self.tft_sum += tft_new
+        if not self.sheet.rows["tokens_farmed"].cells[month_now]:
+            self.sheet.rows["tokens_farmed"].cells[month_now] = 0
+        self.sheet.rows["tokens_farmed"].cells[month_now] += tft_new
+
+        row = self.sheet.rows["tokens_roi_batch_%s" % month_added]
+        tft_price = self.tft_price_get(month_now)
+        row.cells[month_now] = tft_price * tft_new
+        node_batch.tft_farmed
+
+    def tft_burn(self, month_now, month_added):
+        nodes_batch = self.nodes_batch_get(month_added)
+        # tftprice =
+        return
         j.shell()
         w
 
-    def tft_burn(self, month, revenue, tftprice, cpr):
-        j.shell()
-        w
-
-    def calc(self, nodes_batch_template, nr_start_nodes=1500, months_remaining_start_nodes=36):
+    def calc(self, environment, nr_start_nodes=1500, months_remaining_start_nodes=36):
         row = self.sheet.addRow("nrnodes_new", nrfloat=0)
         row2 = self.sheet.addRow("nrnodes", nrfloat=0)
         row_rev = self.sheet.addRow("revenue_month")
@@ -402,9 +440,17 @@ class SimulationRun(j.baseclasses.object):
         row_investment = self.sheet.addRow("investment")
         row_power = self.sheet.addRow("powerkw")
         row_racks = self.sheet.addRow("nrracks")
+        row_cpr_available = self.sheet.addRow("cpr_available")
         row_tft_created = self.sheet.addRow("tokens_farmed")
         row_tft_used = self.sheet.addRow("tokens_used")
         row_tft_burned = self.sheet.addRow("tokens_burned")
+        for x in range(0, self.sheet.nrcols):
+            row_tft_burned = self.sheet.addRow("tokens_roi_batch_%s" % x)
+
+        self.environment = environment
+
+        # are the parameters for a batch of nodes to be added
+        nodes_batch_template = self.nodes_batch_template_get(environment)
 
         for x in range(0, self.sheet.nrcols):
             if x > 0:
@@ -423,11 +469,12 @@ class SimulationRun(j.baseclasses.object):
             row_investment.cells[x] = r.investments_done / 1000
             row_power.cells[x] = r.power_usage_kw / 1000
             row_racks.cells[x] = r.rackspace_usage_u / 44
+            row_cpr_available.cells[x] = r.cpr_available
 
     def _nodes_batch_add(self, month, nodes_batch_template, nr_nodes, months_max=60):
-        while len(self.nodes_added) < month + 1:
-            self.nodes_added.append(NodesBatch())
-        n = self.nodes_added[month]
+        while len(self._nodes_added_batch) < month + 1:
+            self._nodes_added_batch.append(NodesBatch())
+        n = self._nodes_added_batch[month]
         # update date from template
         n._data._data_update(nodes_batch_template._data._ddict)
         n.count = nr_nodes
@@ -436,6 +483,7 @@ class SimulationRun(j.baseclasses.object):
         n.months_max = months_max
         improve = self.sheet.rows["cpr_improve"].cells[month] / 100
         n.cpr = n.cpr * (1 + improve)
+        n.tft_farmed = 0
 
     def result_get(self, month, utilization=None):
         """
@@ -450,6 +498,8 @@ class SimulationRun(j.baseclasses.object):
         cpr_sales_price_decline = self.sheet.rows["cpr_sales_price_decline"].cells[month]
         cpr_sales_price_decline = j.data.types.percent.clean(cpr_sales_price_decline)
 
+        sales_price_cpr_unit_month = self.environment.sales_price_cpr_unit * (1 - cpr_sales_price_decline)
+
         r = self.result_schema.new()
         r.revenue = 0
         r.cost = 0
@@ -460,10 +510,10 @@ class SimulationRun(j.baseclasses.object):
         r.cpr_available = 0
         # j.debug()
         for i in range(0, month + 1):
-            na = self.nodes_added[i]
+            na = self.nodes_batch_get(i)  # go back to when a node batch was added
             if na.month < month + 1 and month < (na.month + na.months_max):
                 # now the node batch counts
-                r.revenue += na.sales_price_cpr_unit * (1 - cpr_sales_price_decline) * na.cpr * utilization * na.count
+                r.revenue += sales_price_cpr_unit_month * na.cpr * utilization * na.count
                 # na.cpr goes up over time
                 r.cost += (na.cost / 60 + na.cost_power_month + na.cost_rackspace_month) * na.count
                 r.investments_done += na.cost * na.count
@@ -472,10 +522,8 @@ class SimulationRun(j.baseclasses.object):
                 r.nrnodes_active += na.count
                 r.cpr_available += na.cpr * na.count
 
-        tftprice = self.sheet.rows["tokenprice"].cells[month]
-
-        # r.tft_farmed = self.tft_create(month=month, revenue=r.revenue, tftprice=tftprice, cpr=r.cpr_available)
-        # r.tft_burned = self.tft_burn(month=month, revenue=r.revenue, tftprice=tftprice, cpr=r.cpr_available)
+                r.tft_farmed = self.tft_create(month_now=month, month_added=i)
+                r.tft_burned = self.tft_burn(month_now=month, month_added=i)
 
         return r
 
@@ -490,6 +538,8 @@ class SimulationRun(j.baseclasses.object):
             res = [str(i) for i in res]
             res2 = ", ".join(res)
             out += " - %-20s %s\n" % (key, res2)
+
+        out += " - %-20s %s\n" % ("tft_sum", int(self.tft_sum))
         return out
 
     __str__ = __repr__

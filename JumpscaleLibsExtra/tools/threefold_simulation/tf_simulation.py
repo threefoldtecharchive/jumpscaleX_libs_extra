@@ -71,12 +71,10 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
         # super important factor, how does token price goes up, this is ofcourse complete speculation, no-one knows
         simulation_run.tokenprice_set("0:0.15,71:2")
 
-        # are the parameters for a batch of nodes to be added
-        nb = simulation_run.nodes_batch_template_get(environment)
-        # print(nb)
+        simulation_run.difficulty_level_set("0:2,71:50")
 
         # do the calculation of the simulation
-        simulation_run.calc(nr_start_nodes=1500, months_remaining_start_nodes=36, nodes_batch_template=nb)
+        simulation_run.calc(nr_start_nodes=1500, months_remaining_start_nodes=36, environment=environment)
 
         print(simulation_run)
 
