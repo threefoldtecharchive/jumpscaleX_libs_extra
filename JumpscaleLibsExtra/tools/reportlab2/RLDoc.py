@@ -1,7 +1,8 @@
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate, Paragraph
+from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate, Paragraph, Image, Table
+from .TextFlowables import H1, H2, H3, Normal
+from reportlab.lib import colors
 from Jumpscale import j
 
 
@@ -55,40 +56,43 @@ class RLDoc:
         """
         self._doc.leftMargin = 1 * cm
         self._doc.rightMargin = 1 * cm
-        self._doc.bottomMargin = 1.5 * cm
-        self._doc.topMargin = 1.5 * cm
+        self._doc.bottomMargin = 1 * cm
+        self._doc.topMargin = 1 * cm
         frame = self.frame_create(
-            self.doc.topMargin, self.doc.bottomMargin, self.doc.width, self.doc.height - 2 * cm, id="default"
+            x1=self._doc.topMargin,
+            y1=self._doc.bottomMargin,
+            width=self._doc.width + 2 * cm,
+            height=self._doc.height + 2 * cm,
+            id="default",
         )
-        template = PageTemplate(id="legal_doc", frames=frame, onPage=self._header_footer)
+        template = PageTemplate(id="legal_doc", frames=frame, onPage=self._default_header_footer)
         self._templates = [template]
 
-    def set_header_text(self, text):
+    def header_text_set(self, text):
         self._header = text
 
-    def set_header_text(self, text):
+    def footer_text_set(self, text):
         self._footer = text
 
-    def _default_header_footer(self, canvas, doc, pagenr_auto=True):
-        self._pagenr += 1
+    def _default_header_footer(self, canvas, doc, pagenr_auto=False):
 
         canvas.saveState()
-        header = self._header.replace("{pagenr}", str(self._pagenr))
-        P = Paragraph(header, self._styleN)
-        w, h = P.wrap(doc.width, doc.topMargin)
-        P.drawOn(canvas, doc.leftMargin, doc.height + doc.topMargin - h)
-        canvas.restoreState()
+        if self._header:
+            P = H1(self._header).get()
+            w, h = P.wrap(doc.width, doc.topMargin)
+            P.drawOn(canvas, doc.leftMargin, doc.height + doc.topMargin - h)
+            canvas.restoreState()
+            canvas.saveState()
 
-        canvas.saveState()
-        footer = self._footer.replace("{pagenr}", str(self._pagenr))
-        P = Paragraph(footer, self._styleN)
-        w, h = P.wrap(doc.width - 20, doc.bottomMargin)
-        P.drawOn(canvas, doc.leftMargin, h)
-        canvas.restoreState()
+        if self._footer:
+            P = H1(self._footer).get()
+            w, h = P.wrap(doc.width - 20, doc.bottomMargin)
+            P.drawOn(canvas, doc.leftMargin, h)
+            canvas.restoreState()
 
         if pagenr_auto:
             canvas.saveState()
-            P = Paragraph("page:%s" % self._pagenr, self._styleRightAlignment)
+            P = H1("page:%s" % self._pagenr, self._styleRightAlignment)
             w, h = P.wrap(doc.width - doc.rightMargin, doc.bottomMargin)
             P.drawOn(canvas, doc.leftMargin, h)
             canvas.restoreState()
@@ -102,7 +106,30 @@ class RLDoc:
     def save(self):
         self._doc.build(self._flowables)
 
-    def paragraph_add(self, text, style, **kwargs):
+    def _paragraph_add(self, text, style, **kwargs):
         self._flowables.append(Paragraph(text, style, **kwargs))
 
-    ## TODO: add methods to configure self._doc eg. margin_set, ...
+    def h1_add(self, text, custom_style=None):
+        self._flowables.append(H1(text, custom_style).get())
+
+    def h2_add(self, text, custom_style=None):
+        self._flowables.append(H2(text, custom_style).get())
+
+    def h3_add(self, text, custom_style=None):
+        self._flowables.append(H3(text, custom_style).get())
+
+    def text_add(self, text, custom_style=None):
+        self._flowables.append(Normal(text, custom_style).get())
+
+    def image_add(self, file_name, width=None, height=None, horizontal_align="CENTER"):
+        self._flowables.append(Image(file_name, width, height, hAlign=horizontal_align))
+
+    def table_create(self, data, style=None):
+        if not style:
+            style = [
+                ("LINEABOVE", (0, 0), (-1, -1), 1, colors.black),
+                ("LINEBEFORE", (0, 0), (-1, -1), 1, colors.black),
+                ("LINEAFTER", (0, 0), (-1, -1), 1, colors.black),
+                ("LINEBELOW", (0, 0), (-1, -1), 1, colors.black),
+            ]
+        self._flowables.append(Table(data, style=style))
