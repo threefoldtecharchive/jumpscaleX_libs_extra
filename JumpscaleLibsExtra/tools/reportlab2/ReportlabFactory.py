@@ -27,4 +27,19 @@ class ReportlabFactory(j.baseclasses.object):
         d.table_create(
             [["id", "name", "age", "nationality"], ["0", "foo", 15, "Egyptian"], ["1", "bar", 71, "Belgian"]]
         )
+        d.md_add(
+            """
+# Heading 1 from md
+## Heading 2 from md
+here is a normal text block and you still can add links [click here](www.3bot.org)
+| ID       |      Name     |  Age  |
+|----------|---------------|-------|
+| 0        |  Andrew       | 27    |
+| 1        |  Thabet       | 31    |
+| 2        |  Waleed       | 26    |
+-----------------------------------
+
+---------------------------------
+                """
+        )
         d.save()

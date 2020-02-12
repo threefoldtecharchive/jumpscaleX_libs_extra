@@ -133,3 +133,21 @@ class RLDoc:
                 ("LINEBELOW", (0, 0), (-1, -1), 1, colors.black),
             ]
         self._flowables.append(Table(data, style=style))
+
+    def md_add(self, content=None):
+        parts = j.data.markdown.document_get(content).parts
+        for part in parts:
+            if part.type == "header" and part.level == 1:
+                self.h1_add(part.title)
+            elif part.type == "header" and part.level == 2:
+                self.h2_add(part.title)
+            elif part.type == "header" and part.level == 3:
+                self.h3_add(part.title)
+            elif part.type == "block":
+                self.text_add(part.html)
+            elif part.type == "table":
+                data = [part.header]
+                data.extend(part.rows)
+                self.table_create(data=data)
+            else:
+                print(f"Skipping {part.type} part, Not implemented yet")
