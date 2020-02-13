@@ -18,7 +18,7 @@ class ReportlabFactory(j.baseclasses.object):
         d.configure()
         d.header_text_set("header")
         d.footer_text_set("footer")
-        image_path = "/tmp/3fold.png"
+        image_path = j.sal.fs.getTmpFilePath()
         j.clients.http.download("https://threefold.io/assets/footer_logo.png", image_path)
         d.image_add(image_path, height=200, width=150)
         d.h1_add("Heading 1")
@@ -39,8 +39,17 @@ here is a normal text block and you still can add links [click here](www.3bot.or
 |----------|---------------|-------|
 | 0        |  Andrew       | 27    |
 | 1        |  Thabet       | 31    |
-| 2        |  Waleed       | 26    |
+| 2        |  Waleed       | 25    |
 
                 """
+        )
+        d.graph_add(
+            """
+graph testgraph {
+     a -- b -- c;
+     b -- d;
+     a -- f;
+ }
+        """
         )
         d.save()

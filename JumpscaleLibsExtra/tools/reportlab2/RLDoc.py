@@ -134,6 +134,17 @@ class RLDoc:
             ]
         self._flowables.append(Table(data, style=style))
 
+    def graph_add(self, content):
+        md5 = j.data.hash.md5_string(content)
+        md5 = bytes(md5.encode()).decode()
+        name = "graph_%s" % md5
+        content_path = j.sal.fs.getTmpFilePath()
+        dest_path = j.sal.fs.getTmpFilePath() + ".png"
+        j.sal.fs.writeFile(filename=content_path, contents=content)
+        j.sal.process.execute("dot '%s' -Tpng > '%s'" % (content_path, dest_path))
+        j.sal.fs.remove(content_path)
+        self.image_add(dest_path)
+
     def md_add(self, content=None):
         parts = j.data.markdown.document_get(content).parts
         for part in parts:
