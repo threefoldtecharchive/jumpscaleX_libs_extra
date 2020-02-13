@@ -7,7 +7,7 @@ class Container(j.baseclasses.object_config):
         name** = (S)
         gedis_port = (I)
         ssh_port = (I)
-        branch = "development"
+        branch = "master"
         deployed = False
         mother_id** = 0 (I)
         """

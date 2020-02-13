@@ -5,7 +5,7 @@ JSConfigs = j.baseclasses.object_config_collection
 
 
 class TaigaFactory(JSConfigs):
-    __jslocation__ = "j.clients.taiga"
+    # check https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/7
     _CHILDCLASS = TaigaClient
 
     def install(self, reset=False):

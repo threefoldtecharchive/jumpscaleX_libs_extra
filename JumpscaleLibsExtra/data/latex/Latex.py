@@ -4,6 +4,8 @@ JSBASE = j.baseclasses.object
 from pylatex import *
 from pylatex.utils import bold
 
+skip = j.baseclasses.testtools._skip
+
 
 class Latex(j.baseclasses.object):
     __jslocation__ = "j.data.latex"
@@ -20,22 +22,18 @@ class Latex(j.baseclasses.object):
 
         p.runtimes.pip.install("pylatex,numpy")
 
-    def test(self, install=False):
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/67")
+    def test_generation(self, install=False):
         """
-        kosmos 'j.data.latex.test(install=False)'
+        kosmos 'j.data.latex.test_generation(install=False)'
 
         make sure you do
         ```
         export PATH=/usr/local/texlive/2018/bin/x86_64-darwin/:$PATH
         ```
-
-        :return:
         """
         if install:
             self.install()
-        self.test_generation()
-
-    def test_generation(self):
 
         p = j.tools.prefab.local
 
@@ -109,20 +107,20 @@ class Latex(j.baseclasses.object):
                 doc.append("Some text.\n")
                 doc.append("This is another paragraph.\n")
                 C = """
-                Sometimes the compiler will not be able to complete the document in one pass. 
+                Sometimes the compiler will not be able to complete the document in one pass.
                 In this case it will instruct you to “Rerun LaTeX” via the log output
-                In order to deal with this, you need to make sure that latexmk is installed. 
+                In order to deal with this, you need to make sure that latexmk is installed.
                 Pylatex will detect and use it automatically.
-                
+
                 In this case it will instruct you to “Rerun LaTeX” via the log output
-                In order to deal with this, you need to make sure that latexmk is installed. 
+                In order to deal with this, you need to make sure that latexmk is installed.
                 Pylatex will detect and use it automatically.
-                
+
                 In this case it will instruct you to “Rerun LaTeX” via the log output
-                In order to deal with this, you need to make sure that latexmk is installed. 
+                In order to deal with this, you need to make sure that latexmk is installed.
                 Pylatex will detect and use it automatically.
-                
-                
+
+
                 """
                 doc.append(LineBreak())
                 doc.append(j.core.text.strip(C))
