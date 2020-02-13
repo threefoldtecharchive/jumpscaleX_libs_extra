@@ -30,6 +30,8 @@ class ReportlabFactory(j.baseclasses.object):
         """
         kosmos 'j.tools.reportlab.test(install=False)'
 
+        see https://www.reportlab.com/dev/opensource/rl-toolkit/
+
         :return:
         """
         if install:
