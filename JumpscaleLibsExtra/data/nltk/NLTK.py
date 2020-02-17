@@ -5,6 +5,7 @@ try:
     from nltk.tokenize import wordpunct_tokenize
 except:
     pass
+j.builders.runtimes.python3.pip_package_install("nameparser")
 from nameparser.parser import HumanName
 from pprint import pprint as print
 from unidecode import unidecode
@@ -43,7 +44,7 @@ class NLTKFactory(j.baseclasses.object):
     __jslocation__ = "j.data.nltk"
 
     def install(self):
-        j.builders.runtimes.python3.pip_package_install("nltk,nameparser,unidecode")
+        j.builders.runtimes.python3.pip_package_install("nltk, nameparser, unidecode")
         self.download_nltk()
 
     def download_nltk(self):
