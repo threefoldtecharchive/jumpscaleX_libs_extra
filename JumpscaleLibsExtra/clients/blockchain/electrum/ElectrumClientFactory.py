@@ -15,7 +15,7 @@ class ElectrumClientFactory(JSConfigBaseFactory):
     Factroy class to get a electrum client object
     """
 
-    __jslocation__ = "j.clients.btc_electrum"
+    # check https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/8
     _CHILDCLASS = ElectrumClient
 
     def _init(self, **kwargs):

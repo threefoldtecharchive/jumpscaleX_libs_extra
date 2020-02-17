@@ -3,9 +3,6 @@ from Jumpscale import j
 
 simulation = Simulation(name="main")
 
-simulation.components = []
-simulation.devices = []
-
 simulation.components.new(
     name="s1",
     description="SuperMicro Chassis 2U, 12 HD's fit inside, 10 gbit dual",

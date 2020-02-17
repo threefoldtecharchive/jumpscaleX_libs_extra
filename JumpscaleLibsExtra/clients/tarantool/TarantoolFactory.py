@@ -23,7 +23,7 @@ class TarantoolFactory(JSConfigBaseFactory):
 
     """
 
-    __jslocation__ = "j.clients.tarantool"
+    # check https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/8
     _CHILDCLASS = TarantoolClient
 
     def _init(self, **kwargs):
