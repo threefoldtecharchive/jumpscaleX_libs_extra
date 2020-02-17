@@ -5,5 +5,5 @@ JSConfigs = j.baseclasses.object_config_collection
 
 
 class RacktivityFactory(JSConfigs):
-    __jslocation__ = "j.clients.racktivity"
+    # check https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/7
     _CHILDCLASS = RacktivityClient

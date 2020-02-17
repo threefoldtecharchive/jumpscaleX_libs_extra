@@ -312,7 +312,7 @@ class SimulationRun(j.baseclasses.object):
         rackspace_usage_u = (I)
         nrnodes_active  = (I)
         # cpr_available = (I)
-        
+
         """
         self.result_schema = j.data.schema.get_from_text(result_schema_text)
 
@@ -423,14 +423,13 @@ class SimulationRun(j.baseclasses.object):
         row = self.sheet.rows["tokens_roi_batch_%s" % month_added]
         tft_price = self.tft_price_get(month_now)
         row.cells[month_now] = tft_price * tft_new
-        node_batch.tft_farmed
+        nodes_batch.tft_farmed
 
     def tft_burn(self, month_now, month_added):
         nodes_batch = self.nodes_batch_get(month_added)
         # tftprice =
         return
         j.shell()
-        w
 
     def calc(self, environment, nr_start_nodes=1500, months_remaining_start_nodes=36):
         row = self.sheet.addRow("nrnodes_new", nrfloat=0)
@@ -444,6 +443,7 @@ class SimulationRun(j.baseclasses.object):
         row_tft_created = self.sheet.addRow("tokens_farmed")
         row_tft_used = self.sheet.addRow("tokens_used")
         row_tft_burned = self.sheet.addRow("tokens_burned")
+
         for x in range(0, self.sheet.nrcols):
             row_tft_burned = self.sheet.addRow("tokens_roi_batch_%s" % x)
 

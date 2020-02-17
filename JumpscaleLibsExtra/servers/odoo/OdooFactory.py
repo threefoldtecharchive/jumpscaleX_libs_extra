@@ -2,9 +2,10 @@ from Jumpscale import j
 from .OdooServer import OdooServer
 
 JSConfigs = j.baseclasses.object_config_collection
+TESTTOOLS = j.baseclasses.testtools
 
 
-class OdooFactory(JSConfigs):
+class OdooFactory(JSConfigs, TESTTOOLS):
     """
     """
 
@@ -74,3 +75,6 @@ class OdooFactory(JSConfigs):
         cl1.module_remove("note")
 
         return "TESTS OK"
+
+    def test_tmux(self, name=""):
+        self._tests_run(name=name)

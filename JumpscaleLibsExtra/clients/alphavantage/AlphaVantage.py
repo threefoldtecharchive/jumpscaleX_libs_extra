@@ -31,11 +31,3 @@ class AlphaVantageClient(j.baseclasses.object_config):
 
     def install(self):
         j.shell()
-
-    def test(self):
-        """
-        kosmos 'j.clients.alphavantage.test()'
-        """
-        # self.new("main", api_key_="....")
-        # cl = self.main.client
-        j.shell()

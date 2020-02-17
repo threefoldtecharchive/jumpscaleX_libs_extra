@@ -95,5 +95,5 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
         j.servers.notebook.start(
             path="{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks",
             voila=voila,
-            background=background
+            background=background,
         )  # it will open a browser with access to the right output
