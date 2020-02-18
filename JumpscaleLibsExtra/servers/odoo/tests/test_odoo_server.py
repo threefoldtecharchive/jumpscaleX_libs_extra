@@ -2,8 +2,7 @@ from Jumpscale import j
 import random, requests, uuid
 import subprocess, uuid
 
-LOGGER = logger
-LOGGER.add("PACKAGE_MANAGER_{time}.log")
+
 skip = j.baseclasses.testtools._skip
 odoo_server = j.servers.odoo.get()
 
