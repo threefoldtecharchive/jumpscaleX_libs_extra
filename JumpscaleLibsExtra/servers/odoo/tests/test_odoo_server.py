@@ -1,6 +1,5 @@
 from Jumpscale import j
 import random, requests, uuid
-from loguru import logger
 import subprocess, uuid
 
 LOGGER = logger
@@ -14,7 +13,7 @@ def random_string():
 
 
 def info(message):
-    LOGGER.info(message)
+    j.tools.logger._log_info(message)
 
 
 def set_database_data(database):
