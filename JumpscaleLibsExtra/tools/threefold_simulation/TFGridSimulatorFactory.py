@@ -1,38 +1,41 @@
 from Jumpscale import j
 
+from .TFGridSimulator import TFGridSimulator
 
-class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.object):
 
-    __jslocation__ = "j.tools.tfsimulation"
+class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
-    # def simulation(self):
-    #     """
-    #     c=j.tools.tfsimulation.test()
-    #     :return:
-    #     """
+    __jslocation__ = "j.tools.tfgrid_simulator"
 
-    def simulation_get(self):
+    def _init(self):
+        self._instances = {}
+
+    @property
+    def default(self):
+        return self.simulator_get("default")
+
+    def simulator_get(self, name="default"):
         """
         example how to use
 
         ```
-        simulation = j.tools.tfsimulation.simulation_get()
+        simulation = j.tools.tfgrid_simulator.simulator_get()
         ```
 
         """
-        from .SimulationComponents import simulation
-
-        return simulation
+        if name not in self._instances:
+            self._instances[name] = TFGridSimulator(name=name)
+        return self._instances[name]
 
     def calc(self):
         """
-        kosmos 'j.tools.tfsimulation.calc()'
+        kosmos 'j.tools.tfgrid_simulator.calc()'
         :return:
         """
 
-        from .SimulationComponents import simulation
+        simulation = self.default
 
-        environment = simulation.environment_get("main")
+        environment = simulation.environment
 
         environment.cost_power_kwh = "0.15 USD"
         environment.cost_rack_unit = "12 USD"
@@ -42,15 +45,16 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
         environment.sales_price_cu = "10 USD"
         environment.sales_price_su = "6 USD"
 
-        device_edge = simulation.device_get("edge1", environment=environment)
+        device_edge = simulation.device_get("edge1")
         # print(d1)
 
-        switch = simulation.device_get("switch", environment=environment)
+        switch = simulation.device_get("switch")
 
         environment.device_add("edge1", device_edge, 20)
         environment.device_add("switch", switch, 2)
 
-        # print(environment)
+        print(environment)
+        j.shell()
 
         simulation_run = simulation.run()
 
@@ -71,10 +75,16 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
         # super important factor, how does token price goes up, this is ofcourse complete speculation, no-one knows
         simulation_run.tokenprice_set("0:0.15,71:2")
 
-        simulation_run.difficulty_level_set("0:2,71:50")
+        # simulation_run.difficulty_level_set("0:2,71:50")
+        simulation_run.difficulty_level_set("0:2,71:2")
 
         # do the calculation of the simulation
-        simulation_run.calc(nr_start_nodes=1500, months_remaining_start_nodes=36, environment=environment)
+        simulation_run.calc(
+            nr_start_nodes=1500,
+            months_remaining_start_nodes=36,
+            environment=environment,
+            tft_farmed_before_simulation=20 * 1000 * 1000,
+        )
 
         print(simulation_run)
 
@@ -84,7 +94,7 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
         """
         to run:
 
-        kosmos -p 'j.tools.tfsimulation.start()'
+        kosmos -p 'j.tools.tfgrid_simulator.start()'
         """
 
         j.application.start("tfsimulation")
