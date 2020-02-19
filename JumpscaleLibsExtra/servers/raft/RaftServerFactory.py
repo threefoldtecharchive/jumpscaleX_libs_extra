@@ -6,7 +6,10 @@ from .RaftServer import RaftServer
 from .RaftCluster import RaftCluster
 
 
-class RaftServerFactory(j.baseclasses.object_config_collection_testtools):
+skip = j.baseclasses.testtools._skip
+
+
+class RaftServerFactory(j.baseclasses.object_config_collection_testtools, j.baseclasses.testtools):
     __jslocation__ = "j.servers.raftserver"
 
     def _init(self, **wargs):
@@ -44,12 +47,14 @@ class RaftServerFactory(j.baseclasses.object_config_collection_testtools):
         cluster = self.get_by_params(instance="main", secret=secret, members=members, cmd=cmd)
         cluster.start(background=True)
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/15")
     def test(self):
         """
         js_shell 'j.servers.raftserver.test()'
         """
         self.start_local(nrservers=4, startport=6000, cmd="j.servers.raftserver.example_server_class_get()")
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/15")
     def test_nopasswd(self):
         """
         js_shell 'j.servers.raftserver.test_nopasswd()'
