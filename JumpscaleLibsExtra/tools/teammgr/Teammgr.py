@@ -30,6 +30,9 @@ core = false
 
 JSBASE = j.baseclasses.object
 
+TESTTOOLS = j.baseclasses.testtools
+skip = j.baseclasses.testtools._skip
+
 
 class Todo(j.baseclasses.object):
     def __init__(self, department, path, todo):
@@ -308,7 +311,7 @@ class Department(j.baseclasses.object):
     __str__ = __repr__
 
 
-class Teammgr(j.baseclasses.object):
+class Teammgr(j.baseclasses.object, TESTTOOLS):
     __jslocation__ = "j.tools.team_manager"
 
     def _init(self, **kwargs):
@@ -366,6 +369,7 @@ class Teammgr(j.baseclasses.object):
             if department.todo_md != "":
                 j.sal.fs.writeFile(path1, department.todo_md)
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/17")
     def test(self):
         path = j.clients.git.pullGitRepo("ssh://git@docs.grid.tf:10022/gig/data_team.git")
         self.load(path=path + "/team")
