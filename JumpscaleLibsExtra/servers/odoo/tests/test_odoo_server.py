@@ -1,10 +1,7 @@
 from Jumpscale import j
 import random, requests, uuid
 import subprocess, uuid
-from gevent import monkey
 
-
-monkey.patch_all(subprocess=False)
 
 skip = j.baseclasses.testtools._skip
 odoo_server = j.servers.odoo.get()
