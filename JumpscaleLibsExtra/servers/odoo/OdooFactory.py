@@ -5,6 +5,9 @@ JSConfigs = j.baseclasses.object_config_collection
 TESTTOOLS = j.baseclasses.testtools
 
 
+skip = j.baseclasses.testtools._skip
+
+
 class OdooFactory(JSConfigs, TESTTOOLS):
     """
     """
@@ -27,6 +30,7 @@ class OdooFactory(JSConfigs, TESTTOOLS):
         """
         j.builders.apps.odoo.install(reset=reset)
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_builders/issues/50")
     def test(self, start=True):
         """
         kosmos 'j.servers.odoo.test()'
@@ -76,5 +80,6 @@ class OdooFactory(JSConfigs, TESTTOOLS):
 
         return "TESTS OK"
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_builders/issues/50")
     def test_tmux(self, name=""):
         self._tests_run(name=name)

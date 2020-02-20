@@ -8,7 +8,7 @@ JSBASE = j.baseclasses.object
 
 
 class Factory(j.baseclasses.object):
-    __jslocation__ = "j.tools.capacity"
+    # check https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/10
 
     def _init(self, **kwargs):
         self.parser = CapacityParser()

@@ -38,9 +38,8 @@ logger = logging.getLogger(__name__)
 
 from collections import UserDict
 
-from gevent import socket, monkey, Timeout
+from gevent import socket, Timeout
 
-monkey.patch_all(thread=False)
 from gevent.server import StreamServer
 
 
