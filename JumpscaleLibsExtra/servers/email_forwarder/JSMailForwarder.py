@@ -2,6 +2,8 @@ from .forwarder import MailForwarder
 
 from Jumpscale import j
 
+skip = j.baseclasses.testtools._skip
+
 
 class JSMailForwarderBase(j.baseclasses.object_config):
     """Base class that holds the forwarder's configurations as 
