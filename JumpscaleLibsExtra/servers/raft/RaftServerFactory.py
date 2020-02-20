@@ -10,7 +10,7 @@ skip = j.baseclasses.testtools._skip
 
 
 class RaftServerFactory(j.baseclasses.object_config_collection_testtools, j.baseclasses.testtools):
-    __jslocation__ = "j.servers.raftserver"
+    # check https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/7
 
     def _init(self, **wargs):
         super(RaftServerFactory, self).__init__(RaftCluster)

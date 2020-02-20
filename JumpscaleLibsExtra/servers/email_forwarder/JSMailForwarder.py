@@ -63,6 +63,7 @@ class JSMailForwarderFactory(j.baseclasses.object_config_collection_testtools):
     __jslocation__ = "j.servers.mail_forwarder"
     _CHILDCLASS = JSMailForwarderBase
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/19")
     def test(self, gdomain_user, gdomain_password):
         mf = j.servers.mail_forwarder.get(
             name="test",
