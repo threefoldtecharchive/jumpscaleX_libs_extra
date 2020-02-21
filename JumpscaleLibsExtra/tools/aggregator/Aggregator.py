@@ -10,7 +10,7 @@ class Aggregator(j.baseclasses.object):
     """
     """
 
-    __jslocation__ = "j.tools.aggregator"
+    # check https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/10
 
     def getClient(self, redisConnection, nodename):
         return AggregatorClient(redisConnection, nodename)

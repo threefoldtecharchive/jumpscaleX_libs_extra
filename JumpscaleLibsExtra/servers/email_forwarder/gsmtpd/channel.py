@@ -13,8 +13,6 @@ NEWLINE = "\n"
 EMPTYSTRING = ""
 COMMASPACE = ", "
 
-monkey.patch_all(thread=False)
-
 
 class SMTPChannel(object):
     """

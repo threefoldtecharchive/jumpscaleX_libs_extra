@@ -8,7 +8,7 @@ from .ZOSVB import ZOSVB
 
 
 class Builder(j.baseclasses.object):
-    __jslocation__ = "j.tools.notapplicableyet"
+    # check https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/12
 
     def _init(self, **kwargs):
         self._zos_client = None

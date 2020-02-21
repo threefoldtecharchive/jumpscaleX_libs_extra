@@ -11,7 +11,7 @@ class RealitProcess(j.baseclasses.object):
     """
     """
 
-    __jslocation__ = "j.tools.realityprocess"
+    # check https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/13
 
     def influxpump(self, influxdb, cidr="127.0.0.1", ports=[7777], rentention_duration="5d", workers=4):
         """

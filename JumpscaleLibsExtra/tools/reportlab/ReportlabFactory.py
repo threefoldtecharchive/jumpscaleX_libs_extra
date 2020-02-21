@@ -2,8 +2,11 @@ from Jumpscale import j
 
 JSBASE = j.baseclasses.object
 
+TESTTOOLS = j.baseclasses.testtools
+skip = j.baseclasses.testtools._skip
 
-class ReportlabFactory(j.baseclasses.object):
+
+class ReportlabFactory(j.baseclasses.object, TESTTOOLS):
     __jslocation__ = "j.tools.reportlab"
 
     @property
@@ -26,14 +29,14 @@ class ReportlabFactory(j.baseclasses.object):
         #     raise NotImplemented("need to do for ubuntu")
         p.runtimes.pip.install("reportlab")
 
-    def test(self, install=False):
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/16")
+    def test(self, name="", install=False):
         """
         kosmos 'j.tools.reportlab.test(install=False)'
 
-        see https://www.reportlab.com/dev/opensource/rl-toolkit/
-
         :return:
         """
+        self._tests_run(name=name)
         if install:
             self.install()
         # self.test_generation()
@@ -67,6 +70,7 @@ class ReportlabFactory(j.baseclasses.object):
 
         "This is a multi-line header.  It goes on every page.  "
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/16")
     def test_simple_pdf(self):
         from reportlab.pdfgen import canvas
 
@@ -78,6 +82,7 @@ class ReportlabFactory(j.baseclasses.object):
         c.showPage()
         c.save()
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/16")
     def test_generation(self):
 
         p = j.tools.prefab.local
