@@ -6,13 +6,21 @@ class SimulatorBase(j.baseclasses.object_config):
     a set of nodes seen in 1 specific month
     """
 
+    def _init_pre(self, **kwargs):
+        self._model_ = False
+        self._bcdb_ = None
+
     def _numeric_get(self, val):
         if isinstance(val, float) or isinstance(val, int):
             val = j.data.types.numeric.clean(val)
         return val
 
     def __str__(self):
-        out = "{YELLOW}## %s: %s{RESET}\n\n" % (self._cat, self.month)
+        if hasattr(self, "month"):
+            out = "{YELLOW}## %s: %s{RESET}\n\n" % (self._cat, self.month)
+        else:
+            out = "{YELLOW}## %s{RESET}\n\n" % (self._cat)
+
         for key, val in self._data._ddict_hr.items():
             val = self._numeric_get(val)
             out += " - {RED}%-30s{RESET} : %s\n" % (key, val)

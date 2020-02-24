@@ -7,7 +7,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
     __jslocation__ = "j.tools.tfgrid_simulator"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self._instances = {}
 
     @property
@@ -35,6 +35,11 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         simulation = self.default
 
+        # populate the bom (bill of material)
+        from .SimulationComponents import bom_fill
+
+        bom_fill(simulation)
+
         environment = simulation.environment
 
         environment.cost_power_kwh = "0.15 USD"
@@ -54,39 +59,34 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         environment.device_add("switch", switch, 2)
 
         print(environment)
-        j.shell()
-
-        simulation_run = simulation.run()
 
         # month:growth_percent of nodes being added
-        simulation_run.growth_percent_set("3:5,11:8,24:10,36:12,48:10,60:10")
+        simulation.growth_percent_set("3:5,11:8,24:10,36:12,48:10,60:10,61:0")
 
         # means at end of period we produce 40% more cpr (*1.4)
         # cpr = capacity production rate (is like hashrate of bitcoin)
-        simulation_run.cpr_improve_set("71:40")
+        simulation.cpr_improve_set("71:40")
 
         # price of a capacity unit goes down over time, here we say it will go down 40%
         # means we expect price to be lowered by X e.g. 40 (*0.6)
-        simulation_run.cpr_sales_price_decline_set("0:0,71:40")
+        simulation.cpr_sales_price_decline_set("0:0,71:40")
 
         # utilization of the nodes, strating with 0
-        simulation_run.utilization_set("30:80,71:90")
+        simulation.utilization_set("20:80,40:90")
 
         # super important factor, how does token price goes up, this is ofcourse complete speculation, no-one knows
-        simulation_run.tokenprice_set("0:0.15,71:2")
+        simulation.tokenprice_set("0:0.15,71:2")
 
-        # simulation_run.difficulty_level_set("0:2,71:50")
-        simulation_run.difficulty_level_set("0:2,71:2")
+        # simulation.difficulty_level_set("0:2,71:50")
+        simulation.difficulty_level_set("0:2,71:2")
+
+        simulation.nodesbatch_start_set(nrnodes=10, months_left=36, tft_farmed_before_simulation=20 * 1000 * 1000)
 
         # do the calculation of the simulation
-        simulation_run.calc(
-            nr_start_nodes=1500,
-            months_remaining_start_nodes=36,
-            environment=environment,
-            tft_farmed_before_simulation=20 * 1000 * 1000,
-        )
+        simulation.calc(nrnodes_new="0:5,6:150,12:1000,13:0")
+        # nodes sold are the first sales nr's, after that the growth numbers above will count
 
-        print(simulation_run)
+        print(simulation)
 
         return environment
 

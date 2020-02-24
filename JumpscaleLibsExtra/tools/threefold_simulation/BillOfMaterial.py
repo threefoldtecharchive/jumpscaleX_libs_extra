@@ -1,7 +1,9 @@
 from Jumpscale import j
 
+from .SimulatorBase import SimulatorBase
 
-class BillOfMaterial(j.baseclasses.object_config):
+
+class BillOfMaterial(SimulatorBase):
     """
     Bill of material
     device templates
@@ -39,7 +41,7 @@ class BillOfMaterial(j.baseclasses.object_config):
         """
 
     def _init(self, **kwargs):
-        self._model_ = False  # means we don't remember anything in the db
+        self._cat = "bom"
 
     def component_get(self, name):
         for item in self.components:
@@ -84,7 +86,7 @@ class Component(j.baseclasses.object):
         self.component = kwargs["component"]
 
 
-class Device(j.baseclasses.object_config):
+class Device(SimulatorBase):
     """
     a device which can be used to build a cloud with
     """
@@ -118,7 +120,7 @@ class Device(j.baseclasses.object_config):
         """
 
     def _init(self, **kwargs):
-        self._model_ = False
+        self._cat = "device"
         self.device_template_name = kwargs["device_template_name"]
         self.components = j.baseclasses.dict()
 
@@ -173,7 +175,7 @@ class Device(j.baseclasses.object_config):
         self.cpr = self.cu * 1.5 + self.su
 
 
-class Environment(j.baseclasses.object_config):
+class Environment(SimulatorBase):
     """
     x nr of devices in 1 environment
     """
@@ -215,7 +217,7 @@ class Environment(j.baseclasses.object_config):
         """
 
     def _init(self, **kwargs):
-        self._model_ = False
+        self._cat = "environment"
         self.devices = j.baseclasses.dict()
         self.nr_devices = 0
 
