@@ -7,9 +7,14 @@ install:
   - eval `ssh-agent -s`; ssh-add
   - rm -rf /sandbox/code/github/threefoldtech/*
   - cd /sandbox/code/github/threefoldtech/
-  - declare strs=('core' 'libs' 'builders' 'threebot') && for s in ${strs[@]}; do git clone https://github.com/threefoldtech/jumpscaleX_$s.git --branch master; done
   - cp -r /opt/code/github/threefoldtech/jumpscaleX_libs_extra /sandbox/code/github/threefoldtech/jumpscaleX_libs_extra
+  - cd /sandbox/code/github/threefoldtech/jumpscaleX_libs_extra ; libs_extra_branch=$(git rev-parse --abbrev-ref HEAD)
+  - declare strs=('libs' 'core' 'builders' 'threebot') && for s in ${strs[@]}; do 
+    cd /sandbox/code/github/threefoldtech/ && rm -rf /sandbox/code/github/threefoldtech/jumpscaleX_$s && 
+    git clone https://github.com/threefoldtech/jumpscaleX_$s.git --branch $libs_extra_branch || git clone https://github.com/threefoldtech/jumpscaleX_$s.git --branch development ; done
   - source /sandbox/env.sh; js_init generate
+  - source /sandbox/env.sh; kosmos "j.builders.runtimes.lua.install_autossl()"
+
 
 script:
   - source /sandbox/env.sh; kosmos -p 'testrunner = j.baseclasses.testtools(xml_report=True, xml_path="/test.xml", xml_testsuite_name="data_tests"); testrunner._run_tests_from_object(obj=j.data)' 
