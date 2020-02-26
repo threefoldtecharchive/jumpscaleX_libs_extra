@@ -3,7 +3,7 @@ prequisties:
 
 install:
   - apt-get update
-  - pip3 install click nose nose-progressive nose-testconfig nose-exclude loguru parameterized
+  - pip3 install click  loguru parameterized xmltodict 
   - eval `ssh-agent -s`; ssh-add
   - rm -rf /sandbox/code/github/threefoldtech/*
   - cd /sandbox/code/github/threefoldtech/
@@ -12,6 +12,7 @@ install:
   - source /sandbox/env.sh; js_init generate
 
 script:
-  - source /sandbox/env.sh; cd /sandbox/code/github/threefoldtech/; nosetests-3.4 -v jumpscaleX_libs_extra
-    --nologcapture  --with-noseexclude --exclude-dir=JumpscaleLibsExtra 
-    --with-xunit --xunit-file=/test.xml --xunit-testsuite-name=jumpscaleX_libs_extra
+  - source /sandbox/env.sh; kosmos -p 'testrunner = j.baseclasses.testtools(xml_report=True, xml_path="/test.xml", xml_testsuite_name="data_tests"); testrunner._run_tests_from_object(obj=j.data)' 
+  - source /sandbox/env.sh; kosmos -p 'testrunner = j.baseclasses.testtools(xml_report=True, xml_path="/test.xml", xml_testsuite_name="tools_tests"); testrunner._run_tests_from_object(obj=j.tools)'
+  - source /sandbox/env.sh; kosmos -p 'testrunner = j.baseclasses.testtools(xml_report=True, xml_path="/test.xml", xml_testsuite_name="client_tests"); testrunner._run_tests_from_object(obj=j.clients)'
+  - source /sandbox/env.sh; kosmos -p 'testrunner = j.baseclasses.testtools(xml_report=True, xml_path="/test.xml", xml_testsuite_name="servers_tests"); testrunner._run_tests_from_object(obj=j.servers)'
