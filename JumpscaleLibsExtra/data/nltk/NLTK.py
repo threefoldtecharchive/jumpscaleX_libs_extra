@@ -45,6 +45,8 @@ class NLTKFactory(j.baseclasses.object):
 
     def install(self):
         j.builders.runtimes.python3.pip_package_install("nltk, nameparser, unidecode")
+        import nltk
+
         self.download_nltk()
 
     def download_nltk(self):
