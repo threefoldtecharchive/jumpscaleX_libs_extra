@@ -25,6 +25,7 @@ class NodesBatch(SimulatorBase):
         """
 
     def _init(self, **kwargs):
+
         self._cat = "NodesBatch"
         self.simulator = kwargs["simulator"]
         self.batch_nr = self.month_start
@@ -59,6 +60,9 @@ class NodesBatch(SimulatorBase):
         for month in range(self.month_start, self.month_start + self.months_left):
 
             tft_farmed = self.simulator.token_creator.tft_farm(month, self)
+            if month == 0:
+                tft_farmed += self.tft_farmed_before_simulation
+
             tft_cultivated = self.simulator.token_creator.tft_cultivate(month, self)
             tft_burned = self.simulator.token_creator.tft_burn(month, self)
             self._set("tft_farmed", month, tft_farmed)
@@ -88,18 +92,16 @@ class NodesBatch(SimulatorBase):
             tft_sold = (float(cost_power) + float(cost_rackspace) + float(cost_maintenance)) / float(tftprice_now)
             self._set("tft_sold", month, tft_sold)
 
-        print(self)
-
         row = (
             self.sheet.rows["tft_farmed"]
             + self.sheet.rows["tft_cultivated"]
             - self.sheet.rows["tft_burned"]
             - self.sheet.rows["tft_sold"]
         )
-        row.name = "tft_movement"
-        self.sheet.rows["tft_movement"] = row
+        row.name = "tft_total"
+        self.sheet.rows["tft_total"] = row
 
-        self.sheet.rows["tft_cumul"] = row.accumulate("tft_accumulation")
+        self.sheet.rows["tft_cumul"] = row.accumulate("tft_cumul")
 
         # calculate how much in $ has been created/famed
         def tft_total_calc(val, month, args):
@@ -107,45 +109,40 @@ class NodesBatch(SimulatorBase):
             tftprice = nb.simulator.tft_price_get(month)
             return val * tftprice
 
-        row = self.sheet.rows["tft_cumul"].copy(name="tft_cumul_value_usd", ttype="int")
+        row = self.sheet.copy("tft_movement_value_usd", self.sheet.rows["tft_total"], ttype="int", aggregate="LAST")
         row.function_apply(tft_total_calc, {"nb": self})
-        self.sheet.rows["tft_cumul_value_usd"] = row
-        row = self.sheet.rows["tft_movement"].copy(name="tft_movement_value_usd", ttype="int")
-        self.sheet.rows["tft_movement_value_usd"] = row
-        row.function_apply(tft_total_calc, {"nb": self})
+
+        row2 = self.sheet.copy("tft_cumul_value_usd", self.sheet.rows["tft_cumul"], ttype="int", aggregate="LAST")
+        row2.function_apply(tft_total_calc, {"nb": self})
 
         # calculate ROI in relation to initial HW
         def roi_calc(val, month, args):
             nb = args["nb"]
             cost_total = float(self.node.cost_hardware * self.nrnodes)
-            r = float(val) / cost_total * 100
-            if r < 0:
-                j.shell()
-                w
-            return round(r, 0)
+            r = float(val) / cost_total
+            return r
 
-        row = self.sheet.rows["tft_cumul_value_usd"].copy(name="roi", ttype="int")
+        row = self.sheet.copy("roi", self.sheet.rows["tft_cumul_value_usd"], ttype="float", aggregate="LAST")
         row.function_apply(roi_calc, {"nb": self})
-        self.sheet.rows["roi"] = row
 
-        j.shell()
-        w
+    @property
+    def roi_months(self):
+        if "roi" not in self.sheet.rows:
+            return None
+        x = 0
+        for val in self.sheet.rows["roi"].cells:
+            x += 1
+            if val > 1:
+                return x - self.month_start
+        return None
 
-    # def roi_farming_hwonly(self, tft_price=None):
-    #     if not tft_price:
-    #         tft_price = j.tools.tfsimulation.current.tft_price_get()
-    #     farming_income = self.tft_farmed_total * tft_price
-    #     return farming_income / self.cost_hardware_total
-    #
-    # def roi_farming(self, tft_price=None):
-    #     if not tft_price:
-    #         tft_price = j.tools.tfsimulation.current.tft_price_get()
-    #     farming_income = self.tft_farmed_total * tft_price
-    #     return farming_income / float(self.cost_total)
-    #
-    # @property
-    # def roi_farming_end(self):
-    #     return self.roi_farming()
+    @property
+    def roi_end(self):
+        return self.sheet.rows["roi"].cells[-1]
+
+    @property
+    def cost_hardware(self):
+        return self.node.cost_hardware * self.nrnodes
 
     def __repr__(self):
         print(SimulatorBase.__repr__(self))
@@ -159,5 +156,9 @@ class NodesBatch(SimulatorBase):
             res = [str(i) for i in res]
             res2 = ", ".join(res)
             out += " - %-20s %s\n" % (key, res2)
+
+        for key in ["roi_months"]:
+            res = getattr(self, key)
+            out += " - %-20s %s\n" % (key, res)
 
         return out

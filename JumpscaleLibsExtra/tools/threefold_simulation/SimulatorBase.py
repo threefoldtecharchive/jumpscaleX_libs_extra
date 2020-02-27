@@ -39,3 +39,14 @@ class SimulatorBase(j.baseclasses.object_config):
         return out
 
     __repr_ = __str__
+
+    @property
+    def markdown(self):
+        out = """
+        ```python
+        %s
+        ```
+        """ % str(
+            self
+        )
+        return out

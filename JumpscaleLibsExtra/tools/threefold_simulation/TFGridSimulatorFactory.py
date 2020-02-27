@@ -33,7 +33,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         :return:
         """
 
-        simulation = self.default
+        simulation = j.tools.tfgrid_simulator.default
 
         # populate the bom (bill of material)
         from .SimulationComponents import bom_fill
@@ -80,7 +80,12 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         # simulation.difficulty_level_set("0:2,71:50")
         simulation.difficulty_level_set("0:2,71:2")
 
-        simulation.nodesbatch_start_set(nrnodes=10, months_left=36, tft_farmed_before_simulation=20 * 1000 * 1000)
+        nb = simulation.nodesbatch_calc(10, 10)
+
+        j.shell()
+        w
+
+        simulation.nodesbatch_start_set(nrnodes=1500, months_left=36, tft_farmed_before_simulation=20 * 1000 * 1000)
 
         # do the calculation of the simulation
         simulation.calc(nrnodes_new="0:5,6:150,12:1000,13:0")
@@ -90,11 +95,14 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         return environment
 
-    def start(self, voila=False, background=False, base_url=None):
+    def start(self, voila=False, background=False, base_url=None, name="tftest", reset=False):
         """
         to run:
 
         kosmos -p 'j.tools.tfgrid_simulator.start()'
+
+        #means we run the notebook in the code env (careful)
+        kosmos -p 'j.tools.tfgrid_simulator.start(name=None)'
         """
 
         j.application.start("tfsimulation")
@@ -102,9 +110,18 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         j.core.myenv.log_includes = []
         # e = self.calc()
 
+        path_source = "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks"
+        path_source = j.core.tools.text_replace(path_source)
+        if name:
+            path_dest = j.core.tools.text_replace("{DIR_VAR}/notebooks/%s" % name)
+            if reset:
+                j.core.tools.remove(path_dest)
+            j.sal.fs.copyDirTree(path_source, path_dest, overwriteFiles=False)
+        else:
+            path_dest = path_source
+
+        self._log_info("start notebook on:%s" % path_dest)
+
         j.servers.notebook.start(
-            path="{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks",
-            voila=voila,
-            background=background,
-            base_url=base_url,
+            path=path_dest, voila=voila, background=background, base_url=base_url,
         )  # it will open a browser with access to the right output

@@ -128,10 +128,19 @@ class TFGridSimulator(SimulatorBase):
             month = self.sheet.nrcols - 1
         return self.sheet.rows["tokenprice"].cells[month]
 
-    def calc(self, nrnodes_new=None):
+    def nodesbatch_calc(self, month=5, nrnodes_new=100):
+        self._prepare()
+        nb = NodesBatch(simulator=self, nrnodes=nrnodes_new, month_start=month)
+        nb.calc()
+        return nb
 
+    def _prepare(self):
         self._interpolate("cost_rack_unit", "0:%s" % self.environment.cost_rack_unit)
         self._interpolate("cost_power_kwh", "0:%s" % self.environment.cost_power_kwh)
+
+    def calc(self, nrnodes_new=None):
+
+        self._prepare()
 
         if not nrnodes_new:
             nodes_sold = "0:5,6:150,12:1000,13:0"
@@ -148,10 +157,6 @@ class TFGridSimulator(SimulatorBase):
         row_tft_created = self.sheet.addRow("tokens_farmed_value", aggregate="FIRST")
         row_tft_used = self.sheet.addRow("tokens_used", aggregate="FIRST")
         row_tft_burned = self.sheet.addRow("tokens_burned", aggregate="FIRST")
-
-        # for x in range(0, self.sheet.nrcols):
-        #     self.sheet.addRow("tokensbatch_%s_farmed_tft" % x, aggregate="SUM")
-        #     self.sheet.addRow("tokensbatch_%s_farmed_predicted_roi" % x, aggregate="AVG")
 
         for month_now in range(0, 120):
             if month_now > 0:
