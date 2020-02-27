@@ -3,7 +3,7 @@ prequisties:
 
 install:
   - apt-get update
-  - pip3 install click  loguru parameterized xmltodict 
+  - pip3 install click  loguru parameterized xmltodict imbox logbook
   - eval `ssh-agent -s`; ssh-add
   - rm -rf /sandbox/code/github/threefoldtech/*
   - cd /sandbox/code/github/threefoldtech/
@@ -17,7 +17,7 @@ install:
 
 
 script:
-  - source /sandbox/env.sh; kosmos -p 'testrunner = j.baseclasses.testtools(xml_report=True, xml_path="/test.xml", xml_testsuite_name="data_tests"); testrunner._run_tests_from_object(obj=j.data)' 
-  - source /sandbox/env.sh; kosmos -p 'testrunner = j.baseclasses.testtools(xml_report=True, xml_path="/test.xml", xml_testsuite_name="tools_tests"); testrunner._run_tests_from_object(obj=j.tools)'
-  - source /sandbox/env.sh; kosmos -p 'testrunner = j.baseclasses.testtools(xml_report=True, xml_path="/test.xml", xml_testsuite_name="client_tests"); testrunner._run_tests_from_object(obj=j.clients)'
-  - source /sandbox/env.sh; kosmos -p 'testrunner = j.baseclasses.testtools(xml_report=True, xml_path="/test.xml", xml_testsuite_name="servers_tests"); testrunner._run_tests_from_object(obj=j.servers)'
+  - source /sandbox/env.sh; python3 /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/js_testrun --with-xml  --xml-path /test.xml --xml-testsuite-name "data_tests" -o "j.data";yes | bcdb delete --all
+  - source /sandbox/env.sh; python3 /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/js_testrun --with-xml  --xml-path /test.xml --xml-testsuite-name "tools_tests" -o "j.tools";yes | bcdb delete --all
+  - source /sandbox/env.sh; python3 /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/js_testrun --with-xml  --xml-path /test.xml --xml-testsuite-name "clients_tests" -o "j.clients";yes | bcdb delete --all
+  - source /sandbox/env.sh; python3 /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/js_testrun --with-xml  --xml-path /test.xml --xml-testsuite-name "servers_tests" -o "j.servers";yes | bcdb delete --all
