@@ -10,5 +10,5 @@ edit [SimulationComponents](../SimulationComponents.py)
 
 ## How to see the return of 1 batch of nodes
 
-Go to [batch_simulator](../batch_simulator.ipynb)
+Go to [batch_simulation](../batch_simulation.ipynb)
 

@@ -12,14 +12,15 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
     @property
     def default(self):
-        return self.simulator_get("default")
+        s = self.simulation_get("default")
+        return s
 
-    def simulator_get(self, name="default"):
+    def simulation_get(self, name="default"):
         """
         example how to use
 
         ```
-        simulation = j.tools.tfgrid_simulator.simulator_get()
+        simulation = j.tools.tfgrid_simulator.simulation_get()
         ```
 
         """
@@ -32,66 +33,26 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         kosmos 'j.tools.tfgrid_simulator.calc()'
         :return:
         """
-
         simulation = j.tools.tfgrid_simulator.default
 
-        # populate the bom (bill of material)
-        from .SimulationComponents import bom_fill
+        from .notebooks.params_bom_hardware_components import bom
+        from .notebooks.params_environment import environment
+        from .notebooks.token_creator import tft_burn, tft_cultivate, tft_farm, difficulty_level_get
 
-        bom_fill(simulation)
+        simulation.token_creator.tft_burn = tft_burn
+        simulation.token_creator.tft_cultivate = tft_cultivate
+        simulation.token_creator.tft_farm = tft_farm
+        simulation.token_creator.difficulty_level_get = difficulty_level_get
 
         environment = simulation.environment
 
-        environment.cost_power_kwh = "0.15 USD"
-        environment.cost_rack_unit = "12 USD"
-        environment.bandwidth_mbit = 20
-
-        # sales arguments
-        environment.sales_price_cu = "10 USD"
-        environment.sales_price_su = "6 USD"
-
-        device_edge = simulation.device_get("edge1")
-        # print(d1)
-
-        switch = simulation.device_get("switch")
-
-        environment.device_add("edge1", device_edge, 20)
-        environment.device_add("switch", switch, 2)
-
-        print(environment)
-
-        # month:growth_percent of nodes being added
-        simulation.growth_percent_set("3:5,11:8,24:10,36:12,48:10,60:10,61:0")
-
-        # means at end of period we produce 40% more cpr (*1.4)
-        # cpr = capacity production rate (is like hashrate of bitcoin)
-        simulation.cpr_improve_set("71:40")
-
-        # price of a capacity unit goes down over time, here we say it will go down 40%
-        # means we expect price to be lowered by X e.g. 40 (*0.6)
-        simulation.cpr_sales_price_decline_set("0:0,71:40")
-
-        # utilization of the nodes, strating with 0
-        simulation.utilization_set("20:80,40:90")
-
-        # super important factor, how does token price goes up, this is ofcourse complete speculation, no-one knows
-        simulation.tokenprice_set("0:0.15,71:2")
-
-        # simulation.difficulty_level_set("0:2,71:50")
-        simulation.difficulty_level_set("0:2,71:2")
-
-        nb = simulation.nodesbatch_calc(10, 10)
-
-        j.shell()
-        w
+        # nb = simulation.nodesbatch_calc(10, 10)
 
         simulation.nodesbatch_start_set(nrnodes=1500, months_left=36, tft_farmed_before_simulation=20 * 1000 * 1000)
 
         # do the calculation of the simulation
         simulation.calc(nrnodes_new="0:5,6:150,12:1000,13:0")
         # nodes sold are the first sales nr's, after that the growth numbers above will count
-
-        print(simulation)
 
         return environment
 

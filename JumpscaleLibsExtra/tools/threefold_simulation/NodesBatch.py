@@ -27,14 +27,14 @@ class NodesBatch(SimulatorBase):
     def _init(self, **kwargs):
 
         self._cat = "NodesBatch"
-        self.simulator = kwargs["simulator"]
+        self.simulation = kwargs["simulation"]
         self.batch_nr = self.month_start
-        environment = self.simulator.environment
+        environment = self.simulation.environment
         self.node.cost_hardware = environment.cost / environment.nr_devices
         self.node.rackspace_u = environment.rackspace_u / environment.nr_devices
         self.node.power = environment.power / environment.nr_devices
 
-        improve = self.simulator.sheet.rows["cpr_improve"].cells[self.month_start] / 100
+        improve = self.simulation.sheet.rows["cpr_improve"].cells[self.month_start] / 100
         self.node.cpr = environment.cpr / environment.nr_devices * (1 + improve)
 
         self.nrcols = self.month_start + self.months_left
@@ -59,27 +59,27 @@ class NodesBatch(SimulatorBase):
     def calc(self):
         for month in range(self.month_start, self.month_start + self.months_left):
 
-            tft_farmed = self.simulator.token_creator.tft_farm(month, self)
+            tft_farmed = self.simulation.token_creator.tft_farm(month, self)
             if month == 0:
                 tft_farmed += self.tft_farmed_before_simulation
 
-            tft_cultivated = self.simulator.token_creator.tft_cultivate(month, self)
-            tft_burned = self.simulator.token_creator.tft_burn(month, self)
+            tft_cultivated = self.simulation.token_creator.tft_cultivate(month, self)
+            tft_burned = self.simulation.token_creator.tft_burn(month, self)
             self._set("tft_farmed", month, tft_farmed)
             self._set("tft_cultivated", month, tft_cultivated)
             self._set("tft_burned", month, tft_burned)
 
             rackspace_u = self.node.rackspace_u * self.nrnodes
             self._set("rackspace_u", month, rackspace_u)
-            cost_rackspace = rackspace_u * self.simulator.cost_rack_unit_get(month)
+            cost_rackspace = rackspace_u * self.simulation.cost_rack_unit_get(month)
             self._set("cost_rackspace", month, cost_rackspace)
 
-            utilization = self.simulator.utilization_get(month)
+            utilization = self.simulation.utilization_get(month)
             if utilization < 0.8:
                 utilization = utilization * 1.2  # take buffer
             power = self.node.power * self.nrnodes * utilization
             self._set("power", month, power)
-            cost_power = power / 1000 * 24 * 30 * self.simulator.cost_power_kwh_get(month)
+            cost_power = power / 1000 * 24 * 30 * self.simulation.cost_power_kwh_get(month)
             self._set("cost_power", month, cost_power)
 
             cost_hardware = self.node.cost_hardware * self.nrnodes / 60
@@ -88,7 +88,7 @@ class NodesBatch(SimulatorBase):
             cost_maintenance = cost_hardware * 0.2  # means we spend 20% on cost of HW on maintenance/people
             self._set("cost_maintenance", month, cost_maintenance)
 
-            tftprice_now = self.simulator.tft_price_get(month)
+            tftprice_now = self.simulation.tft_price_get(month)
             tft_sold = (float(cost_power) + float(cost_rackspace) + float(cost_maintenance)) / float(tftprice_now)
             self._set("tft_sold", month, tft_sold)
 
@@ -106,7 +106,7 @@ class NodesBatch(SimulatorBase):
         # calculate how much in $ has been created/famed
         def tft_total_calc(val, month, args):
             nb = args["nb"]
-            tftprice = nb.simulator.tft_price_get(month)
+            tftprice = nb.simulation.tft_price_get(month)
             return val * tftprice
 
         row = self.sheet.copy("tft_movement_value_usd", self.sheet.rows["tft_total"], ttype="int", aggregate="LAST")

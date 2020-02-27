@@ -2,6 +2,7 @@ from Jumpscale import j
 
 simulation = j.tools.tfgrid_simulator.default
 environment = simulation.environment
+environment.devices.clear()
 
 environment.cost_power_kwh = "0.15 USD"
 environment.cost_rack_unit = "12 USD"

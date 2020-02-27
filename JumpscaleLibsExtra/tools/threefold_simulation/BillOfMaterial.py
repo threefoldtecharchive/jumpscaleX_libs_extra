@@ -222,6 +222,8 @@ class Environment(SimulatorBase):
         self.nr_devices = 0
 
     def device_add(self, name, device, nr):
+        if name in self.devices:
+            raise j.exceptions.Input("device with name:%s already added" % name)
         self.devices[name] = (nr, device)
         if device.su > 0 or device.cu > 0:
             self.nr_devices += nr

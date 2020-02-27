@@ -3,7 +3,10 @@ from Jumpscale import j
 from .BillOfMaterial import *
 from .NodesBatch import *
 from .SimulatorBase import SimulatorBase
-from .TokenCreator import TokenCreator
+
+
+class TokenCreator:
+    pass
 
 
 class SimulationMonth(SimulatorBase):
@@ -31,10 +34,11 @@ class TFGridSimulator(SimulatorBase):
 
     def _init(self, **kwargs):
         self.sheet = j.data.worksheets.sheet_new("simulation", nrcols=120)
+        self.rows = self.sheet.rows
         self.nodebatches = []  # 0 is the first batch, which stands for month 1
         self.bom = BillOfMaterial()
         self.environment = Environment(name="default")
-        self.token_creator = TokenCreator(simulator=self)
+        self.token_creator = TokenCreator()
 
     def device_get(self, name, device_template_name=None, description="", environment=None):
         return self.bom.device_get(
@@ -48,7 +52,7 @@ class TFGridSimulator(SimulatorBase):
         return nb
 
     def _nodesbatch_add(self, month, nrnodes):
-        nb = NodesBatch(simulator=self, nrnodes=nrnodes, month_start=month)
+        nb = NodesBatch(simulation=self, nrnodes=nrnodes, month_start=month)
         while len(self.nodebatches) < month + 1:
             self.nodebatches.append(None)
         self.nodebatches[month] = nb
@@ -111,6 +115,8 @@ class TFGridSimulator(SimulatorBase):
         self._interpolate("difficulty_level", args)
 
     def _interpolate(self, name, args):
+        if name in self.sheet.rows:
+            self.sheet.rows.pop(name)
         args = [i.strip().split(":") for i in args.split(",") if i.strip()]
         row = self.sheet.addRow(name, nrfloat=2, aggregate="FIRST")
         for x, g in args:
@@ -130,7 +136,7 @@ class TFGridSimulator(SimulatorBase):
 
     def nodesbatch_calc(self, month=5, nrnodes_new=100):
         self._prepare()
-        nb = NodesBatch(simulator=self, nrnodes=nrnodes_new, month_start=month)
+        nb = NodesBatch(simulation=self, nrnodes=nrnodes_new, month_start=month)
         nb.calc()
         return nb
 
@@ -147,16 +153,23 @@ class TFGridSimulator(SimulatorBase):
         row_nrnodes_new = self._interpolate("nrnodes_new", nrnodes_new)
         row_nrnodes_total = self.sheet.addRow("nrnodes", nrfloat=0, aggregate="FIRST")
 
-        row_rev = self.sheet.addRow("revenue_month", aggregate="FIRST")
-        row_cost = self.sheet.addRow("cost_month", aggregate="FIRST")
-        row_investment = self.sheet.addRow("investment", aggregate="FIRST")
-        row_power = self.sheet.addRow("powerkw", aggregate="FIRST")
-        row_racks = self.sheet.addRow("nrracks", aggregate="FIRST")
-        row_cpr_available = self.sheet.addRow("cpr_available", aggregate="FIRST")
-        row_tft_created = self.sheet.addRow("tokens_farmed", aggregate="FIRST")
-        row_tft_created = self.sheet.addRow("tokens_farmed_value", aggregate="FIRST")
-        row_tft_used = self.sheet.addRow("tokens_used", aggregate="FIRST")
-        row_tft_burned = self.sheet.addRow("tokens_burned", aggregate="FIRST")
+        row_tft_farmed = self.sheet.addRow("tft_farmed", aggregate="AVG", defval=0, ttype="float", empty=True)
+        row_tft_cultivated = self.sheet.addRow("tft_cultivated", aggregate="AVG", defval=0, ttype="float", empty=True)
+        # sold tft to cover power & rackspace costs
+        row_tft_sold = self.sheet.addRow("tft_sold", aggregate="AVG", defval=0, ttype="float", empty=True)
+        row_tft_burned = self.sheet.addRow("tft_burned", aggregate="AVG", defval=0, ttype="float", empty=True)
+
+        row_cost_rackspace = self.sheet.addRow("cost_rackspace", aggregate="AVG", defval=0, ttype="int", empty=True)
+        row_cost_power = self.sheet.addRow("cost_power", aggregate="AVG", defval=0, ttype="int", empty=True)
+        row_cost_hardware = self.sheet.addRow("cost_hardware", aggregate="AVG", defval=0, ttype="int", empty=True)
+        row_cost_maintenance = self.sheet.addRow("cost_maintenance", aggregate="AVG", defval=0, ttype="int", empty=True)
+        row_rackspace_u = self.sheet.addRow("rackspace_u", aggregate="AVG", defval=0, ttype="float", empty=True)
+        row_power_kw = self.sheet.addRow("power_kw", aggregate="AVG", defval=0, ttype="float", empty=True)
+
+        row_investment = self.sheet.addRow("investment", aggregate="FIRST", defval=0, ttype="int", empty=True)
+        row_revenue = self.sheet.addRow("revenue", aggregate="AVG", defval=0, ttype="int", empty=True)
+
+        # row_cpr_available = self.sheet.addRow("cpr_available", aggregate="FIRST")
 
         for month_now in range(0, 120):
             if month_now > 0:
@@ -176,15 +189,63 @@ class TFGridSimulator(SimulatorBase):
             nb = self.nodebatches[month_now]
             nb.calc()
 
-        #     r = self.result_get(month_now)
-        #     row_rev.cells[month_now] = r.revenue / 1000
-        #     row_cost.cells[month_now] = r.cost / 1000
-        #     row_investment.cells[month_now] = r.investments_done / 1000
-        #     row_power.cells[month_now] = r.power_usage_kw / 1000
-        #     row_racks.cells[month_now] = r.rackspace_usage_u / 44
-        #     row_cpr_available.cells[month_now] = r.cpr_available
-        #
-        # self.calculate_farmed_predicted_roi()
+        def floatt(val):
+            if val == None:
+                return 0.0
+            return float(val)
+
+        for month in range(0, 60):
+            # now walk over all batches which came live since day 0
+            for month_batch in range(0, month + 1):
+                nb = self.nodebatches[month_batch]
+                row_rackspace_u.cells[month] += floatt(nb.sheet.rows["rackspace_u"].cells[month])
+                row_power_kw.cells[month] += floatt(nb.sheet.rows["power"].cells[month]) / 1000
+                row_tft_farmed.cells[month] += floatt(nb.sheet.rows["tft_farmed"].cells[month])
+                row_tft_cultivated.cells[month] += floatt(nb.sheet.rows["tft_cultivated"].cells[month])
+                row_tft_sold.cells[month] += floatt(nb.sheet.rows["tft_sold"].cells[month])
+                row_tft_burned.cells[month] += floatt(nb.sheet.rows["tft_burned"].cells[month])
+
+                row_cost_rackspace.cells[month] += floatt(nb.sheet.rows["cost_rackspace"].cells[month])
+                row_cost_power.cells[month] += floatt(nb.sheet.rows["cost_power"].cells[month])
+                row_cost_hardware.cells[month] += floatt(nb.sheet.rows["cost_hardware"].cells[month])
+                row_cost_maintenance.cells[month] += floatt(nb.sheet.rows["cost_maintenance"].cells[month])
+
+                row_investment.cells[month] += floatt(nb.cost_hardware)
+
+            row_revenue.cells[month] = self.tft_price_get(month) * row_tft_cultivated.cells[month]
+
+        row = (
+            self.sheet.rows["tft_farmed"]
+            + self.sheet.rows["tft_cultivated"]
+            - self.sheet.rows["tft_burned"]
+            - self.sheet.rows["tft_sold"]
+        )
+        row.name = "tft_total"
+        self.sheet.rows["tft_total"] = row
+        # go for million tft to make easy to visualize
+        self.sheet.rows["tft_total"].cells = [i for i in self.sheet.rows["tft_total"].cells]
+
+        self.sheet.rows["tft_cumul"] = row.accumulate("tft_cumul")
+
+        # calculate how much in $ has been created/famed
+        def tft_total_calc(val, month, args):
+            tftprice = self.tft_price_get(month)
+            return val * tftprice / 1000
+
+        row = self.sheet.copy("tft_movement_value_kusd", self.sheet.rows["tft_total"], ttype="int", aggregate="LAST")
+        row.function_apply(tft_total_calc)
+
+        row2 = self.sheet.copy("tft_cumul_value_kusd", self.sheet.rows["tft_cumul"], ttype="int", aggregate="LAST")
+        row2.function_apply(tft_total_calc)
+
+        def extrapolate(val, month, args):
+            return val * 60 / 1000000
+
+        row_revenue_extrapolated = self.sheet.copy(
+            "revenue_extrapolated", self.sheet.rows["revenue"], ttype="int", aggregate="LAST"
+        )
+        row_revenue_extrapolated.function_apply(extrapolate)
+        # j.shell()
 
     def utilization_get(self, month):
         utilization = self.sheet.rows["utilization"].cells[month] / 100
@@ -204,69 +265,6 @@ class TFGridSimulator(SimulatorBase):
 
     def cost_power_kwh_get(self, month):
         return self.sheet.rows["cost_power_kwh"].cells[month]
-
-    def result_get(self, month, utilization=None):
-        """
-
-        :param month: 0 is month 1
-        :param occupation: in percent
-        :return:
-        """
-        raise
-        # if not utilization:
-        cpr_sales_price_decline = self.sheet.rows["cpr_sales_price_decline"].cells[month]
-        cpr_sales_price_decline = j.data.types.percent.clean(cpr_sales_price_decline)
-
-        sales_price_cpr_unit_month = self.environment.sales_price_cpr_unit * (1 - cpr_sales_price_decline)
-
-        r = self.result_schema.new()
-        r.revenue = 0
-        r.cost = 0
-        r.investments_done = 0
-        r.power_usage_kw = 0
-        r.rackspace_usage_u = 0
-        r.nrnodes_active = 0
-        r.cpr_available = 0
-        # j.debug()
-        for month_batch in range(0, month + 1):
-            nodes_batch = self.nodes_batch_get(month_batch)  # go back to when a node batch was added
-            if nodes_batch.month < month + 1 and month < (nodes_batch.month + nodes_batch.months_max):
-                # now the node batch counts
-                r.revenue += sales_price_cpr_unit_month * nodes_batch.cpr * utilization * nodes_batch.count
-                # nodes_batch.cpr goes up over time
-                r.cost += (
-                    nodes_batch.cost / 60 + nodes_batch.cost_power_month + nodes_batch.cost_rackspace_month
-                ) * nodes_batch.count
-                r.investments_done += nodes_batch.cost * nodes_batch.count
-                r.power_usage_kw += nodes_batch.power * nodes_batch.count / 1000
-                r.rackspace_usage_u += nodes_batch.rackspace_u * nodes_batch.count
-                r.nrnodes_active += nodes_batch.count
-                r.cpr_available += nodes_batch.cpr * nodes_batch.count
-
-                r.tft_farmed = self.tft_create(month_now=month, month_batch=month_batch)
-                r.tft_burned = self.tft_burn(month_now=month, month_batch=month_batch)
-
-                tft_new = r.tft_farmed
-
-                # deal with the tokens created
-                month_now = month
-                tftprice_now = self.tft_price_get(month_now)
-                self.cpr_sum += float(nodes_batch.cpr * nodes_batch.count)
-                self.tft_sum += float(tft_new)
-
-                if not self.sheet.rows["tokens_farmed"].cells[month_now]:
-                    self.sheet.rows["tokens_farmed"].cells[month_now] = 0
-                    self.sheet.rows["tokens_farmed_value"].cells[month_now] = 0
-                self.sheet.rows["tokens_farmed"].cells[month_now] += float(tft_new)
-                self.sheet.rows["tokens_farmed_value"].cells[month_now] = (
-                    self.sheet.rows["tokens_farmed"].cells[month_now] * tftprice_now
-                )
-
-                # calculate current value
-                row = self.sheet.rows["tokensbatch_%s_farmed_tft" % month_batch]
-                row.cells[month_now] = tft_new
-
-        return r
 
     def __repr__(self):
         out = ""

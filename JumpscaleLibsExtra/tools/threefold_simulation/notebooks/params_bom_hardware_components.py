@@ -2,6 +2,7 @@ from Jumpscale import j
 
 simulation = j.tools.tfgrid_simulator.default
 bom = simulation.bom
+assert len(bom.components) == 0
 
 bom.components.new(
     name="s1",
@@ -82,4 +83,3 @@ d.components.new(name="ssd1", nr=1)
 
 d = bom.devices.new(name="switch")
 d.components.new(name="ng2", nr=1)
-
