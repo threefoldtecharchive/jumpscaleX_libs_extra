@@ -27,6 +27,16 @@ class TokenCreator:
 
         return tft_new
 
+    def _tft_grow(self, month, nodes_batch):
+        simulation = nodes_batch.simulation
+        utilization = simulation.utilization_get(month)
+        assert utilization < 100
+        tft_price = simulation.tft_price_get(month)
+        cpr_sales_price = simulation.cpr_sales_price_get(month)
+
+        tft_new = utilization * float(cpr_sales_price) / float(tft_price) * nodes_batch.node.cpr * nodes_batch.nrnodes
+        return tft_new
+
     def tft_cultivate(self, month, nodes_batch):
         """
         calculate the nr of TFT cultivated for the full batch
@@ -35,20 +45,12 @@ class TokenCreator:
         @param month is the month to calculate the added tft for
         @param month_batch is when the node batch was originally added
         """
-        simulation = nodes_batch.simulation
-        utilization = simulation.utilization_get(month)
-        assert utilization < 100
-        tft_price = simulation.tft_price_get(month)
-        cpr_sales_price = simulation.cpr_sales_price_get(month)
-
-        tft_new = utilization * float(cpr_sales_price) / float(tft_price) * nodes_batch.node.cpr * nodes_batch.nrnodes
-
-        return tft_new
+        return 0
 
     def tft_burn(self, month, nodes_batch):
         # burn as much as we make
         simulation = nodes_batch.simulation
-        return self.tft_cultivate(month=month, nodes_batch=nodes_batch)
+        return self._tft_grow(month=month, nodes_batch=nodes_batch)
 
     def difficulty_level_get(self, month):
         """

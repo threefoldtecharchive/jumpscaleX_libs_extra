@@ -225,14 +225,14 @@ class TFGridSimulator(SimulatorBase):
         self.rows.tft_total.clean()
         self.rows.tft_cumul.clean()
 
-        def extrapolate(val, month, args):
-            return val * 60
-
-        row_revenue_extrapolated = self.sheet.copy(
-            "revenue_extrapolated", self.rows.revenue, ttype="int", aggregate="LAST"
-        )
-        row_revenue_extrapolated.function_apply(extrapolate)
-        # j.shell()
+        # def extrapolate(val, month, args):
+        #     return val * 60
+        #
+        # row_revenue_extrapolated = self.sheet.copy(
+        #     "revenue_extrapolated", self.rows.revenue, ttype="int", aggregate="LAST"
+        # )
+        # row_revenue_extrapolated.function_apply(extrapolate)
+        # # j.shell()
 
     def utilization_get(self, month):
         utilization = self.rows.utilization.cells[month] / 100

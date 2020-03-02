@@ -39,7 +39,9 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         from .notebooks.params_bom_hardware_components import bom
         from .notebooks.params_environment import environment
-        from .notebooks.token_creator_new import TokenCreator
+
+        # from .notebooks.token_creator_new import TokenCreator
+        from .notebooks.token_creator_burn import TokenCreator
 
         simulation.token_creator = TokenCreator(simulation)
         environment = simulation.environment
