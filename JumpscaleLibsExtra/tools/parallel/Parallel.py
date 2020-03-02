@@ -70,7 +70,9 @@ class Parallel:
             print("run has a function that raises and we caught it.")
 
     def test_with_results(self):
-        "kosmos -p 'j.tools.parallel.test_with_results()'"
+        """
+        kosmos -p 'j.tools.parallel.test_with_results()'
+        """
 
         def sleepf(howlong, name="fun"):
             print("{} is sleeping for {}".format(name, howlong))
@@ -86,6 +88,7 @@ class Parallel:
         results = [greenlet.value for greenlet in greenlets]
         assert all(map(lambda x: x == 7, results)) == True
         print(results)
+        assert results == [7, 7, 7, 7, 7]
 
     def test(self):
         "kosmos -p 'j.tools.parallel.test()'"

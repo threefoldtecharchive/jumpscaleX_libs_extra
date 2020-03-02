@@ -4,7 +4,17 @@ from .SimulatorBase import SimulatorBase
 
 class NodesBatch(SimulatorBase):
     """
-    a normalized node over time
+    nodes are brought life per month in batches, its our way how to simulate the growth of the network
+    a notes batch is X nr of nodes in a group
+    the batch_nr is the month in which the batch came live,
+    starts with 0 and ends to end of simulation
+    its one per month
+
+    we don't start with an empty sheet,
+    there are tft's farmed before this simulation that is represented in : tft_farmed_before_simulation
+
+    the first batch are the existing nodes (month 0) and has less months_left then every new batch
+
     """
 
     _SCHEMATEXT = """
@@ -15,6 +25,7 @@ class NodesBatch(SimulatorBase):
         months_left = 60
         tft_farmed_before_simulation = 0 (F)
         node = (O) !threefold.simulation.nodesbatch.node
+        simulated_months = (L)
         
         #the params at start
         @url = threefold.simulation.nodesbatch.node
@@ -23,6 +34,25 @@ class NodesBatch(SimulatorBase):
         cpr = (F)
         power = (F)
         """
+
+    def _row_add(self, name, aggregate="FIRST", ttype=None):
+        row = self.sheet.addRow(name, aggregate=aggregate, ttype=ttype, nrcols=120)
+        row.window_month_start = self.month_start
+        row.window_month_period = self.months_left
+        return row
+
+    def _row_set(self, name, row):
+        row.name = name
+        row.window_month_start = self.month_start
+        row.window_month_period = self.months_left
+        self.sheet.rows[name] = row
+        return row
+
+    def _row_copy(self, name, rowsource, aggregate="FIRST", ttype="float"):
+        row = self.sheet.copy(name, rowsource, aggregate=aggregate, ttype=ttype)
+        row.window_month_start = self.month_start
+        row.window_month_period = self.months_left
+        return row
 
     def _init(self, **kwargs):
 
@@ -39,35 +69,45 @@ class NodesBatch(SimulatorBase):
 
         self.nrcols = self.month_start + self.months_left
         self.sheet = j.data.worksheets.sheet_new("batch_%s" % self.batch_nr, nrcols=120)
+        self.rows = self.sheet.rows
 
-        self.sheet.addRow("tft_farmed", aggregate="AVG")
-        self.sheet.addRow("tft_cultivated", aggregate="AVG")  # sold capacity
-        self.sheet.addRow("tft_sold", aggregate="AVG")  # sold tft to cover power & rackspace costs
-        self.sheet.addRow("tft_burned", aggregate="AVG")
+        self._row_add("tft_farmed")
+        self._row_add("tft_cultivated")  # sold capacity
+        self._row_add("tft_sold")  # sold tft to cover power & rackspace costs
+        self._row_add("tft_burned")
+        self._row_add("tft_total")
+        self._row_add("tft_cumul")
 
-        self.sheet.addRow("cost_rackspace", aggregate="AVG")
-        self.sheet.addRow("cost_power", aggregate="AVG")
-        self.sheet.addRow("cost_hardware", aggregate="AVG")
-        self.sheet.addRow("cost_maintenance", aggregate="AVG")
-        self.sheet.addRow("rackspace_u", aggregate="AVG")
-        self.sheet.addRow("power", aggregate="AVG")
+        self._row_add("cost_rackspace")
+        self._row_add("cost_power")
+        self._row_add("cost_hardware")
+        self._row_add("cost_maintenance")
+        self._row_add("rackspace_u")
+        self._row_add("power")
+
+        self._row_add("tft_movement_value_usd")
+        self._row_add("tft_cumul_value_usd")
+        self._row_add("roi")
 
     def _set(self, rowname, month, val):
         sheet = self.sheet.rows[rowname]
         sheet.cells[month] = val
+        self._log_debug("batch:%s month:%s %s:%s" % (self.batch_nr, month, rowname, val))
 
-    def calc(self):
-        for month in range(self.month_start, self.month_start + self.months_left):
+    def _calc(self, month):
 
-            tft_farmed = self.simulation.token_creator.tft_farm(month, self)
-            if month == 0:
-                tft_farmed += self.tft_farmed_before_simulation
+        if month < self.month_start:
+            return
 
-            tft_cultivated = self.simulation.token_creator.tft_cultivate(month, self)
-            tft_burned = self.simulation.token_creator.tft_burn(month, self)
-            self._set("tft_farmed", month, tft_farmed)
-            self._set("tft_cultivated", month, tft_cultivated)
-            self._set("tft_burned", month, tft_burned)
+        floatt = self.simulation._float
+        tftprice_now = self.simulation.tft_price_get(month)
+
+        # all but
+        if month < self.month_start + self.months_left + 1:
+
+            # if already calculated no need to do
+            if month in self.simulated_months:
+                raise j.exceptions.Input("should not calculate month:%s again" % month)
 
             rackspace_u = self.node.rackspace_u * self.nrnodes
             self._set("rackspace_u", month, rackspace_u)
@@ -88,42 +128,41 @@ class NodesBatch(SimulatorBase):
             cost_maintenance = cost_hardware * 0.2  # means we spend 20% on cost of HW on maintenance/people
             self._set("cost_maintenance", month, cost_maintenance)
 
-            tftprice_now = self.simulation.tft_price_get(month)
+            tft_farmed = self.simulation.token_creator.tft_farm(month, self)
+            if month == 0:
+                tft_farmed += self.tft_farmed_before_simulation
+
+            tft_cultivated = int(self.simulation.token_creator.tft_cultivate(month, self))
+            tft_burned = int(self.simulation.token_creator.tft_burn(month, self))
+            self._set("tft_farmed", month, tft_farmed)
+            self._set("tft_cultivated", month, tft_cultivated)
+            self._set("tft_burned", month, -tft_burned)
             tft_sold = (float(cost_power) + float(cost_rackspace) + float(cost_maintenance)) / float(tftprice_now)
-            self._set("tft_sold", month, tft_sold)
+            self._set("tft_sold", month, -tft_sold)
+            tft_total = tft_farmed + tft_cultivated - tft_sold
+            self._set("tft_total", month, tft_total)
 
-        row = (
-            self.sheet.rows["tft_farmed"]
-            + self.sheet.rows["tft_cultivated"]
-            - self.sheet.rows["tft_burned"]
-            - self.sheet.rows["tft_sold"]
-        )
-        row.name = "tft_total"
-        self.sheet.rows["tft_total"] = row
+            self._set("tft_movement_value_usd", month, tftprice_now * floatt(tft_total))
+        else:
+            tft_total = 0
 
-        self.sheet.rows["tft_cumul"] = row.accumulate("tft_cumul")
+        if month == 0:
+            tft_cumul_previous = 0
+        else:
+            tft_cumul_previous = floatt(self.rows.tft_cumul.cells[month - 1])
+        tft_cumul = tft_cumul_previous + floatt(tft_total)
+        self._set("tft_cumul", month, tft_cumul)
 
-        # calculate how much in $ has been created/famed
-        def tft_total_calc(val, month, args):
-            nb = args["nb"]
-            tftprice = nb.simulation.tft_price_get(month)
-            return val * tftprice
+        tft_cumul_value_usd = tftprice_now * tft_cumul
+        self._set("tft_cumul_value_usd", month, tft_cumul_value_usd)
 
-        row = self.sheet.copy("tft_movement_value_usd", self.sheet.rows["tft_total"], ttype="int", aggregate="LAST")
-        row.function_apply(tft_total_calc, {"nb": self})
+        cost_total_hardware_investment = float(self.node.cost_hardware * self.nrnodes)
+        roi = float(tft_cumul_value_usd) / float(cost_total_hardware_investment)
+        self._set("roi", month, roi)
 
-        row2 = self.sheet.copy("tft_cumul_value_usd", self.sheet.rows["tft_cumul"], ttype="int", aggregate="LAST")
-        row2.function_apply(tft_total_calc, {"nb": self})
+        self.simulated_months.append(month)
 
-        # calculate ROI in relation to initial HW
-        def roi_calc(val, month, args):
-            nb = args["nb"]
-            cost_total = float(self.node.cost_hardware * self.nrnodes)
-            r = float(val) / cost_total
-            return r
-
-        row = self.sheet.copy("roi", self.sheet.rows["tft_cumul_value_usd"], ttype="float", aggregate="LAST")
-        row.function_apply(roi_calc, {"nb": self})
+        return tft_total
 
     @property
     def roi_months(self):
@@ -132,7 +171,7 @@ class NodesBatch(SimulatorBase):
         x = 0
         for val in self.sheet.rows["roi"].cells:
             x += 1
-            if val > 1:
+            if self.simulation._float(val) > 1:
                 return x - self.month_start
         return None
 
@@ -143,6 +182,78 @@ class NodesBatch(SimulatorBase):
     @property
     def cost_hardware(self):
         return self.node.cost_hardware * self.nrnodes
+
+    def markdown(self):
+        out = SimulatorBase.__repr__(self)
+        for key in ["roi_months", "roi_end", "tft_cumul_value_usd", "cost_hardware"]:
+            res = getattr(self, key)
+            out += " - %-20s %s\n" % (key, res)
+        return out
+
+    def graph_tft(self, cumul=False, single=False):
+        import plotly.graph_objects as go
+
+        names = ["farmed", "cultivated", "sold", "burned", "total"]
+        if cumul:
+            names.append("cumul")
+
+        fig = go.Figure()
+        for name in names:
+            # values = eval(f"self.rows.tft_{name}.values")
+            values = eval(f"self.rows.tft_{name}.values_all")
+            x = [i for i in range(1, len(values))]
+            if single:
+                x = [i / self.nrnodes for i in x]
+            fig.add_trace(go.Scatter(x=x, y=values, name=name))
+        if not single:
+            nrnodes = self.nrnodes
+        else:
+            nrnodes = 1
+        fig.update_layout(
+            title="Tokens movement per month (batch:%s,nrnodes:%s)." % (self.batch_nr, nrnodes), showlegend=True
+        )
+        fig.show()
+        return fig
+
+    def _tft_usd(self, name, single=False):
+        row = eval(f"self.rows.tft_{name}")
+        res = []
+        if single:
+            nrnodes = self.nrnodes
+        else:
+            nrnodes = 1
+        for month in range(row.window_month_start, row.window_month_start + row.window_month_period):
+            tft_price = self.simulation.tft_price_get(month)
+            res.append(float(row.cells[month] / nrnodes * tft_price))
+        return row, res
+
+    def _values_usd_get(self, cumul=False, names=None, single=False):
+        if not names:
+            names = ["farmed", "cultivated", "sold", "burned", "total"]
+            if cumul:
+                names.append("cumul")
+        res = []
+        for name in names:
+            row, values = self._tft_usd(name, single=single)
+            x = [i + row.window_month_start - 1 for i in range(1, len(values) + 1)]
+            res.append((x, name, values, row))
+        return res
+
+    def graph_usd(self, cumul=False, single=False):
+        import plotly.graph_objects as go
+
+        fig = go.Figure()
+        for x, name, values, row in self._values_usd_get(cumul=cumul, single=single):
+            fig.add_trace(go.Scatter(x=x, y=values, name=name, connectgaps=False))
+        if single:
+            nrnodes = 1
+        else:
+            nrnodes = self.nrnodes
+        fig.update_layout(
+            title="USD movement per month (batch:%s,nrnodes:%s)." % (self.batch_nr, nrnodes), showlegend=True
+        )
+        fig.show()
+        return fig
 
     def __repr__(self):
         print(SimulatorBase.__repr__(self))

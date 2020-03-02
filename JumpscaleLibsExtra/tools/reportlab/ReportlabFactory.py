@@ -36,7 +36,7 @@ class ReportlabFactory(j.baseclasses.object, TESTTOOLS):
 
         :return:
         """
-        self._tests_run(name=name)
+        self._tests_run(name=name, die=True)
         if install:
             self.install()
         # self.test_generation()

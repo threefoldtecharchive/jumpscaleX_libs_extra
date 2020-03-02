@@ -1,9 +1,11 @@
 from IPython.display import Markdown as md
 import numpy as np
-import bqplot.pyplot as plt
-from bqplot import *
+# import bqplot.pyplot as plt
+# from bqplot import *
 # from ipywidgets import interact, HBox, Label, Layout
 # import ipywidgets as widgets
+
+import plotly.graph_objects as go
 
 from Jumpscale import j
 

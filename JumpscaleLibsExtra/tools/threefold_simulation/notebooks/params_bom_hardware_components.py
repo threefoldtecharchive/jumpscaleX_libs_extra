@@ -65,7 +65,7 @@ bom.components.new(
     rackspace_u=1,
 )
 
-# create the template for edge device 1
+# create the template for dc1
 d = bom.devices.new(name="dc1")
 d.components.new(name="s1", nr=1)
 d.components.new(name="intel1", nr=2)
