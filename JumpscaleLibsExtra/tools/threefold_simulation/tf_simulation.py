@@ -80,7 +80,7 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
 
         return environment
 
-    def start(self, voila=False, background=False, base_url=None):
+    def start(self, voila=False, background=False, base_url=None, ip="0.0.0.0"):
         """
         to run:
 
@@ -97,4 +97,5 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
             voila=voila,
             background=background,
             base_url=base_url,
+            ip=ip,
         )  # it will open a browser with access to the right output
