@@ -1,12 +1,13 @@
 from Jumpscale import j
 import random, requests, uuid
-from loguru import logger
 import subprocess, uuid
 
-LOGGER = logger
-LOGGER.add("PACKAGE_MANAGER_{time}.log")
 skip = j.baseclasses.testtools._skip
-odoo_server = j.servers.odoo.get()
+
+
+@skip("https://github.com/threefoldtech/jumpscaleX_builders/issues/50")
+def before_all():
+    pass
 
 
 def random_string():
@@ -14,7 +15,7 @@ def random_string():
 
 
 def info(message):
-    LOGGER.info(message)
+    j.tools.logger._log_info(message)
 
 
 def set_database_data(database):
@@ -34,7 +35,9 @@ def after():
     odoo_server.stop()
 
 
-@skip("https://github.com/threefoldtech/jumpscaleX_builders/issues/50")
+odoo_server = j.servers.odoo.get()
+
+
 def test_01_create_database():
     """
     - ​Install and start odoo server , and get new instance of it . 
@@ -77,7 +80,6 @@ def test_01_create_database():
     odoo_server.stop()
 
 
-@skip("https://github.com/threefoldtech/jumpscaleX_builders/issues/50")
 def test02_create_databases():
     """
     - ​Install and start odoo server , and get new instance of it . 
@@ -109,8 +111,7 @@ def test02_create_databases():
     assert db3.name in odoo_server.databases_list()
 
 
-@skip("https://github.com/threefoldtech/jumpscaleX_builders/issues/50")
-def test03_reset_databases(self):
+def test03_reset_databases():
     """
     - ​Install and start odoo server , and get new instance of it . 
     - Try reset_database, should delete all databases.
@@ -126,8 +127,7 @@ def test03_reset_databases(self):
     assert odoo_server.databases_list() == []
 
 
-@skip("https://github.com/threefoldtech/jumpscaleX_builders/issues/50")
-def test04_export_import_databases(self):
+def test04_export_import_databases():
     """
     - ​Install and start odoo server , and get new instance of it . 
     - Export created database, check that zip file exist.
@@ -152,8 +152,7 @@ def test04_export_import_databases(self):
     assert db.name in odoo_server.databases_list()
 
 
-@skip("https://github.com/threefoldtech/jumpscaleX_builders/issues/50")
-def test05_write_and_read(self):
+def test05_write_and_read():
     """
     - ​Install and start odoo server , and get new instance of it .
     - Create database [db].
@@ -164,4 +163,3 @@ def test05_write_and_read(self):
     - Delete data [dt], check it deleted successfully.
     """
     pass
-

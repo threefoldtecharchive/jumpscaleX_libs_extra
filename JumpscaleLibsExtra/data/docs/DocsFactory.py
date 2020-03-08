@@ -2,6 +2,8 @@ from Jumpscale import j
 
 from .DocSite import DocSite
 
+skip = j.baseclasses.testtools._skip
+
 
 class DocsFactory(j.baseclasses.object_config_collection_testtools):
 
@@ -34,6 +36,7 @@ class DocsFactory(j.baseclasses.object_config_collection_testtools):
                     obj_key=name, path=path0, reload=False, objForHash=name
                 )
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/9")
     def test(self):
         """
         kosmos 'j.data.docs.test()'

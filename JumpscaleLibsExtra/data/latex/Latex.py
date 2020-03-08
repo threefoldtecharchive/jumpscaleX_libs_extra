@@ -1,6 +1,7 @@
 from Jumpscale import j
 
 JSBASE = j.baseclasses.object
+j.builders.runtimes.python3.pip_package_install("pylatex")
 from pylatex import *
 from pylatex.utils import bold
 

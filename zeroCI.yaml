@@ -3,15 +3,21 @@ prequisties:
 
 install:
   - apt-get update
-  - pip3 install click nose nose-progressive nose-testconfig nose-exclude loguru parameterized
+  - pip3 install click  loguru parameterized xmltodict imbox logbook
   - eval `ssh-agent -s`; ssh-add
   - rm -rf /sandbox/code/github/threefoldtech/*
   - cd /sandbox/code/github/threefoldtech/
-  - declare strs=('core' 'libs' 'builders' 'threebot') && for s in ${strs[@]}; do git clone https://github.com/threefoldtech/jumpscaleX_$s.git --branch master; done
   - cp -r /opt/code/github/threefoldtech/jumpscaleX_libs_extra /sandbox/code/github/threefoldtech/jumpscaleX_libs_extra
+  - cd /sandbox/code/github/threefoldtech/jumpscaleX_libs_extra ; libs_extra_branch=$(git rev-parse --abbrev-ref HEAD)
+  - declare strs=('libs' 'core' 'builders' 'threebot') && for s in ${strs[@]}; do 
+    cd /sandbox/code/github/threefoldtech/ && rm -rf /sandbox/code/github/threefoldtech/jumpscaleX_$s && 
+    git clone https://github.com/threefoldtech/jumpscaleX_$s.git --branch $libs_extra_branch || git clone https://github.com/threefoldtech/jumpscaleX_$s.git --branch development ; done
   - source /sandbox/env.sh; js_init generate
+  - source /sandbox/env.sh; kosmos "j.builders.runtimes.lua.install_autossl()"
+
 
 script:
-  - source /sandbox/env.sh; cd /sandbox/code/github/threefoldtech/; nosetests-3.4 -v jumpscaleX_libs_extra
-    --nologcapture  --with-noseexclude --exclude-dir=JumpscaleLibsExtra 
-    --with-xunit --xunit-file=/test.xml --xunit-testsuite-name=jumpscaleX_libs_extra
+  - source /sandbox/env.sh; python3 /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/js_testrun --with-xml  --xml-path /test.xml --xml-testsuite-name "data_tests" -o "j.data";yes | bcdb delete --all
+  - source /sandbox/env.sh; python3 /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/js_testrun --with-xml  --xml-path /test.xml --xml-testsuite-name "tools_tests" -o "j.tools";yes | bcdb delete --all
+  - source /sandbox/env.sh; python3 /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/js_testrun --with-xml  --xml-path /test.xml --xml-testsuite-name "clients_tests" -o "j.clients";yes | bcdb delete --all
+  - source /sandbox/env.sh; python3 /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/js_testrun --with-xml  --xml-path /test.xml --xml-testsuite-name "servers_tests" -o "j.servers";yes | bcdb delete --all
