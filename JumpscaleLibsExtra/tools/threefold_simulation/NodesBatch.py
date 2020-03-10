@@ -19,6 +19,7 @@ class NodesBatch(SimulatorBase):
 
     _SCHEMATEXT = """
         @url = threefold.simulation.nodesbatch
+        name= ""
         batch_nr = (I)  #0 is first month (when batch created)
         nrnodes = 0 #nr of nodes
         month_start = 0

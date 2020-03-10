@@ -41,7 +41,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         from .notebooks.params_environment import environment
 
         # from .notebooks.token_creator_new import TokenCreator
-        from .notebooks.token_creator_burn import TokenCreator
+        from .notebooks.token_creator_modest import TokenCreator
 
         simulation.token_creator = TokenCreator(simulation)
         environment = simulation.environment
@@ -69,7 +69,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         return environment
 
-    def start(self, voila=False, background=False, base_url=None, name="tftest", reset=False):
+    def start(self, voila=False, background=False, base_url=None, name=None, reset=False):
         """
         to run:
 
@@ -84,7 +84,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         j.core.myenv.log_includes = []
         # e = self.calc()
 
-        path_source = "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks"
+        path_source = "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks/nodebatch_simulator.ipynb"
         path_source = j.core.tools.text_replace(path_source)
         if name:
             path_dest = j.core.tools.text_replace("{DIR_VAR}/notebooks/%s" % name)

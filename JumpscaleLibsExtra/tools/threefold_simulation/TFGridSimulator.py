@@ -23,7 +23,7 @@ class TFGridSimulator(SimulatorBase):
         self.sheet = j.data.worksheets.sheet_new("simulation", nrcols=120)
         self.rows = self.sheet.rows
         self.nodebatches = []  # 0 is the first batch, which stands for month 1
-        self.bom = BillOfMaterial()
+        self.bom = BillOfMaterial(name="main")
         self.environment = Environment(name="default")
         self.token_creator = TokenCreator()
 
@@ -39,7 +39,7 @@ class TFGridSimulator(SimulatorBase):
         return nb
 
     def _nodesbatch_add(self, month, nrnodes):
-        nb = NodesBatch(simulation=self, nrnodes=nrnodes, month_start=month)
+        nb = NodesBatch(name="default", simulation=self, nrnodes=nrnodes, month_start=month)
         while len(self.nodebatches) < month + 1:
             self.nodebatches.append(None)
         self.nodebatches[month] = nb
