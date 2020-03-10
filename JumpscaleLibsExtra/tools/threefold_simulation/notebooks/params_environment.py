@@ -12,10 +12,9 @@ environment.bandwidth_mbit = 20
 environment.sales_price_cu = "6 USD"
 environment.sales_price_su = "4 USD"
 
-device_edge = simulation.device_get("edge1")
-# print(d1)
+device_edge = simulation.device_get("edge1", environment=environment)
 
-switch = simulation.device_get("switch")
+switch = simulation.device_get("switch", environment=environment)
 
 environment.device_add("edge1", device_edge, 20)
 environment.device_add("switch", switch, 2)

@@ -7,7 +7,7 @@ class TokenCreator:
         # super important factor, how does token price goes up, this is ofcourse complete speculation, no-one knows
         simulation.tokenprice_set("0:0.15,60:2")
         # simulation.tokenprice_set("0:1")
-        simulation.difficulty_level_set("0:2,60:2")
+        simulation.difficulty_level_set("0:2,60:8")
 
         self.simulation = simulation
 
@@ -34,14 +34,7 @@ class TokenCreator:
         tft_price = simulation.tft_price_get(month)
         cpr_sales_price = simulation.cpr_sales_price_get(month)
 
-        tft_new = (
-            utilization
-            * float(cpr_sales_price)
-            / float(tft_price)
-            * nodes_batch.node.cpr
-            * nodes_batch.nrnodes
-            / self.difficulty_level_get(month)
-        )
+        tft_new = utilization * float(cpr_sales_price) / float(tft_price) * nodes_batch.node.cpr * nodes_batch.nrnodes
         return tft_new
 
     def tft_cultivate(self, month, nodes_batch):

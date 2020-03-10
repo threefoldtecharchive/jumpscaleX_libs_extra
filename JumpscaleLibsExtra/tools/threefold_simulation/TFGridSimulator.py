@@ -288,7 +288,7 @@ class TFGridSimulator(SimulatorBase):
         )
         fig2.add_trace(go.Scatter(x=x, y=self.rows.tft_sold.values_all[0:60], name="tft_sold", connectgaps=False))
         fig2.add_trace(go.Scatter(x=x, y=self.rows.tft_burned.values_all[0:60], name="tft_burned", connectgaps=False))
-        fig2.update_layout(title="TFT Creation per Month", showlegend=True)
+        fig2.update_layout(title="TFT Movement per Month", showlegend=True)
         fig2.show()
 
         y = self.rows.tft_cumul.values_all[0:60]
