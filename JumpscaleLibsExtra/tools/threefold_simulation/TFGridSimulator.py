@@ -152,7 +152,7 @@ class TFGridSimulator(SimulatorBase):
             self._row_add("revenue")
 
             self._row_add("tft_movement_value_usd")
-            self._row_add("tft_cumul_value_usd")
+            self._row_add("tft_cumul_value_usd")# What is cumul? 
 
     def _float(self, val):
         if val == None:
@@ -194,10 +194,9 @@ class TFGridSimulator(SimulatorBase):
                 self.rows.tft_cultivated.cells[month] += self._float(nb.rows.tft_cultivated.cells[month])
                 self.rows.tft_sold.cells[month] += self._float(nb.rows.tft_sold.cells[month])
                 self.rows.tft_burned.cells[month] += self._float(nb.rows.tft_burned.cells[month])
+                self.rows.tft_total.cells[month] += self._float(nb.rows.tft_total.cells[month])
+
                 # remove the burned ones from the total
-                self.rows.tft_total.cells[month] += self._float(nb.rows.tft_total.cells[month]) - self._float(
-                    nb.rows.tft_burned.cells[month]
-                )
                 self.rows.tft_cumul.cells[month] += self._float(nb.rows.tft_cumul.cells[month]) - self._float(
                     nb.rows.tft_burned.cells[month]
                 )
