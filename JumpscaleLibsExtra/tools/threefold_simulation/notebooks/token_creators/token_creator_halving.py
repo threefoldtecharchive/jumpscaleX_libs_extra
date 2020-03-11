@@ -1,5 +1,11 @@
 from Jumpscale import j
 
+"""
+this simulation tries to work like a bitcoin with halving of difficulty level
+so far not good results yet, too unstable looks like
+need to experiment more
+"""
+
 
 class TokenCreator:
     def __init__(self, simulation):
@@ -63,11 +69,6 @@ class TokenCreator:
 
     def difficulty_level_get(self, month):
         """
-        now a predefined extrapolated row, but could be calculated
         """
-        if month == 0:
-            nrtokens = self.simulation.nodesbatch_get(0).tft_farmed_before_simulation
-        else:
-            nrtokens = self.simulation.rows.tft_cumul.cells[month - 1]  # from previous month
-        y = int(nrtokens / self.nrtokens_forhalving)
+        y = int(self.simulation.tft_total(month - 1) / self.nrtokens_forhalving)
         return 2 ** y

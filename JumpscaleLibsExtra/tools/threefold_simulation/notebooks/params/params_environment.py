@@ -1,5 +1,7 @@
 from Jumpscale import j
 
+from params.params_bom_hardware_components import *
+
 simulation = j.tools.tfgrid_simulator.default
 environment = simulation.environment
 environment.devices.clear()
@@ -16,8 +18,9 @@ device_edge = simulation.device_get("edge1", environment=environment)
 
 switch = simulation.device_get("switch", environment=environment)
 
-environment.device_add("edge1", device_edge, 20)
-environment.device_add("switch", switch, 2)
+environment.device_node_add("edge1", device_edge, 20)
+environment.device_overhead_add("switch", switch, 2)
+
 
 # means at end of period we produce 40% more cpr (*1.4)
 # cpr = capacity production rate (is like hashrate of bitcoin)

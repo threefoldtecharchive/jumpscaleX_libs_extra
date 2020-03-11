@@ -76,9 +76,6 @@ class BillOfMaterial(SimulatorBase):
         s = Environment(name=name, description=description)
         return s
 
-    def run(self):
-        return SimulationRun(autosave=False)
-
 
 class Component(j.baseclasses.object):
     def _init(self, **kwargs):
@@ -121,7 +118,8 @@ class Device(SimulatorBase):
 
     def _init(self, **kwargs):
         self._cat = "device"
-        self.device_template_name = kwargs["device_template_name"]
+        if not self.device_template_name:
+            self.device_template_name = kwargs["device_template_name"]
         self.components = j.baseclasses.dict()
 
     def load(self, simulation, environment=None):
@@ -209,6 +207,7 @@ class Environment(SimulatorBase):
         bandwidth_mbit = (F)
         cost_bandwidth = (N)
         nr_devices = 0
+        nr_nodes = 0
         sales_price_cu = (N)
         sales_price_su = (N)
         sales_price_nu = (N)
@@ -219,15 +218,66 @@ class Environment(SimulatorBase):
     def _init(self, **kwargs):
         self._cat = "environment"
         self.devices = j.baseclasses.dict()
+        self._device_types = {}
+        self._device_normalized = None
         self.nr_devices = 0
 
-    def device_add(self, name, device, nr):
+    def _device_add(self, name, device, nr):
         if name in self.devices:
             raise j.exceptions.Input("device with name:%s already added" % name)
         self.devices[name] = (nr, device)
         if device.su > 0 or device.cu > 0:
             self.nr_devices += nr
         self._calculate()
+
+    def device_node_add(self, name, device, nr):
+        self._device_add(name, device, nr)
+        self._device_types[name] = "n"
+        self.nr_nodes += nr
+
+    def device_overhead_add(self, name, device, nr):
+        self._device_add(name, device, nr)
+        self._device_types[name] = "o"
+
+    def _device_normalized_get(self):
+        nr2 = 0
+        devicefound = None
+        for nr, device in self.devices.values():
+            if self._device_types[device.name] == "n":
+                nr2 += 1
+                devicefound = device
+        if nr2 == 1:
+            return devicefound
+        raise j.exceptions.Input("today only support 1 type of node device in environment")
+
+    @property
+    def device_normalized(self):
+        if not self._device_normalized:
+            device = self._device_normalized_get()
+            device_n = Device(jsxobject=device._data)
+            device_n.cost_cu_month = self.cost_cu_month
+            device_n.cost_su_month = self.cost_su_month
+            device_n.rackspace_u = self.rackspace_u / self.nr_nodes
+            device_n.cu_passmark = self.cu_passmark / self.nr_nodes
+            device_n.cost_rack = self.cost_rack / self.nr_nodes
+            device_n.cost_power = self.cost_power / self.nr_nodes
+            device_n.cost_month = self.cost_month / self.nr_nodes
+            device_n.cpr = self.cpr / self.nr_nodes
+            device_n.cost_su_capex = self.cost_su_capex
+            device_n.cost_cu_capex = self.cost_cu_capex
+
+            device_n.cost = self.cost / self.nr_nodes
+            device_n.power = self.power / self.nr_nodes
+            device_n.cru = self.cru / self.nr_nodes
+            device_n.sru = self.sru / self.nr_nodes
+            device_n.hru = self.hru / self.nr_nodes
+            device_n.mru = self.mru / self.nr_nodes
+
+            device_n.su = self.su / self.nr_nodes
+            device_n.cu = self.cu / self.nr_nodes
+            device_n.cu_passmark = self.cu_passmark / self.nr_nodes
+            self._device_normalized = device
+        return self._device_normalized
 
     def _calculate(self):
         self.cost = 0
@@ -259,9 +309,6 @@ class Environment(SimulatorBase):
             su_weight += device.su_perc * nr * float(device.cost)
             cu_weight += device.cu_perc * nr * float(device.cost)
             self.cu_passmark += device.cu_passmark * nr
-            if device.cu_passmark:
-                p_nr += nr
-        self.cu_passmark = self.cu_passmark / p_nr
 
         if su_weight or cu_weight:
             self.cu_perc = cu_weight / (su_weight + cu_weight)

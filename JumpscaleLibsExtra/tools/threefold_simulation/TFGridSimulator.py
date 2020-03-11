@@ -121,6 +121,14 @@ class TFGridSimulator(SimulatorBase):
         assert r > 0
         return r
 
+    def tft_total(self, month=None):
+        if month == None:
+            month = self.sheet.nrcols - 1
+        tft_total = int(self.rows.tft_cumul.cells[month])
+        if month == 0:
+            tft_total += int(self.nodesbatch_get(0).tft_farmed_before_simulation)
+        return tft_total
+
     def _row_add(self, name, aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True):
         row = self.sheet.addRow(name, aggregate=aggregate, ttype=ttype, empty=empty, nrcols=120, defval=defval)
         if clean:
@@ -225,14 +233,61 @@ class TFGridSimulator(SimulatorBase):
         self.rows.tft_total.clean()
         self.rows.tft_cumul.clean()
 
-        # def extrapolate(val, month, args):
-        #     return val * 60
-        #
-        # row_revenue_extrapolated = self.sheet.copy(
-        #     "revenue_extrapolated", self.rows.revenue, ttype="int", aggregate="LAST"
-        # )
-        # row_revenue_extrapolated.function_apply(extrapolate)
-        # # j.shell()
+        row = self._row_add("grid_valuation_rev_musd", aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True)
+        row = self._row_add(
+            "tft_calculated_based_rev_valuation", aggregate="FIRST", ttype="float", defval=0, empty=True, clean=True
+        )
+
+        def do(val, x, args):
+            rev_over_years = self.revenue_grid_max_get(x) * 60
+            tft_cumul = float(self.rows.tft_cumul.cells[x])
+            self.rows.tft_calculated_based_rev_valuation.cells[x] = rev_over_years / tft_cumul
+            rev_over_years = rev_over_years / 1000000  # want to have it in million
+            return rev_over_years
+
+        self.rows.grid_valuation_rev_musd.function_apply(do)
+
+        row = self._row_add(
+            "grid_valuation_margin_musd", aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True
+        )
+        row = self._row_add(
+            "tft_calculated_based_margin_valuation", aggregate="FIRST", ttype="float", defval=0, empty=True, clean=True
+        )
+
+        def do(val, x, args):
+            marginoveryears = self.margin_grid_max_get(x) * 12 * 10
+            tft_cumul = float(self.rows.tft_cumul.cells[x])
+            self.rows.tft_calculated_based_margin_valuation.cells[x] = marginoveryears / tft_cumul
+            marginoveryears = marginoveryears / 1000000  # want to have it in million
+            return marginoveryears
+
+        self.rows.grid_valuation_margin_musd.function_apply(do)
+
+    def revenue_grid_max_get(self, x):
+        """
+        is the max revenue the grid can do at that time
+        """
+        device = self.environment.device_normalized
+        cpr_usd = self.cpr_sales_price_get(x)
+        nrnodes = self.rows.nrnodes_total.cells[x]
+        rev = float(device.cpr) * float(nrnodes) * float(cpr_usd)
+        return rev
+
+    def cost_grid_max_get(self, x):
+        """
+        is the max cost of the grid (at full utilization)
+        for power, rackspace & manpower (maintenance)
+        """
+        device = self.environment.device_normalized
+        nrnodes = self.rows.nrnodes_total.cells[x]
+        cost = float(device.cost_month) * float(nrnodes)
+        return cost
+
+    def margin_grid_max_get(self, x):
+        """
+        is the max revenue the grid can do at that time
+        """
+        return self.revenue_grid_max_get(x) - self.cost_grid_max_get(x)
 
     def utilization_get(self, month):
         utilization = self.rows.utilization.cells[month] / 100
@@ -297,7 +352,76 @@ class TFGridSimulator(SimulatorBase):
         fig3.update_layout(title="TFT Evolution", showlegend=True)
         fig3.show()
 
-        return (fig1, fig2, fig3)
+        row = self.rows.grid_valuation_rev_musd
+        fig4 = go.Figure()
+        fig4.add_trace(go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="USD", connectgaps=False))
+        fig4.update_layout(title="GRID valuation based on 5Y recurring revenue capability of grid", showlegend=True)
+        fig4.show()
+
+        row = self.rows.tft_calculated_based_rev_valuation
+        fig5 = go.Figure()
+        fig5.add_trace(go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="USD", connectgaps=False))
+        fig5.update_layout(title="tft value index based  on grid revenue valuation", showlegend=True)
+        fig5.show()
+
+        row = self.rows.grid_valuation_margin_musd
+        fig6 = go.Figure()
+        fig6.add_trace(go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="USD", connectgaps=False))
+        fig6.update_layout(title="GRID valuation based on 10x yearly net profit of grid (all farmers)", showlegend=True)
+        fig6.show()
+
+        row = self.rows.tft_calculated_based_margin_valuation
+        fig7 = go.Figure()
+        fig7.add_trace(go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="USD", connectgaps=False))
+        fig7.update_layout(title="tft value index based  on grid margin valuation", showlegend=True)
+        fig7.show()
+
+        return (fig1, fig2, fig3, fig4, fig5, fig6, fig7)
+
+    def markdown_reality_check(self, month):
+        cl = j.data.types.numeric.clean
+        nrnodes = self.rows.nrnodes_total.cells[month]
+        tft_cultivated = cl(self.rows.tft_cultivated.cells[month])
+        tft_price = self.tft_price_get(month)
+        usd_cultivated = cl(tft_cultivated * tft_price)
+        usd_node_cultivated = cl(usd_cultivated / nrnodes)
+        usd_farmed = cl(self.rows.tft_farmed.cells[month] * tft_price)
+        usd_sold = cl(self.rows.tft_sold.cells[month] * tft_price)
+        usd_burned = cl(self.rows.tft_burned.cells[month] * tft_price)
+        usd_total = cl(self.rows.tft_total.cells[month] * tft_price)
+
+        res = f"""
+        ## Some Checks ({month} month mark)
+
+        - nrnodes: {nrnodes}
+        - nrtokens cultivated: {tft_cultivated}
+        - tft price: {tft_price} USD
+        - USD cultivated in that month: {usd_cultivated} USD
+        - USD farmed in that month: {usd_farmed} USD
+
+        ### per node
+
+        - USD cultivated per node:  {usd_node_cultivated} USD
+        - USD farmed per node:  {cl(usd_farmed / nrnodes)} USD    
+        - USD burned per node:  {cl(usd_burned / nrnodes)} USD  
+        - USD sold per node (to pay for rackspace/power/mgmt):  {cl(usd_sold / nrnodes)} USD  
+        - USD profit for farmer per node (profit from token income):  {cl(usd_total / nrnodes)} USD      
+        - ROI per node over 60 months
+
+        """
+
+        return j.core.tools.text_strip(res)
+
+    def graph_token_price(self):
+        import plotly.graph_objects as go
+
+        x = [i for i in range(60)]
+        cells = [i / 44 for i in self.sheet.rows.rackspace_u.cells[0:60]]
+        cells = self.rows.tokenprice.cells[0:60]
+        y = [round(i, 2) for i in cells]
+        fig = go.Figure(data=go.Scatter(x=x, y=y))
+        fig.update_layout(title="Token Price (TFT).", showlegend=False)
+        fig.show()
 
     def __repr__(self):
         out = ""
