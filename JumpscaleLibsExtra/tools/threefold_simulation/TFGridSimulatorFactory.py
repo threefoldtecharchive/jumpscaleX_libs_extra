@@ -58,6 +58,8 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         simulation.graph_nodesbatches_usd_simulation()
         simulation.graph_tft_simulation()
 
+        print(simulation.markdown_reality_check(10))
+
         return
 
     def start(self, voila=False, background=False, base_url=None, name=None, reset=False):

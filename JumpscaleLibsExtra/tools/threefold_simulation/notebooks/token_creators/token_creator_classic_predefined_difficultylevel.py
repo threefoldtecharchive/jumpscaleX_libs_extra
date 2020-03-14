@@ -2,16 +2,18 @@ from Jumpscale import j
 
 """
 simulator quite in line with how we do it today
+
 improvements
 
 - burning of 50% of cultivated tokens, which means nr of tokens goes down
- 
+- max of tokens is 2 billion
+
 """
 
 
 class TokenCreator:
     def __init__(self, simulation):
-        simulation.difficulty_level_set("0:2,119:8")
+        simulation.difficulty_level_set("0:3,119:6")
         self.simulation = simulation
 
     def tft_farm(self, month, nodes_batch):

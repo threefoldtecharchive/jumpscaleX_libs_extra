@@ -1,5 +1,6 @@
 from IPython.display import Markdown as md
 import numpy as np
+
 # import bqplot.pyplot as plt
 # from bqplot import *
 # from ipywidgets import interact, HBox, Label, Layout
@@ -22,6 +23,8 @@ def clean_code(code):
         if line.find("bom = simulation.bom") != -1:
             continue
         if line.strip().startswith("assert"):
+            continue
+        if line.strip().startswith("from "):
             continue
 
         out += "%s\n" % line
