@@ -43,7 +43,7 @@ class NLTKFactory(j.baseclasses.object):
     __jslocation__ = "j.data.nltk"
 
     def install(self):
-        j.builders.runtimes.pip.install("nltk,nameparser,unidecode")
+        j.builders.runtimes.python3.pip_package_install("nltk,nameparser,unidecode")
         self.download_nltk()
 
     def download_nltk(self):
@@ -196,19 +196,19 @@ class NLTKFactory(j.baseclasses.object):
         self.install()
 
         text = """
-            Some economists have responded positively to Bitcoin, including 
+            Some economists have responded positively to Bitcoin, including
             Francois R. Velde, senior economist of the Federal Reserve in Chicago :
-            who described it as "an elegant solution to the problem of creating a 
-            digital currency." In November 2013 Richard Branson announced that 
-            Virgin Galactic would accept Bitcoin as payment, saying that he had invested 
-            in Bitcoin and found it "fascinating how a whole new global currency 
+            who described it as "an elegant solution to the problem of creating a
+            digital currency." In November 2013 Richard Branson announced that
+            Virgin Galactic would accept Bitcoin as payment, saying that he had invested
+            in Bitcoin and found it "fascinating how a whole new global currency
             has been created", encouraging Antonín Dvořák others to also invest in Bitcoin.
-            Other economists commenting on Bitcoin have been critical. 
-            Economist Paul Krugman has suggested that the structure of the currency 
-            incentivizes hoarding and that its value derives from the expectation that 
-            others will accept it as payment. Economist Larry Summers has expressed 
-            a "wait and see" attitude René Magritte when it comes to Bitcoin. Nick Colas, a market 
-            strategist for ConvergEx Group, has remarked on the effect of increasing 
+            Other economists commenting on Bitcoin have been critical.
+            Economist Paul Krugman has suggested that the structure of the currency
+            incentivizes hoarding and that its value derives from the expectation that
+            others will accept it as payment. Economist Larry Summers has expressed
+            a "wait and see" attitude René Magritte when it comes to Bitcoin. Nick Colas, a market
+            strategist for ConvergEx Group, has remarked on the effect of increasing
             use of Bitcoin and its restricted supply, noting, "When incremental """
 
         print(self.stem(text))

@@ -5,8 +5,8 @@ JSConfigs = j.baseclasses.object_config_collection
 
 
 class KrakenFactory(JSConfigs):
-    __jslocation__ = "j.clients.kraken"
     _CHILDCLASS = KrakenClient
+    # check https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/7
 
     def install(self, reset=False):
         j.builders.runtimes.pip.install("pykrakenapi", reset=reset)
