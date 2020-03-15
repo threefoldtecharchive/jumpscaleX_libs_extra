@@ -1,4 +1,9 @@
 from Jumpscale import j
+
+try:
+    from taiga import TaigaAPI
+except ImportError:
+    j.builders.runtimes.python3.pip_package_install("python-taiga")
 from .TaigaClient import TaigaClient
 
 JSConfigs = j.baseclasses.object_config_collection
@@ -9,5 +14,5 @@ class TaigaFactory(JSConfigs):
     _CHILDCLASS = TaigaClient
     __jslocation__ = "j.clients.taiga"
 
-    def install(self, reset=False):
-        j.builders.runtimes.pip.install("python-taiga", reset=reset)
+    def install(self):
+        j.builders.runtimes.python3.pip_package_install("python-taiga")
