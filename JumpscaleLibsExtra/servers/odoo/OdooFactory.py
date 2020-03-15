@@ -82,4 +82,4 @@ class OdooFactory(JSConfigs, TESTTOOLS):
 
     @skip("https://github.com/threefoldtech/jumpscaleX_builders/issues/50")
     def test_tmux(self, name=""):
-        self._tests_run(name=name)
+        self._tests_run(name=name, die=True)

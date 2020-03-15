@@ -1,6 +1,7 @@
 from Jumpscale import j
 
 from .TFGridSimulator import TFGridSimulator
+import sys
 
 
 class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
@@ -8,7 +9,14 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
     __jslocation__ = "j.tools.tfgrid_simulator"
 
     def _init(self, **kwargs):
+        j.application.start("simulator")
         self._instances = {}
+
+        notebookpath = j.core.tools.text_replace(
+            "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks"
+        )
+        if notebookpath not in sys.path:
+            sys.path.append(notebookpath)
 
     @property
     def default(self):
@@ -28,35 +36,33 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             self._instances[name] = TFGridSimulator(name=name)
         return self._instances[name]
 
-    def calc(self):
+    def calc(self, batches_simulation=False):
         """
         kosmos 'j.tools.tfgrid_simulator.calc()'
         :return:
         """
-        simulation = j.tools.tfgrid_simulator.default
 
-        from .notebooks.params_bom_hardware_components import bom
-        from .notebooks.params_environment import environment
-        from .notebooks.token_creator import tft_burn, tft_cultivate, tft_farm, difficulty_level_get
+        from params.params import simulation
 
-        simulation.token_creator.tft_burn = tft_burn
-        simulation.token_creator.tft_cultivate = tft_cultivate
-        simulation.token_creator.tft_farm = tft_farm
-        simulation.token_creator.difficulty_level_get = difficulty_level_get
+        if batches_simulation:
+            # nrnodes is 2nd
+            nb0 = simulation.nodesbatch_get(0)
+            nb0.graph_tft(cumul=True)
+            nb0.graph_usd(cumul=True)
+            nb = simulation.nodesbatch_get(20)
+            nb.graph_tft(single=True)
+            # nb.graph_usd(cumul=True,single=True)
+            for month in [1, 10, 30, 50]:
+                simulation.nodesbatch_get(month).graph_usd(cumul=True, single=True)
 
-        environment = simulation.environment
+        simulation.graph_nodesbatches_usd_simulation()
+        simulation.graph_tft_simulation()
 
-        # nb = simulation.nodesbatch_calc(10, 10)
+        print(simulation.markdown_reality_check(10))
 
-        simulation.nodesbatch_start_set(nrnodes=1500, months_left=36, tft_farmed_before_simulation=20 * 1000 * 1000)
+        return
 
-        # do the calculation of the simulation
-        simulation.calc(nrnodes_new="0:5,6:150,12:1000,13:0")
-        # nodes sold are the first sales nr's, after that the growth numbers above will count
-
-        return environment
-
-    def start(self, voila=False, background=False, base_url=None, name="tftest", reset=False):
+    def start(self, voila=False, background=False, base_url=None, name=None, reset=False):
         """
         to run:
 
@@ -71,7 +77,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         j.core.myenv.log_includes = []
         # e = self.calc()
 
-        path_source = "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks"
+        path_source = "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks/home.ipynb"
         path_source = j.core.tools.text_replace(path_source)
         if name:
             path_dest = j.core.tools.text_replace("{DIR_VAR}/notebooks/%s" % name)

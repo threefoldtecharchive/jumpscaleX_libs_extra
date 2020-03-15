@@ -20,7 +20,7 @@ bom.components.new(
 
 bom.components.new(
     name="s2",
-    description="Chassis for Ryzen 7, 4 HD, 1 SSD, 10 gbit nic",
+    description="Chassis for Ryzen 7 (no cpu inside), 4 HD slots, 1 SSD slots, 10 gbit nic",
     cost=450,
     rackspace_u=2,
     cru=0,
@@ -65,13 +65,13 @@ bom.components.new(
     rackspace_u=1,
 )
 
-# create the template for edge device 1
-d = bom.devices.new(name="dc1")
-d.components.new(name="s1", nr=1)
-d.components.new(name="intel1", nr=2)
-d.components.new(name="hd12", nr=12)
-d.components.new(name="mem32_ecc", nr=8)
-d.components.new(name="ssd1", nr=2)
+# # create the template for dc1
+# d = bom.devices.new(name="dc1")
+# d.components.new(name="s1", nr=1)
+# d.components.new(name="intel1", nr=2)
+# d.components.new(name="hd12", nr=12)
+# d.components.new(name="mem32_ecc", nr=8)
+# d.components.new(name="ssd1", nr=2)
 
 # create the template for edge device 1
 d = bom.devices.new(name="edge1")
