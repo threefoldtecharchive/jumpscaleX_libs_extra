@@ -21,9 +21,10 @@ simulation.token_creator = TokenCreator(simulation)
 # 60:3 means month 60: value is 3
 # interpolation will happen between the values
 # so below will let the price go from 0.15 first month to 3 over 60 months
-simulation.tokenprice_set("0:0.15,60:3")
+simulation.tokenprice_set("0:0.15,119:6")  #means after 60 months the price will be +-3
 
 # month:growth_percent of nodes being added
+# this means month 1 (is 0 in this file) we add 5 nodes, month 12 we add 1000 new nodes
 simulation.nrnodes_new_set("0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000")
 # simulation.nrnodes_new_set("0:5,6:150,20:5000")
 
