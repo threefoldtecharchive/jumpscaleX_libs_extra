@@ -17,12 +17,22 @@ simulation.token_creator = TokenCreator(simulation)
 
 # super important factor, how does token price goes up
 # this is ofcourse complete speculation, no-one knows
-simulation.tokenprice_set("0:0.15,60:2")
+# 0:0 means month 0 we have value 0
+# 60:3 means month 60: value is 3
+# interpolation will happen between the values
+# so below will let the price go from 0.15 first month to 3 over 60 months
+simulation.tokenprice_set("0:0.15,60:3")
 
 # month:growth_percent of nodes being added
 simulation.nrnodes_new_set("0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000")
-# simulation.nrnodes_new_set("0:5,6:150,12:500,12:1000")
-simulation.nodesbatch_start_set(nrnodes=1500, months_left=36, tft_farmed_before_simulation=700 * 1000 * 1000)
+# simulation.nrnodes_new_set("0:5,6:150,20:5000")
 
+#first batch of nodes added is 1500 nodes
+#each node is +-4.5k usd (check the bill of material sheet)
+#and we start the simulation with 800m tokens already farmed by the TF Farmers
+simulation.nodesbatch_start_set(nrnodes=1500, months_left=36, tft_farmed_before_simulation=800 * 1000 * 1000)
+
+#month we start simulation for for the farming calculator (shows a specific simulation for a batch)
+farming_startmonth = 10
 
 simulation.calc()

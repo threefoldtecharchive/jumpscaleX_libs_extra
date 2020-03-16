@@ -20,8 +20,7 @@ class TokenCreator:
         @param month is the month to calculate the added tft for
         @param month_batch is when the node batch was originally added
         """
-        simulation = nodes_batch.simulation
-        tftprice_now = simulation.tft_price_get(month)
+        tftprice_now = self.simulation.tft_price_get(month)
         nodes_batch_investment = nodes_batch.node.cost_hardware * nodes_batch.nrnodes
         # means if difficulty level would be 1, then the investment paid back in nr_months_return months
         # this is an important parameter, if low then farmers at beginning 
@@ -33,7 +32,7 @@ class TokenCreator:
 
         return tft_new
 
-    def _tft_grow(self, month, nodes_batch):
+    def _tft_for_capacity_sold(self, month, nodes_batch):
         """
         tft which are coming back to system because of people buying capacity
         """
@@ -47,16 +46,23 @@ class TokenCreator:
     def tft_cultivate(self, month, nodes_batch):
         """
         calculate the nr of TFT cultivated for the full batch
-        cultivation means selling of capacity which results in TFT income
+        cultivation means selling of capacity which results in TFT income for farmer
 
         @param month is the month to calculate the added tft for
         @param month_batch is when the node batch was originally added
         """
-        return self._tft_grow(month=month, nodes_batch=nodes_batch) / 2
+        return self._tft_for_capacity_sold(month=month, nodes_batch=nodes_batch) / 2
 
     def tft_burn(self, month, nodes_batch):
-        # burn as much as we make (this is a serious burning policy, this keeps nr of TFT limited)
-        return self._tft_grow(month=month, nodes_batch=nodes_batch) / 2
+        """
+        burn as much as we cultivate
+        
+        this is a serious burning policy, this keeps nr of TFT limited
+        
+        this is the benefit of any TFT holder because we burn (destroy) tokens as capacity is sold
+        
+        """
+        return self._tft_for_capacity_sold(month=month, nodes_batch=nodes_batch) / 2
 
     def difficulty_level_get(self, month):
         """
@@ -87,7 +93,7 @@ class TokenCreator:
             return 5
         elif perc < 90:
             return 6
-        elif perc < 98:
+        elif perc < 99:
             return 7
         else:
             return 1000000  # now there should be no farming any longer
