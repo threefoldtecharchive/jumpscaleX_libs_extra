@@ -86,6 +86,11 @@ class TFGridSimulator(SimulatorBase):
         """
         self._interpolate("utilization", args)
 
+    def tokenprice_set_5years(self, val=3):
+        # need to do over 12 years or the price of tokens weirdly stops
+        val = (val - 0.15) * 2
+        self.tokenprice_set("0:0.15,119:%s" % val)
+
     def tokenprice_set(self, args):
         """
         define how tokenprice goes up (in $)
@@ -122,6 +127,10 @@ class TFGridSimulator(SimulatorBase):
         return r
 
     def tft_total(self, month=None):
+        """
+        amounts of tft in the blockchain
+        total nr of tft
+        """
         if month == None:
             month = self.sheet.nrcols - 1
         tft_total = int(self.rows.tft_farmed_cumul.cells[month])
@@ -147,7 +156,7 @@ class TFGridSimulator(SimulatorBase):
             # sold tft to cover power & rackspace costs
             self._row_add("tft_sold")
             self._row_add("tft_burned")
-            self._row_add("tft_total")
+            self._row_add("tft_farmer_income")
             self._row_add("tft_cumul")
 
             self._row_add("cost_rackspace")
@@ -204,7 +213,7 @@ class TFGridSimulator(SimulatorBase):
                 self.rows.tft_cultivated.cells[month] += self._float(nb.rows.tft_cultivated.cells[month])
                 self.rows.tft_sold.cells[month] += self._float(nb.rows.tft_sold.cells[month])
                 self.rows.tft_burned.cells[month] += self._float(nb.rows.tft_burned.cells[month])
-                self.rows.tft_total.cells[month] += self._float(nb.rows.tft_total.cells[month])
+                self.rows.tft_farmer_income.cells[month] += self._float(nb.rows.tft_farmer_income.cells[month])
 
                 # remove the burned ones from the total
                 self.rows.tft_cumul.cells[month] += self._float(nb.rows.tft_cumul.cells[month]) - self._float(
@@ -223,7 +232,7 @@ class TFGridSimulator(SimulatorBase):
 
                 self.rows.investment.cells[month] += self._float(nb.cost_hardware)
 
-            self.rows.tft_movement_value_usd.cells[month] = tftprice_now * self.rows.tft_total.cells[month]
+            self.rows.tft_movement_value_usd.cells[month] = tftprice_now * self.rows.tft_farmer_income.cells[month]
             self.rows.tft_cumul_value_usd.cells[month] = tftprice_now * self.rows.tft_cumul.cells[month]
             self.rows.revenue.cells[month] = tftprice_now * self.rows.tft_cultivated.cells[month]
             if month > 0:
@@ -239,7 +248,7 @@ class TFGridSimulator(SimulatorBase):
         self.rows.tft_cultivated.clean()
         self.rows.tft_burned.clean()
         self.rows.tft_sold.clean()
-        self.rows.tft_total.clean()
+        self.rows.tft_farmer_income.clean()
         self.rows.tft_cumul.clean()
 
         row = self._row_add("grid_valuation_rev_musd", aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True)
@@ -423,7 +432,7 @@ class TFGridSimulator(SimulatorBase):
         usd_farmed = cl(self.rows.tft_farmed.cells[month] * tft_price)
         usd_sold = cl(self.rows.tft_sold.cells[month] * tft_price)
         usd_burned = cl(self.rows.tft_burned.cells[month] * tft_price)
-        usd_total = cl(self.rows.tft_total.cells[month] * tft_price)
+        usd_total = cl(self.rows.tft_farmer_income.cells[month] * tft_price)
 
         res = f"""
         ## Some Checks ({month} month mark)

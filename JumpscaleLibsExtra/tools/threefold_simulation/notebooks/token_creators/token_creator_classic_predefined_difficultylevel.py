@@ -62,3 +62,7 @@ class TokenCreator:
         now a predefined extrapolated row, but could be calculated
         """
         return self.simulation.sheet.rows["difficulty_level"].cells[month]
+
+
+simulation = j.tools.tfgrid_simulator.default
+simulation.token_creator = TokenCreator(simulation)

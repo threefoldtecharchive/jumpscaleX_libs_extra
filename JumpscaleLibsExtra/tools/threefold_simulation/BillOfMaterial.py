@@ -204,8 +204,8 @@ class Environment(SimulatorBase):
         cost_month = (N)
         cost_cu_month = (N)
         cost_su_month = (N)
-        bandwidth_mbit = (F)
-        cost_bandwidth = (N)
+        # bandwidth_mbit = (F)
+        # cost_bandwidth = (N)
         nr_devices = 0
         nr_nodes = 0
         sales_price_cu = (N)
@@ -221,6 +221,7 @@ class Environment(SimulatorBase):
         self._device_types = {}
         self._device_normalized = None
         self.nr_devices = 0
+        self._state = "init"
 
     def _device_add(self, name, device, nr):
         if name in self.devices:

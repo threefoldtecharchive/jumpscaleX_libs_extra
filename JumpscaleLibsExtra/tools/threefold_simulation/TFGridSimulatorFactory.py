@@ -42,7 +42,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         :return:
         """
 
-        from params.params import simulation
+        from params.default import simulation
 
         if batches_simulation:
             # nrnodes is 2nd

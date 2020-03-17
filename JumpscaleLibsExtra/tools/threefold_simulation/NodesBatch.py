@@ -76,7 +76,7 @@ class NodesBatch(SimulatorBase):
         self._row_add("tft_cultivated")  # sold capacity
         self._row_add("tft_sold")  # sold tft to cover power & rackspace costs
         self._row_add("tft_burned")
-        self._row_add("tft_total")
+        self._row_add("tft_farmer_income")
         self._row_add("tft_cumul")
 
         self._row_add("cost_rackspace")
@@ -140,18 +140,18 @@ class NodesBatch(SimulatorBase):
             self._set("tft_burned", month, -tft_burned)
             tft_sold = (float(cost_power) + float(cost_rackspace) + float(cost_maintenance)) / float(tftprice_now)
             self._set("tft_sold", month, -tft_sold)
-            tft_total = tft_farmed + tft_cultivated - tft_sold
-            self._set("tft_total", month, tft_total)
+            tft_farmer_income = tft_farmed + tft_cultivated - tft_sold
+            self._set("tft_farmer_income", month, tft_farmer_income)
 
-            self._set("tft_movement_value_usd", month, tftprice_now * floatt(tft_total))
+            self._set("tft_movement_value_usd", month, tftprice_now * floatt(tft_farmer_income))
         else:
-            tft_total = 0
+            tft_farmer_income = 0
 
         if month == 0:
             tft_cumul_previous = 0
         else:
             tft_cumul_previous = floatt(self.rows.tft_cumul.cells[month - 1])
-        tft_cumul = tft_cumul_previous + floatt(tft_total)
+        tft_cumul = tft_cumul_previous + floatt(tft_farmer_income)
         self._set("tft_cumul", month, tft_cumul)
 
         tft_cumul_value_usd = tftprice_now * tft_cumul
@@ -163,7 +163,7 @@ class NodesBatch(SimulatorBase):
 
         self.simulated_months.append(month)
 
-        return tft_total
+        return tft_farmer_income
 
     @property
     def roi_months(self):
@@ -194,7 +194,7 @@ class NodesBatch(SimulatorBase):
     def graph_tft(self, cumul=False, single=False):
         import plotly.graph_objects as go
 
-        names = ["farmed", "cultivated", "sold", "burned", "total"]
+        names = ["farmed", "cultivated", "sold", "burned", "farmer_income"]
         if cumul:
             names.append("cumul")
 
@@ -230,7 +230,7 @@ class NodesBatch(SimulatorBase):
 
     def _values_usd_get(self, cumul=False, names=None, single=False):
         if not names:
-            names = ["farmed", "cultivated", "sold", "burned", "total"]
+            names = ["farmed", "cultivated", "sold", "burned", "farmer_income"]
             if cumul:
                 names.append("cumul")
         res = []

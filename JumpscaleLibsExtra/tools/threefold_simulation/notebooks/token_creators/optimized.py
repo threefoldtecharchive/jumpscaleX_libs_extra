@@ -40,8 +40,8 @@ class TokenCreator:
         assert utilization < 100
         tft_price = self.simulation.tft_price_get(month)
         cpr_sales_price = self.simulation.cpr_sales_price_get(month)
-        tft_new = utilization * float(cpr_sales_price) / float(tft_price) * nodes_batch.node.cpr * nodes_batch.nrnodes
-        return tft_new
+        tft_received = utilization * float(cpr_sales_price) / float(tft_price) * nodes_batch.node.cpr * nodes_batch.nrnodes
+        return tft_received
 
     def tft_cultivate(self, month, nodes_batch):
         """
