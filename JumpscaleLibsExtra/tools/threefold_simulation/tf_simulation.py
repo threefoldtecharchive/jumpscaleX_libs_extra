@@ -99,3 +99,4 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
             base_url=base_url,
             ip=ip,
         )  # it will open a browser with access to the right output
+        j.application.reset_context()
