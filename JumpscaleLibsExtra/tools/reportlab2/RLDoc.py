@@ -1,9 +1,14 @@
-from reportlab.lib.pagesizes import A4
+from Jumpscale import j
+try:
+    from reportlab.lib.pagesizes import A4
+except ImportError:
+    j.builders.runtimes.python3.pip_package_install("reportlab")
+    from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate, Paragraph, Image, Table
 from .TextFlowables import H1, H2, H3, Normal
 from reportlab.lib import colors
-from Jumpscale import j
+j.sal.ubuntu.apt_install_check("graphviz", "dot")
 
 
 class RLDoc:
