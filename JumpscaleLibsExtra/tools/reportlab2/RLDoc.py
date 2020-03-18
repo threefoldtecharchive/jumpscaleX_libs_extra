@@ -8,7 +8,6 @@ from reportlab.lib.units import cm
 from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate, Paragraph, Image, Table
 from .TextFlowables import H1, H2, H3, Normal
 from reportlab.lib import colors
-j.sal.ubuntu.apt_install_check("graphviz", "dot")
 
 
 class RLDoc:
