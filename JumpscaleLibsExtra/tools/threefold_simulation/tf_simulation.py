@@ -93,7 +93,7 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
         # e = self.calc()
 
         j.servers.notebook.start(
-            path="{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/demo",
+            path="{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks",
             voila=voila,
             background=background,
             base_url=base_url,
