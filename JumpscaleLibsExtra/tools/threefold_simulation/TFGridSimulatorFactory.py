@@ -86,3 +86,4 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         j.servers.notebook.start(
             path=path_dest, voila=voila, background=background, base_url=base_url,
         )  # it will open a browser with access to the right output
+        j.application.reset_context()
