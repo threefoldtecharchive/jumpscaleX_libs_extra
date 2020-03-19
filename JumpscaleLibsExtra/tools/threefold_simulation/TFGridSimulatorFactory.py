@@ -55,8 +55,9 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             for month in [1, 10, 30, 50]:
                 simulation.nodesbatch_get(month).graph_usd(cumul=True, single=True)
 
+        # simulation.graph_tft_simulation()
+
         simulation.graph_nodesbatches_usd_simulation()
-        simulation.graph_tft_simulation()
 
         print(simulation.markdown_reality_check(10))
 

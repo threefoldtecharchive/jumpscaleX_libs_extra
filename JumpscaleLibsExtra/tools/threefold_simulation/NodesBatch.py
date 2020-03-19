@@ -77,7 +77,7 @@ class NodesBatch(SimulatorBase):
         self._row_add("tft_sold")  # sold tft to cover power & rackspace costs
         self._row_add("tft_burned")
         self._row_add("tft_farmer_income")
-        self._row_add("tft_cumul")
+        self._row_add("tft_farmer_income_cumul")
 
         self._row_add("cost_rackspace")
         self._row_add("cost_power")
@@ -86,8 +86,8 @@ class NodesBatch(SimulatorBase):
         self._row_add("rackspace_u")
         self._row_add("power")
 
-        self._row_add("tft_movement_value_usd")
-        self._row_add("tft_cumul_value_usd")
+        self._row_add("tft_movement_usd")
+        self._row_add("tft_farmer_income_cumul_usd")
         self._row_add("roi")
 
     def _set(self, rowname, month, val):
@@ -143,22 +143,22 @@ class NodesBatch(SimulatorBase):
             tft_farmer_income = tft_farmed + tft_cultivated - tft_sold
             self._set("tft_farmer_income", month, tft_farmer_income)
 
-            self._set("tft_movement_value_usd", month, tftprice_now * floatt(tft_farmer_income))
+            self._set("tft_movement_usd", month, tftprice_now * floatt(tft_farmer_income))
         else:
             tft_farmer_income = 0
 
         if month == 0:
-            tft_cumul_previous = 0
+            tft_farmer_income_cumul_previous = 0
         else:
-            tft_cumul_previous = floatt(self.rows.tft_cumul.cells[month - 1])
-        tft_cumul = tft_cumul_previous + floatt(tft_farmer_income)
-        self._set("tft_cumul", month, tft_cumul)
+            tft_farmer_income_cumul_previous = floatt(self.rows.tft_farmer_income_cumul.cells[month - 1])
+        tft_farmer_income_cumul = tft_farmer_income_cumul_previous + floatt(tft_farmer_income)
+        self._set("tft_farmer_income_cumul", month, tft_farmer_income_cumul)
 
-        tft_cumul_value_usd = tftprice_now * tft_cumul
-        self._set("tft_cumul_value_usd", month, tft_cumul_value_usd)
+        tft_farmer_income_cumul_usd = tftprice_now * tft_farmer_income_cumul
+        self._set("tft_farmer_income_cumul_usd", month, tft_farmer_income_cumul_usd)
 
         cost_total_hardware_investment = float(self.node.cost_hardware * self.nrnodes)
-        roi = float(tft_cumul_value_usd) / float(cost_total_hardware_investment)
+        roi = float(tft_farmer_income_cumul_usd) / float(cost_total_hardware_investment)
         self._set("roi", month, roi)
 
         self.simulated_months.append(month)
@@ -186,7 +186,7 @@ class NodesBatch(SimulatorBase):
 
     def markdown(self):
         out = SimulatorBase.__repr__(self)
-        for key in ["roi_months", "roi_end", "tft_cumul_value_usd", "cost_hardware"]:
+        for key in ["roi_months", "roi_end", "tft_farmer_income_cumul_usd", "cost_hardware"]:
             res = getattr(self, key)
             out += " - %-20s %s\n" % (key, res)
         return out
@@ -232,7 +232,7 @@ class NodesBatch(SimulatorBase):
         if not names:
             names = ["farmed", "cultivated", "sold", "burned", "farmer_income"]
             if cumul:
-                names.append("cumul")
+                names.append("farmer_income_cumul")
         res = []
         for name in names:
             row, values = self._tft_usd(name, single=single)
@@ -261,7 +261,7 @@ class NodesBatch(SimulatorBase):
         out = ""
         for key in self.sheet.rows.keys():
             row = self.sheet.rows[key]
-            if row.cells[1] and row.cells[1] < 3:
+            if row.cells[1] and float(row.cells[1]) < 3:
                 res = row.aggregate("Q", roundnr=2)
             else:
                 res = row.aggregate("Q", roundnr=0)

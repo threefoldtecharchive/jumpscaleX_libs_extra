@@ -7,8 +7,8 @@ assert len(bom.components) == 0
 
 bom.components.new(
     name="s1",
-    description="SuperMicro Chassis 2U, 12 HD's fit inside, 10 gbit dual",
-    cost=1800,
+    description="HPE DL385 AMD, 12 HD's fit inside, 10 gbit dual",
+    cost=3200,
     rackspace_u=2,
     cru=0,
     sru=0,
@@ -16,26 +16,26 @@ bom.components.new(
     mru=0,
     su_perc=0,
     cu_perc=0,
-    power=60,
+    power=150,
 )
 
 bom.components.new(name="margin", description="margin per node for threefold and its partners", power=0, cost=500)
 
 bom.components.new(
-    name="hd12", description="Seagate Baracuda 12TB (6-8 watt)", cost=330, hru=12000, power=10, su_perc=100
+    name="hd12", description="HPE Helium 12TB (6-8 watt)", cost=734, hru=12000, power=10, su_perc=100
 )
 bom.components.new(
-    name="intel1",
-    description="Intel Xeon E5-2630 v4 @ 2.20GHz (20 logical cores)",
-    cost=600,
-    cru=20,
-    power=200,
+    name="amd1",
+    description="AMD-EPYC-7351 @ 2.40GHz (32 logical cores)",
+    cost=920,
+    cru=32,
+    power=150,
     cu_perc=100,
-    passmark=13877,
+    passmark=18140,
 )
 
-bom.components.new(name="ssd1", description="1 TB Samsung Evo", cost=350, sru=1000, power=5, su_perc=100)
-bom.components.new(name="mem32_ecc", description="mem 32", cost=300, mru=32, power=8, cu_perc=100)
+bom.components.new(name="ssd1", description="1.92 TB HPE SSD", cost=1022, sru=1920, power=10, su_perc=100)
+bom.components.new(name="mem32_ecc", description="mem 32", cost=320, mru=32, power=8, cu_perc=100)
 
 bom.components.new(
     name="ng2",
@@ -48,10 +48,10 @@ bom.components.new(
 # create the template for dc1
 d = bom.devices.new(name="server")
 d.components.new(name="s1", nr=1)
-d.components.new(name="intel1", nr=2)
-d.components.new(name="hd12", nr=12)
-d.components.new(name="mem32_ecc", nr=8)
-d.components.new(name="ssd1", nr=2)
+d.components.new(name="amd1", nr=2)
+d.components.new(name="hd12", nr=8)
+d.components.new(name="mem32_ecc", nr=16)
+d.components.new(name="ssd1", nr=4)
 
 d = bom.devices.new(name="switch")
 d.components.new(name="ng2", nr=1)

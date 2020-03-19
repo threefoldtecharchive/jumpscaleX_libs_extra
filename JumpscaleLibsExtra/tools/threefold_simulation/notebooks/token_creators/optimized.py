@@ -40,7 +40,9 @@ class TokenCreator:
         assert utilization < 100
         tft_price = self.simulation.tft_price_get(month)
         cpr_sales_price = self.simulation.cpr_sales_price_get(month)
-        tft_received = utilization * float(cpr_sales_price) / float(tft_price) * nodes_batch.node.cpr * nodes_batch.nrnodes
+        tft_received = (
+            utilization * float(cpr_sales_price) / float(tft_price) * nodes_batch.node.cpr * nodes_batch.nrnodes
+        )
         return tft_received
 
     def tft_cultivate(self, month, nodes_batch):
@@ -51,7 +53,7 @@ class TokenCreator:
         @param month is the month to calculate the added tft for
         @param month_batch is when the node batch was originally added
         """
-        return self._tft_for_capacity_sold(month=month, nodes_batch=nodes_batch) / 2
+        return self._tft_for_capacity_sold(month=month, nodes_batch=nodes_batch) * 0.5
 
     def tft_burn(self, month, nodes_batch):
         """
@@ -62,7 +64,14 @@ class TokenCreator:
         this is the benefit of any TFT holder because we burn (destroy) tokens as capacity is sold
 
         """
-        return self._tft_for_capacity_sold(month=month, nodes_batch=nodes_batch) / 2
+
+        if month < 24:
+            # 10% is kept for foundation for first 24 months
+            part = 0.4
+        else:
+            # 5% is kept for foundation
+            part = 0.45
+        return self._tft_for_capacity_sold(month=month, nodes_batch=nodes_batch) * part
 
     def difficulty_level_get(self, month):
         """

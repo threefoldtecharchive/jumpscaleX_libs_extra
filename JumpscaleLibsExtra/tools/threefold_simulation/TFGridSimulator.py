@@ -157,7 +157,7 @@ class TFGridSimulator(SimulatorBase):
             self._row_add("tft_sold")
             self._row_add("tft_burned")
             self._row_add("tft_farmer_income")
-            self._row_add("tft_cumul")
+            self._row_add("tft_farmer_income_cumul")
 
             self._row_add("cost_rackspace")
             self._row_add("cost_power")
@@ -169,8 +169,8 @@ class TFGridSimulator(SimulatorBase):
             self._row_add("investment", defval=0)
             self._row_add("revenue")
 
-            self._row_add("tft_movement_value_usd")
-            self._row_add("tft_cumul_value_usd")  # What is cumul = cumulative (all aggregated)
+            self._row_add("tft_movement_usd")
+            self._row_add("tft_farmer_income_cumul_usd")  # What is cumul = cumulative (all aggregated)
             self._row_add("tft_marketcap")
 
     def _float(self, val):
@@ -216,14 +216,14 @@ class TFGridSimulator(SimulatorBase):
                 self.rows.tft_farmer_income.cells[month] += self._float(nb.rows.tft_farmer_income.cells[month])
 
                 # remove the burned ones from the total
-                self.rows.tft_cumul.cells[month] += self._float(nb.rows.tft_cumul.cells[month]) - self._float(
-                    nb.rows.tft_burned.cells[month]
-                )
+                self.rows.tft_farmer_income_cumul.cells[month] += self._float(
+                    nb.rows.tft_farmer_income_cumul.cells[month]
+                ) - self._float(nb.rows.tft_burned.cells[month])
 
-                self.rows.tft_movement_value_usd.cells[month] += self._float(
-                    nb.rows.tft_movement_value_usd.cells[month]
+                self.rows.tft_movement_usd.cells[month] += self._float(nb.rows.tft_movement_usd.cells[month])
+                self.rows.tft_farmer_income_cumul_usd.cells[month] += self._float(
+                    nb.rows.tft_farmer_income_cumul_usd.cells[month]
                 )
-                self.rows.tft_cumul_value_usd.cells[month] += self._float(nb.rows.tft_cumul_value_usd.cells[month])
 
                 self.rows.cost_rackspace.cells[month] += self._float(nb.rows.cost_rackspace.cells[month])
                 self.rows.cost_power.cells[month] += self._float(nb.rows.cost_power.cells[month])
@@ -232,8 +232,10 @@ class TFGridSimulator(SimulatorBase):
 
                 self.rows.investment.cells[month] += self._float(nb.cost_hardware)
 
-            self.rows.tft_movement_value_usd.cells[month] = tftprice_now * self.rows.tft_farmer_income.cells[month]
-            self.rows.tft_cumul_value_usd.cells[month] = tftprice_now * self.rows.tft_cumul.cells[month]
+            self.rows.tft_movement_usd.cells[month] = tftprice_now * self.rows.tft_farmer_income.cells[month]
+            self.rows.tft_farmer_income_cumul_usd.cells[month] = (
+                tftprice_now * self.rows.tft_farmer_income_cumul.cells[month]
+            )
             self.rows.revenue.cells[month] = tftprice_now * self.rows.tft_cultivated.cells[month]
             if month > 0:
                 self.rows.tft_farmed_cumul.cells[month] = (
@@ -249,7 +251,7 @@ class TFGridSimulator(SimulatorBase):
         self.rows.tft_burned.clean()
         self.rows.tft_sold.clean()
         self.rows.tft_farmer_income.clean()
-        self.rows.tft_cumul.clean()
+        self.rows.tft_farmer_income_cumul.clean()
 
         row = self._row_add("grid_valuation_rev_musd", aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True)
         row = self._row_add(
@@ -258,9 +260,9 @@ class TFGridSimulator(SimulatorBase):
 
         def do(val, x, args):
             rev_over_years = self.revenue_grid_max_get(x) * 60
-            tft_cumul = float(self.rows.tft_farmed_cumul.cells[x])
-            tft_cumul_usd = tft_cumul * self.tft_price_get(x)
-            self.rows.tft_calculated_based_rev_valuation.cells[x] = rev_over_years / tft_cumul_usd
+            tft_farmer_income_cumul = float(self.rows.tft_farmed_cumul.cells[x])
+            tft_farmer_income_cumul_usd = tft_farmer_income_cumul * self.tft_price_get(x)
+            self.rows.tft_calculated_based_rev_valuation.cells[x] = rev_over_years / tft_farmer_income_cumul_usd
             rev_over_years = rev_over_years
             return rev_over_years
 
@@ -275,9 +277,9 @@ class TFGridSimulator(SimulatorBase):
 
         def do(val, x, args):
             marginoveryears = self.margin_grid_max_get(x) * 12 * 10
-            tft_cumul = float(self.rows.tft_farmed_cumul.cells[x])
-            tft_cumul_usd = tft_cumul * self.tft_price_get(x)
-            self.rows.tft_calculated_based_margin_valuation.cells[x] = marginoveryears / tft_cumul_usd
+            tft_farmer_income_cumul = float(self.rows.tft_farmed_cumul.cells[x])
+            tft_farmer_income_cumul_usd = tft_farmer_income_cumul * self.tft_price_get(x)
+            self.rows.tft_calculated_based_margin_valuation.cells[x] = marginoveryears / tft_farmer_income_cumul_usd
             marginoveryears = marginoveryears
             return marginoveryears
 
@@ -337,9 +339,10 @@ class TFGridSimulator(SimulatorBase):
         fig = go.Figure()
         for i in [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]:
             nb = self.nodesbatch_get(i)
-            x, name, values, row = nb._values_usd_get(names=["cumul"], single=True)[0]
+            x, name, values, row = nb._values_usd_get(names=["farmer_income_cumul"], single=True)[0]
+            values = [i / float(nb.node.cost_hardware) for i in values]
             fig.add_trace(go.Scatter(x=x, y=values, name="batch_%s" % i, connectgaps=False))
-        fig.update_layout(title="USD generation per node.", showlegend=True)
+        fig.update_layout(title="Return on investment per node over months.", showlegend=True)
         fig.show()
         return fig
 
@@ -465,6 +468,7 @@ class TFGridSimulator(SimulatorBase):
         fig = go.Figure(data=go.Scatter(x=x, y=y))
         fig.update_layout(title="Token Price (TFT).", showlegend=False)
         fig.show()
+        return fig
 
     def __repr__(self):
         out = ""
