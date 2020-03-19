@@ -19,7 +19,7 @@ class ReportlabFactory(j.baseclasses.object, TESTTOOLS):
         return self._RLDoc(path)
 
     def install(self):
-        p = j.tools.prefab.local
+        j.builders.runtimes.python3.pip_package_install("reportlab>=3.5.42")
         # if p.platformtype.platform_is_osx:
         #     self._log_info("will install mactex, is huge, will have to wait long")
         #     cmd="brew cask install mactex"
@@ -27,7 +27,6 @@ class ReportlabFactory(j.baseclasses.object, TESTTOOLS):
         # else:
         #     "latexmk"
         #     raise NotImplemented("need to do for ubuntu")
-        p.runtimes.pip.install("reportlab")
 
     @skip("https://github.com/threefoldtech/jumpscaleX_libs_extra/issues/16")
     def test(self, name="", install=False):

@@ -1,8 +1,9 @@
 from Jumpscale import j
+
 try:
     from reportlab.lib.pagesizes import A4
 except ImportError:
-    j.builders.runtimes.python3.pip_package_install("reportlab")
+    j.tools.reportlab2.install()
     from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate, Paragraph, Image, Table
