@@ -336,14 +336,14 @@ class TFGridSimulator(SimulatorBase):
     def graph_nodesbatches_usd_simulation(self):
         import plotly.graph_objects as go
 
-        fig = go.Figure()
+        fig = go.FigureWidget()
         for i in [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]:
             nb = self.nodesbatch_get(i)
             x, name, values, row = nb._values_usd_get(names=["farmer_income_cumul"], single=True)[0]
             values = [i / float(nb.node.cost_hardware) for i in values]
             fig.add_trace(go.Scatter(x=x, y=values, name="batch_%s" % i, connectgaps=False))
         fig.update_layout(title="Return on investment per node over months.", showlegend=True)
-        fig.show()
+
         return fig
 
     def graph_tft_simulation(self, show=True):
@@ -351,7 +351,7 @@ class TFGridSimulator(SimulatorBase):
 
         x = [i for i in range(1, 61)]
 
-        fig1 = go.Figure()
+        fig1 = go.FigureWidget()
         fig1.add_trace(
             go.Scatter(x=x, y=self.rows.nrnodes_total.values_all[0:60], name="nrnodes_total", connectgaps=False)
         )
@@ -360,7 +360,7 @@ class TFGridSimulator(SimulatorBase):
         if show:
             fig1.show()
 
-        fig2 = go.Figure()
+        fig2 = go.FigureWidget()
         fig2.add_trace(go.Scatter(x=x, y=self.rows.tft_farmed.values_all[0:60], name="tft_farmed", connectgaps=False))
         fig2.add_trace(
             go.Scatter(x=x, y=self.rows.tft_cultivated.values_all[0:60], name="tft_cultivated", connectgaps=False)
@@ -372,21 +372,21 @@ class TFGridSimulator(SimulatorBase):
             fig2.show()
 
         y = self.rows.tft_farmed_cumul.values_all[0:60]
-        fig3 = go.Figure()
+        fig3 = go.FigureWidget()
         fig3.add_trace(go.Scatter(x=x, y=y, name="tft_farmed_cumul", connectgaps=False))
         fig3.update_layout(title="TFT Total Tokens Evolution (Farmed Total)", showlegend=True)
         if show:
             fig3.show()
 
         row = self.rows.grid_valuation_rev_musd
-        fig4 = go.Figure()
+        fig4 = go.FigureWidget()
         fig4.add_trace(go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="USD", connectgaps=False))
         fig4.update_layout(title="GRID valuation based on 5Y recurring revenue capability of grid", showlegend=True)
         if show:
             fig4.show()
 
         row = self.rows.tft_calculated_based_rev_valuation
-        fig5 = go.Figure()
+        fig5 = go.FigureWidget()
         fig5.add_trace(
             go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="multiple", connectgaps=False)
         )
@@ -397,14 +397,14 @@ class TFGridSimulator(SimulatorBase):
             fig5.show()
 
         row = self.rows.grid_valuation_margin_musd
-        fig6 = go.Figure()
+        fig6 = go.FigureWidget()
         fig6.add_trace(go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="USD", connectgaps=False))
         fig6.update_layout(title="GRID valuation based on 10x yearly net profit of grid (all farmers)", showlegend=True)
         if show:
             fig6.show()
 
         row = self.rows.tft_calculated_based_margin_valuation
-        fig7 = go.Figure()
+        fig7 = go.FigureWidget()
         fig7.add_trace(
             go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="multiple", connectgaps=False)
         )
@@ -415,7 +415,7 @@ class TFGridSimulator(SimulatorBase):
             fig7.show()
 
         row = self.rows.tft_marketcap
-        fig8 = go.Figure()
+        fig8 = go.FigureWidget()
         fig8.add_trace(
             go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="tft_marketcap", connectgaps=False)
         )
@@ -465,9 +465,8 @@ class TFGridSimulator(SimulatorBase):
         cells = [i / 44 for i in self.sheet.rows.rackspace_u.cells[0:60]]
         cells = self.rows.tokenprice.cells[0:60]
         y = [round(i, 2) for i in cells]
-        fig = go.Figure(data=go.Scatter(x=x, y=y))
+        fig = go.FigureWidget(data=go.Scatter(x=x, y=y))
         fig.update_layout(title="Token Price (TFT).", showlegend=False)
-        fig.show()
         return fig
 
     def __repr__(self):

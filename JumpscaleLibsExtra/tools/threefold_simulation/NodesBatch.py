@@ -198,7 +198,7 @@ class NodesBatch(SimulatorBase):
         if cumul:
             names.append("cumul")
 
-        fig = go.Figure()
+        fig = go.FigureWidget()
         for name in names:
             # values = eval(f"self.rows.tft_{name}.values")
             values = eval(f"self.rows.tft_{name}.values_all")
@@ -213,7 +213,7 @@ class NodesBatch(SimulatorBase):
         fig.update_layout(
             title="Tokens movement per month (batch:%s,nrnodes:%s)." % (self.batch_nr, nrnodes), showlegend=True
         )
-        fig.show()
+
         return fig
 
     def _tft_usd(self, name, single=False):
@@ -243,7 +243,7 @@ class NodesBatch(SimulatorBase):
     def graph_usd(self, cumul=False, single=False):
         import plotly.graph_objects as go
 
-        fig = go.Figure()
+        fig = go.FigureWidget()
         for x, name, values, row in self._values_usd_get(cumul=cumul, single=single):
             fig.add_trace(go.Scatter(x=x, y=values, name=name, connectgaps=False))
         if single:
@@ -253,7 +253,7 @@ class NodesBatch(SimulatorBase):
         fig.update_layout(
             title="USD movement per month (batch:%s,nrnodes:%s)." % (self.batch_nr, nrnodes), showlegend=True
         )
-        fig.show()
+
         return fig
 
     def __repr__(self):
