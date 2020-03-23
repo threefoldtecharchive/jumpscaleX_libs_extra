@@ -12,8 +12,9 @@ improvements
 
 
 class TokenCreator:
-    def __init__(self, simulation):
+    def __init__(self, simulation, environment):
         self.simulation = simulation
+        self.environment = environment
 
     def tft_farm(self, month, nodes_batch):
         """
@@ -39,7 +40,7 @@ class TokenCreator:
         utilization = self.simulation.utilization_get(month)
         assert utilization < 100
         tft_price = self.simulation.tft_price_get(month)
-        cpr_sales_price = self.simulation.cpr_sales_price_get(month)
+        cpr_sales_price = self.environment.sales_price_cpr_unit_get(self.simulation, month)
         tft_received = (
             utilization * float(cpr_sales_price) / float(tft_price) * nodes_batch.node.cpr * nodes_batch.nrnodes
         )
@@ -106,7 +107,3 @@ class TokenCreator:
             return 7
         else:
             return 1000000  # now there should be no farming any longer
-
-
-simulation = j.tools.tfgrid_simulator.default
-simulation.token_creator = TokenCreator(simulation)

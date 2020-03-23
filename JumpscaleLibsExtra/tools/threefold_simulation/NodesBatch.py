@@ -36,37 +36,21 @@ class NodesBatch(SimulatorBase):
         power = (F)
         """
 
-    def _row_add(self, name, aggregate="FIRST", ttype=None):
-        row = self.sheet.addRow(name, aggregate=aggregate, ttype=ttype, nrcols=120)
-        row.window_month_start = self.month_start
-        row.window_month_period = self.months_left
-        return row
-
-    def _row_set(self, name, row):
-        row.name = name
-        row.window_month_start = self.month_start
-        row.window_month_period = self.months_left
-        self.sheet.rows[name] = row
-        return row
-
-    def _row_copy(self, name, rowsource, aggregate="FIRST", ttype="float"):
-        row = self.sheet.copy(name, rowsource, aggregate=aggregate, ttype=ttype)
-        row.window_month_start = self.month_start
-        row.window_month_period = self.months_left
-        return row
-
     def _init(self, **kwargs):
 
         self._cat = "NodesBatch"
         self.simulation = kwargs["simulation"]
+        self.environment = kwargs["environment"]
         self.batch_nr = self.month_start
-        environment = self.simulation.environment
-        self.node.cost_hardware = environment.cost / environment.nr_devices
-        self.node.rackspace_u = environment.rackspace_u / environment.nr_devices
-        self.node.power = environment.power / environment.nr_devices
+
+        n = self.environment.node_normalized
+        self.node.rackspace_u = n.rackspace_u
+        self.node.cost_hardware = n.cost
+        self.node.cpr = n.cpr
+        self.node.power = n.power
 
         improve = self.simulation.sheet.rows["cpr_improve"].cells[self.month_start] / 100
-        self.node.cpr = environment.cpr / environment.nr_devices * (1 + improve)
+        self.node.cpr = self.environment.cpr / self.environment.nr_devices * (1 + improve)
 
         self.nrcols = self.month_start + self.months_left
         self.sheet = j.data.worksheets.sheet_new("batch_%s" % self.batch_nr, nrcols=120)
@@ -89,6 +73,25 @@ class NodesBatch(SimulatorBase):
         self._row_add("tft_movement_usd")
         self._row_add("tft_farmer_income_cumul_usd")
         self._row_add("roi")
+
+    def _row_add(self, name, aggregate="FIRST", ttype=None):
+        row = self.sheet.addRow(name, aggregate=aggregate, ttype=ttype, nrcols=120)
+        row.window_month_start = self.month_start
+        row.window_month_period = self.months_left
+        return row
+
+    def _row_set(self, name, row):
+        row.name = name
+        row.window_month_start = self.month_start
+        row.window_month_period = self.months_left
+        self.sheet.rows[name] = row
+        return row
+
+    def _row_copy(self, name, rowsource, aggregate="FIRST", ttype="float"):
+        row = self.sheet.copy(name, rowsource, aggregate=aggregate, ttype=ttype)
+        row.window_month_start = self.month_start
+        row.window_month_period = self.months_left
+        return row
 
     def _set(self, rowname, month, val):
         sheet = self.sheet.rows[rowname]

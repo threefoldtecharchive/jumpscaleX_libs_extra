@@ -16,34 +16,32 @@ class TFGridSimulator(SimulatorBase):
         name = ""
         cpr_sum = 0.0 (F)
         tft_sum = 0.0 (F)
-        simulated = false (B)        
+        simulated = false (B)
+        sales_price_cu = (N)
+        sales_price_su = (N)
+        sales_price_nu = (N)                
         """
 
     def _init(self, **kwargs):
         self.sheet = j.data.worksheets.sheet_new("simulation", nrcols=120)
         self.rows = self.sheet.rows
         self.nodebatches = []  # 0 is the first batch, which stands for month 1
-        self.bom = BillOfMaterial(name="main")
-        self.environment = Environment(name="default")
         self.token_creator = TokenCreator()
 
-    def device_get(self, name, device_template_name=None, description="", environment=None):
-        return self.bom.device_get(
-            name=name, device_template_name=device_template_name, description=description, environment=environment
-        )
-
-    def nodesbatch_start_set(self, nrnodes=1500, months_left=36, tft_farmed_before_simulation=0):
-        nb = self._nodesbatch_add(month=0, nrnodes=nrnodes)
-        nb.tft_farmed_before_simulation = tft_farmed_before_simulation
-        nb.months_left = months_left
-        return nb
-
-    def _nodesbatch_add(self, month, nrnodes):
-        nb = NodesBatch(name="default", simulation=self, nrnodes=nrnodes, month_start=month)
+    def nodesbatch_add(self, environment, month, nrnodes):
+        nb = NodesBatch(simulation=self, name="default", environment=environment, nrnodes=nrnodes, month_start=month)
         while len(self.nodebatches) < month + 1:
             self.nodebatches.append(None)
         self.nodebatches[month] = nb
         return self.nodebatches[month]
+
+    def nodesbatch_start_set(self, environment, nrnodes=1500, months_left=36, tft_farmed_before_simulation=0):
+        self.cost_rack_unit_set(environment)
+        self.cost_power_kwh_set(environment)
+        nb = self.nodesbatch_add(environment=environment, month=0, nrnodes=nrnodes)
+        nb.tft_farmed_before_simulation = tft_farmed_before_simulation
+        nb.months_left = months_left
+        return nb
 
     def nrnodes_new_set(self, growth):
         """
@@ -75,6 +73,16 @@ class TFGridSimulator(SimulatorBase):
         :return:
         """
         self._interpolate("cpr_sales_price_decline", args)
+
+    def cpr_sales_price_decline_get(self, month):
+        """
+        return 0->40
+        40 means price declide of 40%
+        """
+        cpr_sales_price_decline = self.rows.cpr_sales_price_decline.cells[month]
+        assert cpr_sales_price_decline >= 0
+        assert cpr_sales_price_decline < 101
+        return self._float(cpr_sales_price_decline / 100)
 
     def utilization_set(self, args):
         """
@@ -145,9 +153,8 @@ class TFGridSimulator(SimulatorBase):
         return row
 
     def _prepare(self):
-        if not "cost_rack_unit" in self.rows:
-            self._interpolate("cost_rack_unit", "0:%s" % self.environment.cost_rack_unit)
-            self._interpolate("cost_power_kwh", "0:%s" % self.environment.cost_power_kwh)
+        if not "nrnodes_total" in self.rows:
+
             self._row_add("nrnodes_total")
 
             self._row_add("tft_farmed")
@@ -178,10 +185,10 @@ class TFGridSimulator(SimulatorBase):
             return 0.0
         return float(val)
 
-    def calc(self):
-
-        if self.simulated:
-            raise j.exceptions.Input("cannot call this method twice: calc")
+    def nodesbatches_add_auto(self, environment):
+        """
+        will calculate now many batches to add in line with the growth in nr nodes
+        """
 
         self._prepare()
 
@@ -190,7 +197,7 @@ class TFGridSimulator(SimulatorBase):
             if month_now > 0:
                 nr_new = self.rows.nrnodes_new.cells[month_now]
                 if nr_new > 0:
-                    self._nodesbatch_add(month=month_now, nrnodes=nr_new)
+                    self.nodesbatch_add(environment=environment, month=month_now, nrnodes=nr_new)
                     self.rows.nrnodes_total.cells[month_now] = (
                         self.rows.nrnodes_total.cells[month_now - 1] + self.rows.nrnodes_new.cells[month_now]
                     )
@@ -199,6 +206,13 @@ class TFGridSimulator(SimulatorBase):
 
         self.rows.nrnodes_new.clean()  # makes sure we get nicely formatted cells (int)
         self.rows.nrnodes_total.clean()
+
+    def calc(self, environment):
+
+        if self.simulated:
+            raise j.exceptions.Input("cannot call this method twice: calc")
+
+        self._prepare()
 
         for month in range(0, 120):
 
@@ -259,7 +273,7 @@ class TFGridSimulator(SimulatorBase):
         )
 
         def do(val, x, args):
-            rev_over_years = self.revenue_grid_max_get(x) * 60
+            rev_over_years = self.revenue_grid_max_get(environment=environment, x=x) * 60
             tft_farmer_income_cumul = float(self.rows.tft_farmed_cumul.cells[x])
             tft_farmer_income_cumul_usd = tft_farmer_income_cumul * self.tft_price_get(x)
             self.rows.tft_calculated_based_rev_valuation.cells[x] = rev_over_years / tft_farmer_income_cumul_usd
@@ -276,7 +290,7 @@ class TFGridSimulator(SimulatorBase):
         )
 
         def do(val, x, args):
-            marginoveryears = self.margin_grid_max_get(x) * 12 * 10
+            marginoveryears = self.margin_grid_max_get(environment=environment, x=x) * 12 * 10
             tft_farmer_income_cumul = float(self.rows.tft_farmed_cumul.cells[x])
             tft_farmer_income_cumul_usd = tft_farmer_income_cumul * self.tft_price_get(x)
             self.rows.tft_calculated_based_margin_valuation.cells[x] = marginoveryears / tft_farmer_income_cumul_usd
@@ -285,50 +299,47 @@ class TFGridSimulator(SimulatorBase):
 
         self.rows.grid_valuation_margin_musd.function_apply(do)
 
-    def revenue_grid_max_get(self, x):
+    def revenue_grid_max_get(self, environment, x):
         """
         is the max revenue the grid can do at that time
         """
-        device = self.environment.device_normalized
-        cpr_usd = self.cpr_sales_price_get(x)
+        device = environment.node_normalized
+        cpr_usd = environment.sales_price_cpr_unit_get(self, x)
         nrnodes = self.rows.nrnodes_total.cells[x]
         rev = float(device.cpr) * float(nrnodes) * float(cpr_usd)
         return rev
 
-    def cost_grid_max_get(self, x):
+    def cost_grid_max_get(self, environment, x):
         """
         is the max cost of the grid (at full utilization)
         for power, rackspace & manpower (maintenance)
         """
-        device = self.environment.device_normalized
+        device = environment.node_normalized
         nrnodes = self.rows.nrnodes_total.cells[x]
         cost = float(device.cost_month) * float(nrnodes)
         return cost
 
-    def margin_grid_max_get(self, x):
+    def margin_grid_max_get(self, environment, x):
         """
         is the max revenue the grid can do at that time
         """
-        return self.revenue_grid_max_get(x) - self.cost_grid_max_get(x)
+        return self.revenue_grid_max_get(environment, x) - self.cost_grid_max_get(environment, x)
 
     def utilization_get(self, month):
         utilization = self.rows.utilization.cells[month] / 100
         return utilization
-
-    def cpr_sales_price_get(self, month):
-        """
-        sales price per cpr per month (cloud production rate)
-        """
-        cpr_sales_price_decline = self.rows.cpr_sales_price_decline.cells[month]
-        cpr_sales_price_decline = self._float(cpr_sales_price_decline / 100)
-        sales_price_cpr_unit_month = self.environment.sales_price_cpr_unit * (1 - cpr_sales_price_decline)
-        return sales_price_cpr_unit_month
 
     def cost_rack_unit_get(self, month):
         return self.rows.cost_rack_unit.cells[month]
 
     def cost_power_kwh_get(self, month):
         return self.rows.cost_power_kwh.cells[month]
+
+    def cost_rack_unit_set(self, environment):
+        self._interpolate("cost_rack_unit", "0:%s" % environment.cost_rack_unit)
+
+    def cost_power_kwh_set(self, environment):
+        self._interpolate("cost_power_kwh", "0:%s" % environment.cost_power_kwh)
 
     def nodesbatch_get(self, nr):
         return self.nodebatches[nr]

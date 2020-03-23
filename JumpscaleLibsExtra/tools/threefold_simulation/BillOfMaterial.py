@@ -208,9 +208,6 @@ class Environment(SimulatorBase):
         # cost_bandwidth = (N)
         nr_devices = 0
         nr_nodes = 0
-        sales_price_cu = (N)
-        sales_price_su = (N)
-        sales_price_nu = (N)
         sales_price_total = (N)
         sales_price_cpr_unit = (N)
         """
@@ -219,7 +216,7 @@ class Environment(SimulatorBase):
         self._cat = "environment"
         self.devices = j.baseclasses.dict()
         self._device_types = {}
-        self._device_normalized = None
+        self._node_normalized = None
         self.nr_devices = 0
         self._state = "init"
 
@@ -240,7 +237,7 @@ class Environment(SimulatorBase):
         self._device_add(name, device, nr)
         self._device_types[name] = "o"
 
-    def _device_normalized_get(self):
+    def _node_normalized_get(self):
         nr2 = 0
         devicefound = None
         for nr, device in self.devices.values():
@@ -252,9 +249,9 @@ class Environment(SimulatorBase):
         raise j.exceptions.Input("today only support 1 type of node device in environment")
 
     @property
-    def device_normalized(self):
-        if not self._device_normalized:
-            device = self._device_normalized_get()
+    def node_normalized(self):
+        if not self._node_normalized:
+            device = self._node_normalized_get()
             device_n = Device(jsxobject=device._data)
             device_n.cost_cu_month = self.cost_cu_month
             device_n.cost_su_month = self.cost_su_month
@@ -277,8 +274,8 @@ class Environment(SimulatorBase):
             device_n.su = self.su / self.nr_nodes
             device_n.cu = self.cu / self.nr_nodes
             device_n.cu_passmark = self.cu_passmark / self.nr_nodes
-            self._device_normalized = device
-        return self._device_normalized
+            self._node_normalized = device
+        return self._node_normalized
 
     def _calculate(self):
         self.cost = 0
@@ -323,5 +320,8 @@ class Environment(SimulatorBase):
         self.cost_su_month = self.cost_month / self.su * self.su_perc
         self.cpr = self.cu * 1.5 + self.su
 
-        self.sales_price_total = self.sales_price_cu * self.cu + self.sales_price_su * self.su
-        self.sales_price_cpr_unit = self.sales_price_total / self.cpr
+    def sales_price_cpr_unit_get(self, simulation, month=0):
+        cpr_sales_price_decline = simulation.cpr_sales_price_decline_get(month)
+        sales_price_total = simulation.sales_price_cu * self.cu + simulation.sales_price_su * self.su
+        sales_price_cpr_unit = (sales_price_total / self.cpr) / (1 + cpr_sales_price_decline)
+        return sales_price_cpr_unit

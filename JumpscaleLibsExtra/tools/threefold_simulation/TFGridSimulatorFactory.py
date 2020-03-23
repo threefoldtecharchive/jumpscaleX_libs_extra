@@ -1,6 +1,7 @@
 from Jumpscale import j
 
 from .TFGridSimulator import TFGridSimulator
+from .BillOfMaterial import Environment, BillOfMaterial
 import sys
 
 
@@ -10,7 +11,9 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
     def _init(self, **kwargs):
         j.application.start("simulator")
-        self._instances = {}
+        self._instances = j.baseclasses.dict()
+        self._environments = j.baseclasses.dict()
+        self._bom = j.baseclasses.dict()
 
         notebookpath = j.core.tools.text_replace(
             "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks"
@@ -35,6 +38,32 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         if name not in self._instances:
             self._instances[name] = TFGridSimulator(name=name)
         return self._instances[name]
+
+    def environment_get(self, name="default"):
+        """
+        example how to use
+
+        ```
+        simulation = j.tools.tfgrid_simulator.environment_get()
+        ```
+
+        """
+        if name not in self._environments:
+            self._environments[name] = Environment(name=name)
+        return self._environments[name]
+
+    def bom_get(self, name="default"):
+        """
+        example how to use
+
+        ```
+        simulation = j.tools.tfgrid_simulator.environment_get()
+        ```
+
+        """
+        if name not in self._bom:
+            self._bom[name] = BillOfMaterial(name=name)
+        return self._bom[name]
 
     def calc(self, batches_simulation=False):
         """

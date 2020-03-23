@@ -72,7 +72,3 @@ class TokenCreator:
         """
         y = int(self.simulation.tft_total(month - 1) / self.nrtokens_forhalving)
         return 2 ** y
-
-
-simulation = j.tools.tfgrid_simulator.default
-simulation.token_creator = TokenCreator(simulation)

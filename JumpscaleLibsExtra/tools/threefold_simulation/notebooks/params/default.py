@@ -4,26 +4,30 @@ from lib import *
 
 simulation = j.tools.tfgrid_simulator.default
 
-# environment needs to be set before hardware
-# costs for environment
-# is the cost of 1 kwh
-simulation.environment.cost_power_kwh = "0.15 USD"
-# is the cost of 1U rackspace per month in USD
-simulation.environment.cost_rack_unit = "12 USD"
-
 # sales parameters
 # these are enduser prices for people buying capacity
 # following prices are very aggressive
 # compute unit = 4 GB memory and 2 virtual CPU, in market price between 40 and USD120
-simulation.environment.sales_price_cu = "8 USD"
+simulation.sales_price_cu = "8 USD"
 # storage unit = 1 TB of netto usable storage, in market prices between 20 and USD120
-simulation.environment.sales_price_su = "5 USD"
+simulation.sales_price_su = "5 USD"
 
 # choose your hardware profile (other choices in stead of amd or supermicro or hpe)
-from hardware.amd import *
+from hardware.amd import bom_calc
+
+bom, environment = bom_calc(simulation)
+
+# costs for environment
+# is the cost of 1 kwh
+environment.cost_power_kwh = "0.15 USD"
+# is the cost of 1U rackspace per month in USD
+environment.cost_rack_unit = "12 USD"
+
 
 # choose your token simulation !!!
-from token_creators.optimized import *
+from token_creators.optimized import TokenCreator
+
+simulation.token_creator = TokenCreator(simulation=simulation, environment=environment)
 
 
 # means at end of period we produce 40% more cpr (*1.4)
@@ -57,6 +61,9 @@ simulation.nrnodes_new_set("0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,
 # first batch of nodes added is 1500 nodes
 # each node is +-4.5k usd (check the bill of material sheet)
 # and we start the simulation with 800m tokens already farmed by the TF Farmers
-simulation.nodesbatch_start_set(nrnodes=1500, months_left=36, tft_farmed_before_simulation=800 * 1000 * 1000)
-
-simulation.calc()
+simulation.nodesbatch_start_set(
+    environment=environment, nrnodes=1500, months_left=36, tft_farmed_before_simulation=800 * 1000 * 1000
+)
+# we can get the simulator to add the batches automatically based on chosen environment
+simulation.nodesbatches_add_auto(environment)
+simulation.calc(environment)
