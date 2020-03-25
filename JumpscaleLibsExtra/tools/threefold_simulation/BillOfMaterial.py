@@ -224,8 +224,7 @@ class Environment(SimulatorBase):
             raise j.exceptions.Input("device with name:%s already added" % name)
         assert ttype in ["n", "o"]
         self.devices[name] = (nr, device, ttype)
-        if device.su > 0 or device.cu > 0:
-            self.nr_devices += nr
+        self.nr_devices += nr
         self._calculate()
 
     def device_node_add(self, name, device, nr):

@@ -26,6 +26,7 @@ class TFGridSimulator(SimulatorBase):
         r = {}
         r["sheet"] = self.sheet.export_()
         r["data"] = self._data._ddict
+        r["nodebatches"] = [i.export_() for i in self.nodebatches]
         return r
 
     def export_redis(self):
@@ -35,6 +36,15 @@ class TFGridSimulator(SimulatorBase):
     def import_(self, ddict):
         self.sheet.import_(ddict["sheet"])
         self._data_update(ddict["data"])
+        month = 0
+        self.nodebatches = []
+        for nb_dict in ddict["nodebatches"]:
+            nb = NodesBatch(
+                simulation=self, name=f"month_{month}", environment=self.environment, nrnodes=0, month_start=0
+            )
+            month += 1
+            nb.import_(nb_dict)
+            self.nodebatches.append(nb)
 
     def import_redis(self, autocacl=True, reset=False):
         """
@@ -55,7 +65,9 @@ class TFGridSimulator(SimulatorBase):
         self.token_creator = TokenCreator()
 
     def nodesbatch_add(self, environment, month, nrnodes):
-        nb = NodesBatch(simulation=self, name="default", environment=environment, nrnodes=nrnodes, month_start=month)
+        nb = NodesBatch(
+            simulation=self, name=f"month_{month}", environment=environment, nrnodes=nrnodes, month_start=month
+        )
         while len(self.nodebatches) < month + 1:
             self.nodebatches.append(None)
         self.nodebatches[month] = nb
@@ -331,31 +343,39 @@ class TFGridSimulator(SimulatorBase):
 
         self.rows.grid_valuation_margin_musd.function_apply(do)
 
-    def revenue_grid_max_get(self, environment, x):
+    def revenue_grid_max_get(self, x, environment=None):
         """
         is the max revenue the grid can do at that time
         """
+        if not environment:
+            environment = self.environment
         device = environment.node_normalized
         cpr_usd = environment.sales_price_cpr_unit_get(self, x)
         nrnodes = self.rows.nrnodes_total.cells[x]
         rev = float(device.cpr) * float(nrnodes) * float(cpr_usd)
         return rev
 
-    def cost_grid_max_get(self, environment, x):
+    def cost_grid_max_get(self, x, environment=None):
         """
         is the max cost of the grid (at full utilization)
         for power, rackspace & manpower (maintenance)
         """
+        if not environment:
+            environment = self.environment
         device = environment.node_normalized
         nrnodes = self.rows.nrnodes_total.cells[x]
         cost = float(device.cost_month) * float(nrnodes)
         return cost
 
-    def margin_grid_max_get(self, environment, x):
+    def margin_grid_max_get(self, x, environment=None):
         """
         is the max revenue the grid can do at that time
         """
-        return self.revenue_grid_max_get(environment, x) - self.cost_grid_max_get(environment, x)
+        if not environment:
+            environment = self.environment
+        return self.revenue_grid_max_get(environment=environment, x=x) - self.cost_grid_max_get(
+            environment=environment, x=x
+        )
 
     def utilization_get(self, month):
         utilization = self.rows.utilization.cells[month] / 100
@@ -367,14 +387,27 @@ class TFGridSimulator(SimulatorBase):
     def cost_power_kwh_get(self, month):
         return self.rows.cost_power_kwh.cells[month]
 
-    def cost_rack_unit_set(self, environment):
+    def cost_rack_unit_set(self, environment=None):
+        if not environment:
+            environment = self.environment
         self._interpolate("cost_rack_unit", "0:%s" % environment.cost_rack_unit)
 
-    def cost_power_kwh_set(self, environment):
+    def cost_power_kwh_set(self, environment=None):
+        if not environment:
+            environment = self.environment
         self._interpolate("cost_power_kwh", "0:%s" % environment.cost_power_kwh)
 
     def nodesbatch_get(self, nr):
         return self.nodebatches[nr]
+
+    def nodesbatch_get_environment(self, month=10, environment=None, nrnodes=None):
+        if not environment:
+            environment = self.environment
+        if not nrnodes:
+            nrnodes = environment.nr_nodes
+        nb = NodesBatch(simulation=self, name="custom", environment=environment, nrnodes=nrnodes, month_start=month)
+        nb.calc()
+        return nb
 
     def graph_nodesbatches_usd_simulation(self):
         import plotly.graph_objects as go
@@ -501,16 +534,20 @@ class TFGridSimulator(SimulatorBase):
 
         return j.core.tools.text_strip(res)
 
-    def graph_token_price(self):
-        import plotly.graph_objects as go
-
+    def graph_token_price(self, graph=True):
         x = [i for i in range(60)]
         cells = [i / 44 for i in self.sheet.rows.rackspace_u.cells[0:60]]
         cells = self.rows.tokenprice.cells[0:60]
         y = [round(i, 2) for i in cells]
-        fig = go.FigureWidget(data=go.Scatter(x=x, y=y))
-        fig.update_layout(title="Token Price (TFT).", showlegend=False)
-        return fig
+
+        if graph:
+            import plotly.graph_objects as go
+
+            fig = go.FigureWidget(data=go.Scatter(x=x, y=y))
+            fig.update_layout(title="Token Price (TFT).", showlegend=False)
+            return fig
+        else:
+            return (x, y)
 
     def __repr__(self):
         out = ""

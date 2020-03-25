@@ -41,20 +41,8 @@ class NodesBatch(SimulatorBase):
         self._cat = "NodesBatch"
         self.simulation = kwargs["simulation"]
         self.environment = kwargs["environment"]
-        self.batch_nr = self.month_start
 
-        n = self.environment.node_normalized
-        self.node.rackspace_u = n.rackspace_u
-        self.node.cost_hardware = n.cost
-        self.node.cpr = n.cpr
-        self.node.power = n.power
-
-        improve = self.simulation.sheet.rows["cpr_improve"].cells[self.month_start] / 100
-        self.node.cpr = self.environment.cpr / self.environment.nr_devices * (1 + improve)
-
-        self.nrcols = self.month_start + self.months_left
-        self.sheet = j.data.worksheets.sheet_new("batch_%s" % self.batch_nr, nrcols=120)
-        self.rows = self.sheet.rows
+        self.__init()
 
         self._row_add("tft_farmed")
         self._row_add("tft_cultivated")  # sold capacity
@@ -73,6 +61,36 @@ class NodesBatch(SimulatorBase):
         self._row_add("tft_movement_usd")
         self._row_add("tft_farmer_income_cumul_usd")
         self._row_add("roi")
+
+    def __init(self):
+
+        self.sheet = j.data.worksheets.sheet_new("batch_%s" % self.batch_nr, nrcols=120)
+
+        self.rows = self.sheet.rows
+
+        self.batch_nr = self.month_start
+
+        n = self.environment.node_normalized
+        self.node.rackspace_u = n.rackspace_u
+        self.node.cost_hardware = n.cost
+        self.node.cpr = n.cpr
+        self.node.power = n.power
+
+        improve = self.simulation.sheet.rows["cpr_improve"].cells[self.month_start] / 100
+        self.node.cpr = self.environment.cpr / self.environment.nr_devices * (1 + improve)
+
+        self.nrcols = self.month_start + self.months_left
+
+    def export_(self):
+        r = {}
+        r["sheet"] = self.sheet.export_()
+        r["data"] = self._data._ddict
+        return r
+
+    def import_(self, ddict):
+        self._data_update(ddict["data"])
+        self.__init()
+        self.sheet.import_(ddict["sheet"])
 
     def _row_add(self, name, aggregate="FIRST", ttype=None):
         row = self.sheet.addRow(name, aggregate=aggregate, ttype=ttype, nrcols=120)
@@ -97,6 +115,10 @@ class NodesBatch(SimulatorBase):
         sheet = self.sheet.rows[rowname]
         sheet.cells[month] = val
         self._log_debug("batch:%s month:%s %s:%s" % (self.batch_nr, month, rowname, val))
+
+    def calc(self):
+        for i in range(self.month_start, self.months_left):
+            self._calc(i)
 
     def _calc(self, month):
 

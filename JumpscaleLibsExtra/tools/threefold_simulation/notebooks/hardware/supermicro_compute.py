@@ -3,9 +3,6 @@ from Jumpscale import j
 
 def bom_calc(bom, environment):
 
-    bom = j.tools.tfgrid_simulator.bom_get("supermicro_archive")
-    environment = j.tools.tfgrid_simulator.environment_get("supermicro_archive")
-
     assert len(bom.components) == 0
 
     bom.components.new(

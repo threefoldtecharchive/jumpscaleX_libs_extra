@@ -60,8 +60,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         if reload or name not in self._instances:
             simulation = TFGridSimulator(name=name)
             # choose your token simulation !!!
-            bom = self.bom_get(bom_name, reload=reload)
-            environment = self.environment_get(bom_name, reload=False)  # do not reload, already done in bom_get
+            bom, environment = self.bom_environment_get(bom_name, reload=reload)
 
             exec(f"from token_creators.{tokencreator_name} import TokenCreator", globals())
             simulation.token_creator = TokenCreator(simulation=simulation, environment=environment)
@@ -83,24 +82,35 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             key = f"{name}_{tokencreator_name}_{bom_name}_{node_growth}_{tft_growth}"
             simulation.import_redis(autocacl=True, reset=reload)
 
-        # j.shell()
-
         return simulation
 
-    def environment_get(self, name="amd", reload=False):
+    def calc_custom_environment(self, reload=False):
         """
-        example how to use
-
-        ```
-        simulation = j.tools.tfgrid_simulator.environment_get()
-        ```
-
+        kosmos 'j.tools.tfgrid_simulator.calc_custom_environment()'
+        kosmos 'j.tools.tfgrid_simulator.calc_custom_environment(reload=True)'
         """
-        if reload or name not in self._environments:
-            self._environments[name] = Environment(name=name)
-        return self._environments[name]
 
-    def bom_get(self, name="amd", reload=False):
+        simulation = self.simulation_get(
+            name="default",
+            tokencreator_name="optimized",
+            bom_name="amd",
+            node_growth=None,
+            tft_growth=None,
+            reload=reload,
+        )
+        bom, environment2 = self.bom_environment_get("supermicro_compute")
+
+        nb = simulation.nodesbatch_get_environment(month=1, environment=environment2)
+
+        server = environment2.node_normalized
+
+        # print(nb)
+
+        print(server)
+
+        j.shell()
+
+    def bom_environment_get(self, name="amd", reload=False):
         """
         name is name of file in notebooks/params/hardware
 
@@ -108,15 +118,17 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         simulation = j.tools.tfgrid_simulator.bom_get()
         ```
 
+        return (bom,environment)
+
         """
         if reload or name not in self._bom:
             bom = BillOfMaterial(name=name)
-            environment = self.environment_get(name=name, reload=reload)
+            environment = Environment(name=name)
             exec(f"from hardware.{name} import bom_calc", globals())
             bom, environment = bom_calc(bom, environment)
             self._environments[name] = environment
             self._bom[name] = bom
-        return self._bom[name]
+        return (bom, environment)
 
     def calc(self, batches_simulation=False, reload=False):
         """
