@@ -45,16 +45,18 @@ class TFGridSimulator(SimulatorBase):
             month += 1
             nb.import_(nb_dict)
             self.nodebatches.append(nb)
+        self.sheet.clean()
 
-    def import_redis(self, autocacl=True, reset=False):
+    def import_redis(self, key, autocacl=True, reset=False):
         """
         @parama autocalc True means we will calc automatically if we cant find the info in redis
         """
-        ddict = j.core.db.hget("simulations", self.name)
+        ddict = j.core.db.hget("simulations:%s" % key, self.name)
         if not reset and ddict:
             data = j.data.serializers.msgpack.loads(ddict)
             self.import_(data)
         else:
+            self.nodesbatches_add_auto()
             self.calc()
             self.export_redis()
 
@@ -143,7 +145,10 @@ class TFGridSimulator(SimulatorBase):
         :param args:
         :return:
         """
-        self._interpolate("tokenprice", args)
+        if isinstance(args, int) or isinstance(args, float):
+            self.tokenprice_set_5years(args)
+        else:
+            self._interpolate("tokenprice", args)
 
     def difficulty_level_set(self, args):
         """
@@ -229,6 +234,7 @@ class TFGridSimulator(SimulatorBase):
         """
 
         self._prepare()
+        self.nodebatches = self.nodebatches[0:1]  # only maintain first one
 
         if not environment:
             environment = self.environment
@@ -548,6 +554,16 @@ class TFGridSimulator(SimulatorBase):
             return fig
         else:
             return (x, y)
+
+    def graph_nr_nodes(self):
+        x = [i for i in range(60)]
+        import plotly.graph_objects as go
+
+        fig = go.FigureWidget()
+        fig.add_trace(go.Scatter(x=x, y=self.sheet.rows.nrnodes_new.cells[0:60], name="new nodes"))
+        fig.add_trace(go.Scatter(x=x, y=self.rows.nrnodes_total.cells[0:60], name="total nr nodes"))
+        fig.update_layout(title="New/Total nr Nodes per Month", showlegend=True)
+        return fig
 
     def __repr__(self):
         out = ""

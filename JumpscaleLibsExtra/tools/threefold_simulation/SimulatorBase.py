@@ -27,8 +27,10 @@ class SimulatorBase(j.baseclasses.object_config):
 
         # walk over properties
         for key in [i for i in self._properties if not i.startswith("_") and i not in ["id", "name"]]:
-
+            if key == "markdown":
+                continue
             try:
+
                 val = getattr(self, key)
                 val = self._numeric_get(val)
                 out += " - {RED}%-30s{RESET} : %s\n" % (key, val)

@@ -82,6 +82,11 @@ class Component(j.baseclasses.object):
         self.nr = kwargs["nr"]
         self.component = kwargs["component"]
 
+    def __str__(self):
+        return f"{self.nr} * {self.component}"
+
+    __repr__ = __str__
+
 
 class Device(SimulatorBase):
     """

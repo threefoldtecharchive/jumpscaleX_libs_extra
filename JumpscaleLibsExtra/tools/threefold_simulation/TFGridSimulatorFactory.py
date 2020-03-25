@@ -68,6 +68,12 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             exec(f"from simulations.{name} import simulation_calc", globals())
             simulation, environment, bom = simulation_calc(simulation, environment, bom)
 
+            if tft_growth:
+                simulation.tokenprice_set(tft_growth)
+
+            if node_growth:
+                simulation.nrnodes_new_set(node_growth)
+
             # put the default bom's
             simulation.environment = environment
             simulation.bom = bom
@@ -80,7 +86,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         if calc and simulation.simulated == False:
             key = f"{name}_{tokencreator_name}_{bom_name}_{node_growth}_{tft_growth}"
-            simulation.import_redis(autocacl=True, reset=reload)
+            simulation.import_redis(key=key, autocacl=True, reset=reload)
 
         return simulation
 
@@ -94,21 +100,24 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             name="default",
             tokencreator_name="optimized",
             bom_name="amd",
-            node_growth=None,
-            tft_growth=None,
+            node_growth="0:0,10:1000",
+            tft_growth=1,
             reload=reload,
         )
         bom, environment2 = self.bom_environment_get("supermicro_compute")
 
-        nb = simulation.nodesbatch_get_environment(month=1, environment=environment2)
+        nb = simulation.nodesbatch_get_environment(month=10, environment=environment2)
 
         server = environment2.node_normalized
 
-        # print(nb)
-
+        print(nb)
         print(server)
 
-        j.shell()
+        # nb._values_usd_get()
+
+        nb.graph_tft(single=True)
+
+        nb.roi_end
 
     def bom_environment_get(self, name="amd", reload=False):
         """
@@ -157,10 +166,6 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                 simulation.nodesbatch_get(month).graph_usd(cumul=True, single=True)
 
         # simulation.graph_tft_simulation()
-
-        simulation.graph_nodesbatches_usd_simulation()
-
-        print(simulation.markdown_reality_check(10))
 
         return
 

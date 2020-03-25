@@ -91,6 +91,7 @@ class NodesBatch(SimulatorBase):
         self._data_update(ddict["data"])
         self.__init()
         self.sheet.import_(ddict["sheet"])
+        self.sheet.clean()
 
     def _row_add(self, name, aggregate="FIRST", ttype=None):
         row = self.sheet.addRow(name, aggregate=aggregate, ttype=ttype, nrcols=120)
@@ -117,7 +118,7 @@ class NodesBatch(SimulatorBase):
         self._log_debug("batch:%s month:%s %s:%s" % (self.batch_nr, month, rowname, val))
 
     def calc(self):
-        for i in range(self.month_start, self.months_left):
+        for i in range(self.month_start, self.month_start + self.months_left):
             self._calc(i)
 
     def _calc(self, month):
@@ -203,6 +204,8 @@ class NodesBatch(SimulatorBase):
 
     @property
     def roi_end(self):
+        if not self.sheet.rows["roi"].cells[-1]:
+            self.sheet.rows["roi"].interpolate()
         return self.sheet.rows["roi"].cells[-1]
 
     @property
@@ -223,13 +226,17 @@ class NodesBatch(SimulatorBase):
         if cumul:
             names.append("cumul")
 
+        start = self.month_start
+        end = self.month_start + self.months_left
+
         fig = go.FigureWidget()
         for name in names:
             # values = eval(f"self.rows.tft_{name}.values")
-            values = eval(f"self.rows.tft_{name}.values_all")
-            x = [i for i in range(1, len(values))]
+            row = getattr(self.rows, f"tft_{name}")
+            values = row.values_all[start:end]
+            x = [i for i in range(start, end)]
             if single:
-                x = [i / self.nrnodes for i in x]
+                values = [i / self.nrnodes for i in values]
             fig.add_trace(go.Scatter(x=x, y=values, name=name))
         if not single:
             nrnodes = self.nrnodes
@@ -242,7 +249,7 @@ class NodesBatch(SimulatorBase):
         return fig
 
     def _tft_usd(self, name, single=False):
-        row = eval(f"self.rows.tft_{name}")
+        row = getattr(self.rows, f"tft_{name}")
         res = []
         if single:
             nrnodes = self.nrnodes
@@ -250,6 +257,8 @@ class NodesBatch(SimulatorBase):
             nrnodes = 1
         for month in range(row.window_month_start, row.window_month_start + row.window_month_period):
             tft_price = self.simulation.tft_price_get(month)
+            if row.cells[month] == None:
+                row.clean()
             res.append(float(row.cells[month] / nrnodes * tft_price))
         return row, res
 
