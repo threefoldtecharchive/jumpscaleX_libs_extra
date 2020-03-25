@@ -60,10 +60,9 @@ def bom_calc(bom, environment):
     environment.devices.clear()
 
     # see the bill of material sheet to define the devices
-    # edge device is our std node (in this simulation about 4.5k USD investment per node)
-    server = bom.device_get("server", environment=environment)
+    server = bom.device_get("server", device_template_name="server", environment=environment)
     # the switch added to the node
-    switch = bom.device_get("switch", environment=environment)
+    switch = bom.device_get("switch", device_template_name="switch", environment=environment)
 
     # an environment to simulate the overhead per node (eg. 1 switch per node)
     environment.device_node_add("server", server, 20)

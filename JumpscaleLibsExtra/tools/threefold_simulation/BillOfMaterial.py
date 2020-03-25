@@ -60,21 +60,15 @@ class BillOfMaterial(SimulatorBase):
                 return item
         raise j.exceptions.Input("cannot find device template with name:%s" % name)
 
-    def device_get(self, name, device_template_name=None, description="", environment=None):
+    def device_get(self, name, device_template_name, description="", environment=None):
         """
         get device
         :param name:
         :return:
         """
-        if not device_template_name:
-            device_template_name = name
         d = Device(name=name, description=description, device_template_name=device_template_name)
-        d.load(self, environment=environment)
+        d.calc(self, environment=environment)
         return d
-
-    def environment_get(self, name, description=None):
-        s = Environment(name=name, description=description)
-        return s
 
 
 class Component(j.baseclasses.object):
@@ -123,12 +117,14 @@ class Device(SimulatorBase):
 
     def _init(self, **kwargs):
         self._cat = "device"
-        if not self.device_template_name and "device_template_name" in kwargs:
-            self.device_template_name = kwargs["device_template_name"]
+        # if not self.device_template_name and "device_template_name" in kwargs:
+        #     self.device_template_name = kwargs["device_template_name"]
+        if "normalized" not in kwargs:
+            assert self.device_template_name
         self.components = j.baseclasses.dict()
 
-    def load(self, simulation, environment=None):
-        templ = simulation.device_template_get(self.device_template_name)
+    def calc(self, bom, environment=None):
+        templ = bom.device_template_get(self.device_template_name)
         self.cost = 0
         self.power = 0
         self.rackspace_u = 0
@@ -143,9 +139,10 @@ class Device(SimulatorBase):
         self.cu_passmark = 0.0
         su_weight = 0.0
         cu_weight = 0.0
+        self.cpr = 0
         passmark = 0
         for component in templ.components:
-            c = simulation.component_get(name=component.name)
+            c = bom.component_get(name=component.name)
             c2 = Component(nr=component.nr, component=c)
             self.cost += c.cost * c2.nr
             self.power += c.power * c2.nr
@@ -175,6 +172,7 @@ class Device(SimulatorBase):
             self.cost_cu_month = self.cost_month / self.cu * self.cu_perc
         if self.su:
             self.cost_su_month = self.cost_month / self.su * self.su_perc
+
         self.cpr = self.cu * 1.5 + self.su
 
 
@@ -230,7 +228,7 @@ class Environment(SimulatorBase):
         assert ttype in ["n", "o"]
         self.devices[name] = (nr, device, ttype)
         self.nr_devices += nr
-        self._calculate()
+        self.calc()
 
     def device_node_add(self, name, device, nr):
         self._device_add(name, device, nr, "n")
@@ -257,7 +255,7 @@ class Environment(SimulatorBase):
         """
         if not self._node_normalized:
             devices = self._node_normalized_get()
-            device_n = Device()
+            device_n = Device(normalized=True)
             nrnodes = 0
             propnames = [
                 "cu_passmark",
@@ -311,7 +309,7 @@ class Environment(SimulatorBase):
 
         return self._node_normalized
 
-    def _calculate(self):
+    def calc(self):
         self.cost = 0
         self.power = 0
         self.rackspace_u = 0

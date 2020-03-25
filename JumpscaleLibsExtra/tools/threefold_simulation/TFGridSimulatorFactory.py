@@ -104,7 +104,9 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             tft_growth=1,
             reload=reload,
         )
-        bom, environment2 = self.bom_environment_get("supermicro_compute")
+
+        # bom2, environment2 = self.bom_environment_get("supermicro_compute")
+        bom2, environment2 = self.bom_environment_get("CH_archive")
 
         nb = simulation.nodesbatch_get_environment(month=10, environment=environment2)
 

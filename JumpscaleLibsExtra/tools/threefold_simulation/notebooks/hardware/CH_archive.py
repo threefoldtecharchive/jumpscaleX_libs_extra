@@ -8,15 +8,13 @@ def bom_calc(bom, environment):
     bom=bom_populate(bom)
 
     # see the bill of material sheet to define the devices
-    # we get a device starting from a template
-    server = bom.device_get("archive_compute_frontend", device_template_name="archive_compute_frontend", environment=environment)
-    # the switch added to the node
+    compute = bom.device_get("archive_compute_frontend", device_template_name="archive_compute_frontend", environment=environment)
+    storage = bom.device_get("storage_server", device_template_name="storage_server", environment=environment)
     switch = bom.device_get("switch_48", device_template_name="switch_48", environment=environment)
 
     # an environment to simulate the overhead per node (eg. 1 switch per node)
-    environment.device_node_add("server", server, 20)
-    environment.device_overhead_add("switch", switch, 2)
-
-    server.calc(bom=bom)
+    environment.device_node_add("compute", compute, 29)
+    environment.device_node_add("storage", storage, 285)
+    environment.device_overhead_add("switch", switch, 30)
 
     return bom, environment
