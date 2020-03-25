@@ -26,7 +26,16 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         s = self.simulation_get("default")
         return s
 
-    def simulation_get(self, name="default"):
+    def simulation_get(
+        self,
+        name="default",
+        tokencreator_name="optimized",
+        bom_name="amd",
+        node_growth=None,
+        tft_growth=None,
+        reload=False,
+        calc=True,
+    ):
         """
         example how to use
 
@@ -34,12 +43,51 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         simulation = j.tools.tfgrid_simulator.simulation_get()
         ```
 
-        """
-        if name not in self._instances:
-            self._instances[name] = TFGridSimulator(name=name)
-        return self._instances[name]
+        @param node_growth: if empty will be whatever was defined in the simlator name see notebooks/simulators
+            default: "0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000"
+        @param tft_growth: if empty will be whatever was defined in the simlator name see notebooks/simulators
+            default: "0:0.15,60:3"
 
-    def environment_get(self, name="default"):
+        ## meaning of the interpolation values
+        # 0:0 means month 0 we have value 0
+        # 60:3 means month 60: value is 3
+        # interpolation will happen between the values
+        # above: the price go from 0.15 first month to 3 over 60 months
+
+
+        """
+
+        if reload or name not in self._instances:
+            simulation = TFGridSimulator(name=name)
+            # choose your token simulation !!!
+            bom = self.bom_get(bom_name, reload=reload)
+            environment = self.environment_get(bom_name, reload=False)  # do not reload, already done in bom_get
+
+            exec(f"from token_creators.{tokencreator_name} import TokenCreator", globals())
+            simulation.token_creator = TokenCreator(simulation=simulation, environment=environment)
+
+            exec(f"from simulations.{name} import simulation_calc", globals())
+            simulation, environment, bom = simulation_calc(simulation, environment, bom)
+
+            # put the default bom's
+            simulation.environment = environment
+            simulation.bom = bom
+
+            self._instances[name] = simulation
+
+        simulation = self._instances[name]
+
+        # simulation.calc()
+
+        if calc and simulation.simulated == False:
+            key = f"{name}_{tokencreator_name}_{bom_name}_{node_growth}_{tft_growth}"
+            simulation.import_redis(autocacl=True, reset=reload)
+
+        # j.shell()
+
+        return simulation
+
+    def environment_get(self, name="amd", reload=False):
         """
         example how to use
 
@@ -48,30 +96,42 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         ```
 
         """
-        if name not in self._environments:
+        if reload or name not in self._environments:
             self._environments[name] = Environment(name=name)
         return self._environments[name]
 
-    def bom_get(self, name="default"):
+    def bom_get(self, name="amd", reload=False):
         """
-        example how to use
+        name is name of file in notebooks/params/hardware
 
         ```
-        simulation = j.tools.tfgrid_simulator.environment_get()
+        simulation = j.tools.tfgrid_simulator.bom_get()
         ```
 
         """
-        if name not in self._bom:
-            self._bom[name] = BillOfMaterial(name=name)
+        if reload or name not in self._bom:
+            bom = BillOfMaterial(name=name)
+            environment = self.environment_get(name=name, reload=reload)
+            exec(f"from hardware.{name} import bom_calc", globals())
+            bom, environment = bom_calc(bom, environment)
+            self._environments[name] = environment
+            self._bom[name] = bom
         return self._bom[name]
 
-    def calc(self, batches_simulation=False):
+    def calc(self, batches_simulation=False, reload=False):
         """
         kosmos 'j.tools.tfgrid_simulator.calc()'
+        kosmos 'j.tools.tfgrid_simulator.calc(reload=True)'
         :return:
         """
-
-        from params.default import simulation
+        simulation = self.simulation_get(
+            name="default",
+            tokencreator_name="optimized",
+            bom_name="amd",
+            node_growth=None,
+            tft_growth=None,
+            reload=reload,
+        )
 
         if batches_simulation:
             # nrnodes is 2nd

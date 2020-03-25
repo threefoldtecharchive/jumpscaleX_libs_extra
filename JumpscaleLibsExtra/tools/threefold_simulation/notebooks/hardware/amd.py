@@ -1,10 +1,7 @@
 from Jumpscale import j
 
 
-def bom_calc(simulation):
-
-    bom = j.tools.tfgrid_simulator.bom_get("edge")
-    environment = j.tools.tfgrid_simulator.environment_get("edge")
+def bom_calc(bom, environment):
 
     assert len(bom.components) == 0
 

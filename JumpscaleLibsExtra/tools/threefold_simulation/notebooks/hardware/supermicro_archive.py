@@ -1,44 +1,41 @@
 from Jumpscale import j
 
 
-def bom_calc(simulation):
-
-    bom = j.tools.tfgrid_simulator.bom_get("supermicro")
-    environment = j.tools.tfgrid_simulator.environment_get("supermicro")
+def bom_calc(bom, environment):
 
     assert len(bom.components) == 0
 
     bom.components.new(
         name="s1",
-        description="SuperMicro Chassis 2U, 12 HD's fit inside, 10 gbit dual",
-        cost=1800,
-        rackspace_u=2,
+        description="SuperMicro Chassis 4U, 36 HD's fit inside, 10 gbit dual",
+        cost=2335,
+        rackspace_u=4,
         cru=0,
         sru=0,
         hru=0,
         mru=0,
-        su_perc=0,
-        cu_perc=0,
+        su_perc=90,
+        cu_perc=10,
         power=60,
     )
 
     bom.components.new(name="margin", description="margin per node for threefold and its partners", power=0, cost=500)
 
     bom.components.new(
-        name="hd12", description="Seagate Baracuda 12TB (6-8 watt)", cost=330, hru=12000, power=10, su_perc=100
+        name="hd12", description="Seagate Baracuda 12TB (6-8 watt)", cost=350, hru=12000, power=10, su_perc=100
     )
     bom.components.new(
         name="intel1",
-        description="Intel Xeon E5-2630 v4 @ 2.20GHz (20 logical cores)",
-        cost=600,
-        cru=20,
-        power=200,
+        description="Intel Xeon Broadwell-EP R3 8CE5-2609 V4 1.7GHz (8 logical cores)",
+        cost=310,
+        cru=8,
+        power=135,
         cu_perc=100,
-        passmark=13877,
+        passmark=5385,
     )
 
-    bom.components.new(name="ssd1", description="1 TB Samsung Evo", cost=350, sru=1000, power=5, su_perc=100)
-    bom.components.new(name="mem32_ecc", description="mem 32", cost=300, mru=32, power=8, cu_perc=100)
+    bom.components.new(name="ssd1", description="1 TB Samsung Evo", cost=305, sru=1000, power=5, su_perc=100)
+    bom.components.new(name="mem16_ecc", description="mem 16", cost=300, mru=16, power=8, cu_perc=100)
 
     bom.components.new(
         name="ng2",
@@ -51,10 +48,10 @@ def bom_calc(simulation):
     # create the template for dc1
     d = bom.devices.new(name="server")
     d.components.new(name="s1", nr=1)
-    d.components.new(name="intel1", nr=2)
-    d.components.new(name="hd12", nr=12)
-    d.components.new(name="mem32_ecc", nr=8)
-    d.components.new(name="ssd1", nr=2)
+    d.components.new(name="intel1", nr=1)
+    d.components.new(name="hd12", nr=18)
+    d.components.new(name="mem32_ecc", nr=2)
+    d.components.new(name="ssd1", nr=1)
 
     d = bom.devices.new(name="switch")
     d.components.new(name="ng2", nr=1)

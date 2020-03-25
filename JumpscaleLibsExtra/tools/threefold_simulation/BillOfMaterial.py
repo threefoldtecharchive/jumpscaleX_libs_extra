@@ -118,7 +118,7 @@ class Device(SimulatorBase):
 
     def _init(self, **kwargs):
         self._cat = "device"
-        if not self.device_template_name:
+        if not self.device_template_name and "device_template_name" in kwargs:
             self.device_template_name = kwargs["device_template_name"]
         self.components = j.baseclasses.dict()
 
@@ -215,66 +215,96 @@ class Environment(SimulatorBase):
     def _init(self, **kwargs):
         self._cat = "environment"
         self.devices = j.baseclasses.dict()
-        self._device_types = {}
         self._node_normalized = None
         self.nr_devices = 0
         self._state = "init"
 
-    def _device_add(self, name, device, nr):
+    def _device_add(self, name, device, nr, ttype):
         if name in self.devices:
             raise j.exceptions.Input("device with name:%s already added" % name)
-        self.devices[name] = (nr, device)
+        assert ttype in ["n", "o"]
+        self.devices[name] = (nr, device, ttype)
         if device.su > 0 or device.cu > 0:
             self.nr_devices += nr
         self._calculate()
 
     def device_node_add(self, name, device, nr):
-        self._device_add(name, device, nr)
-        self._device_types[name] = "n"
+        self._device_add(name, device, nr, "n")
         self.nr_nodes += nr
 
     def device_overhead_add(self, name, device, nr):
-        self._device_add(name, device, nr)
-        self._device_types[name] = "o"
+        self._device_add(name, device, nr, "o")
 
     def _node_normalized_get(self):
-        nr2 = 0
-        devicefound = None
-        for nr, device in self.devices.values():
-            if self._device_types[device.name] == "n":
-                nr2 += 1
-                devicefound = device
-        if nr2 == 1:
-            return devicefound
-        raise j.exceptions.Input("today only support 1 type of node device in environment")
+        devicesfound = []
+        for nr, device, ttype in self.devices.values():
+            if ttype == "n":
+                devicesfound.append((nr, device))
+        if len(devicesfound) == 0:
+            raise j.exceptions.Input("did not find a device in he environment, cannot calculate node normalized")
+        else:
+            return devicesfound
 
     @property
     def node_normalized(self):
+        """
+        add all nodes which can deal with workloads and create avg node out of it
+        easier to deal with in simulation
+        """
         if not self._node_normalized:
-            device = self._node_normalized_get()
-            device_n = Device(jsxobject=device._data)
-            device_n.cost_cu_month = self.cost_cu_month
-            device_n.cost_su_month = self.cost_su_month
-            device_n.rackspace_u = self.rackspace_u / self.nr_nodes
-            device_n.cu_passmark = self.cu_passmark / self.nr_nodes
-            device_n.cost_rack = self.cost_rack / self.nr_nodes
-            device_n.cost_power = self.cost_power / self.nr_nodes
-            device_n.cost_month = self.cost_month / self.nr_nodes
-            device_n.cpr = self.cpr / self.nr_nodes
-            device_n.cost_su_capex = self.cost_su_capex
-            device_n.cost_cu_capex = self.cost_cu_capex
+            devices = self._node_normalized_get()
+            device_n = Device()
+            nrnodes = 0
+            propnames = [
+                "cu_passmark",
+                "cpr",
+                "cru",
+                "sru",
+                "hru",
+                "mru",
+                "su",
+                "cu",
+                "cu_perc",
+                "su_perc",
+            ]
+            propnames_env = [
+                "rackspace_u",
+                "cost_rack",
+                "cost_power",
+                "cost_month",
+                "cost",
+                "power",
+            ]
+            propnames_copy = [
+                "cost_cu_month",
+                "cost_su_month",
+                "cost_su_capex",
+                "cost_cu_capex",
+            ]
+            for propname in propnames + propnames_env + propnames_copy:
+                setattr(device_n, propname, 0.0)
 
-            device_n.cost = self.cost / self.nr_nodes
-            device_n.power = self.power / self.nr_nodes
-            device_n.cru = self.cru / self.nr_nodes
-            device_n.sru = self.sru / self.nr_nodes
-            device_n.hru = self.hru / self.nr_nodes
-            device_n.mru = self.mru / self.nr_nodes
+            for nr, device in devices:
+                nrnodes += nr
+                for propname in propnames:
+                    val_sum = getattr(device_n, propname)
+                    val = getattr(device, propname) * nr
+                    val_sum += val
+                    setattr(device_n, propname, val_sum)
 
-            device_n.su = self.su / self.nr_nodes
-            device_n.cu = self.cu / self.nr_nodes
-            device_n.cu_passmark = self.cu_passmark / self.nr_nodes
+            for propname in propnames:
+                val_sum = getattr(device_n, propname) / nrnodes
+                setattr(device_n, propname, val_sum)
+
+            for propname in propnames_env:
+                val_sum = getattr(self, propname) / nrnodes
+                setattr(device_n, propname, val_sum)
+
+            for propname in propnames_copy:
+                setattr(device_n, propname, getattr(self, propname))
+
             self._node_normalized = device
+
         return self._node_normalized
 
     def _calculate(self):
@@ -293,20 +323,21 @@ class Environment(SimulatorBase):
         cu_weight = 0.0
         self.cu_passmark = 0.0
         p_nr = 0
-        for nr, device in self.devices.values():
+        for nr, device, ttype in self.devices.values():
             self.cost += device.cost * nr
             self.power += device.power * nr
             self.rackspace_u += device.rackspace_u * nr
-            self.cru += device.cru * nr
-            self.sru += device.sru * nr
-            self.hru += device.hru * nr
-            self.mru += device.mru * nr
-            self.su += device.su * nr
-            self.cu += device.cu * nr
-            # not right: needs to be weighted one way or the other
-            su_weight += device.su_perc * nr * float(device.cost)
-            cu_weight += device.cu_perc * nr * float(device.cost)
-            self.cu_passmark += device.cu_passmark * nr
+            if ttype == "n":
+                self.cru += device.cru * nr
+                self.sru += device.sru * nr
+                self.hru += device.hru * nr
+                self.mru += device.mru * nr
+                self.su += device.su * nr
+                self.cu += device.cu * nr
+                # not 100% right: needs to be weighted one way or the other
+                su_weight += device.su_perc * nr * float(device.cost)
+                cu_weight += device.cu_perc * nr * float(device.cost)
+                self.cu_passmark += device.cu_passmark * nr
 
         if su_weight or cu_weight:
             self.cu_perc = cu_weight / (su_weight + cu_weight)

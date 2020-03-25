@@ -3,40 +3,42 @@ from Jumpscale import j
 
 def bom_calc(bom, environment):
 
-    raise RuntimeError("to be implemented")
+    bom = j.tools.tfgrid_simulator.bom_get("supermicro_archive")
+    environment = j.tools.tfgrid_simulator.environment_get("supermicro_archive")
+
     assert len(bom.components) == 0
 
     bom.components.new(
         name="s1",
-        description="HPE DL385 AMD, 12 HD's fit inside, 10 gbit dual",
-        cost=3200,
-        rackspace_u=2,
+        description="SuperMicro Chassis 4U, 36 HD's fit inside, 10 gbit dual",
+        cost=2335,
+        rackspace_u=4,
         cru=0,
         sru=0,
         hru=0,
         mru=0,
-        su_perc=50,
-        cu_perc=50,
-        power=150,
+        su_perc=10,
+        cu_perc=90,
+        power=60,
     )
 
     bom.components.new(name="margin", description="margin per node for threefold and its partners", power=0, cost=500)
 
     bom.components.new(
-        name="hd12", description="HPE Helium 12TB (6-8 watt)", cost=734, hru=12000, power=10, su_perc=100
+        name="hd12", description="Seagate Baracuda 12TB (6-8 watt)", cost=350, hru=12000, power=10, su_perc=100
     )
     bom.components.new(
-        name="amd1",
-        description="AMD-EPYC-7351 @ 2.40GHz (32 logical cores)",
-        cost=920,
-        cru=32,
-        power=150,
+        name="intel1",
+        description="Intel Xeon Broadwell-EP R3 8CE5-2609 V4 1.7GHz (8 logical cores)",
+        cost=310,
+        cru=8,
+        power=135,
         cu_perc=100,
-        passmark=18140,
+        passmark=5385,
     )
 
-    bom.components.new(name="ssd1", description="1.92 TB HPE SSD", cost=1022, sru=1920, power=10, su_perc=100)
-    bom.components.new(name="mem32_ecc", description="mem 32", cost=320, mru=32, power=8, cu_perc=100)
+    bom.components.new(name="ssd1", description="2 TB Samsung Evo", cost=740, sru=2000, power=5, su_perc=100)
+    bom.components.new(name="mem16_ecc", description="mem 16", cost=300, mru=16, power=8, cu_perc=100)
 
     bom.components.new(
         name="ng2",
@@ -49,10 +51,10 @@ def bom_calc(bom, environment):
     # create the template for dc1
     d = bom.devices.new(name="server")
     d.components.new(name="s1", nr=1)
-    d.components.new(name="amd1", nr=2)
-    d.components.new(name="hd12", nr=8)
-    d.components.new(name="mem32_ecc", nr=16)
-    d.components.new(name="ssd1", nr=4)
+    d.components.new(name="intel1", nr=1)
+    d.components.new(name="hd12", nr=0)
+    d.components.new(name="mem16_ecc", nr=4)
+    d.components.new(name="ssd1", nr=12)
 
     d = bom.devices.new(name="switch")
     d.components.new(name="ng2", nr=1)

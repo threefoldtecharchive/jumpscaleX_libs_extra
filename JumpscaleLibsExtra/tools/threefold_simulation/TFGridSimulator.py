@@ -22,6 +22,32 @@ class TFGridSimulator(SimulatorBase):
         sales_price_nu = (N)                
         """
 
+    def export_(self):
+        r = {}
+        r["sheet"] = self.sheet.export_()
+        r["data"] = self._data._ddict
+        return r
+
+    def export_redis(self):
+        data = j.data.serializers.msgpack.dumps(self.export_())
+        j.core.db.hset("simulations", self.name, data)
+
+    def import_(self, ddict):
+        self.sheet.import_(ddict["sheet"])
+        self._data_update(ddict["data"])
+
+    def import_redis(self, autocacl=True, reset=False):
+        """
+        @parama autocalc True means we will calc automatically if we cant find the info in redis
+        """
+        ddict = j.core.db.hget("simulations", self.name)
+        if not reset and ddict:
+            data = j.data.serializers.msgpack.loads(ddict)
+            self.import_(data)
+        else:
+            self.calc()
+            self.export_redis()
+
     def _init(self, **kwargs):
         self.sheet = j.data.worksheets.sheet_new("simulation", nrcols=120)
         self.rows = self.sheet.rows
@@ -185,12 +211,15 @@ class TFGridSimulator(SimulatorBase):
             return 0.0
         return float(val)
 
-    def nodesbatches_add_auto(self, environment):
+    def nodesbatches_add_auto(self, environment=None):
         """
         will calculate now many batches to add in line with the growth in nr nodes
         """
 
         self._prepare()
+
+        if not environment:
+            environment = self.environment
 
         # calculate growth in nr nodes
         for month_now in range(0, 120):
@@ -207,7 +236,10 @@ class TFGridSimulator(SimulatorBase):
         self.rows.nrnodes_new.clean()  # makes sure we get nicely formatted cells (int)
         self.rows.nrnodes_total.clean()
 
-    def calc(self, environment):
+    def calc(self, environment=None):
+
+        if not environment:
+            environment = self.environment
 
         if self.simulated:
             raise j.exceptions.Input("cannot call this method twice: calc")
