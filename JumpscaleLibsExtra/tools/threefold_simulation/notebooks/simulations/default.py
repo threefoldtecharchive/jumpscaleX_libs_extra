@@ -43,6 +43,7 @@ def simulation_calc(simulation, environment, bom):
 
     # month:growth_percent of nodes being added
     # this means month 1 (is 0 in this file) we add 5 nodes, month 12 we add 1000 new nodes
+
     simulation.nrnodes_new_set("0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000")
     # simulation.nrnodes_new_set("0:5,6:150,20:5000")
 
