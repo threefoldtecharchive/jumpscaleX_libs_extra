@@ -53,11 +53,10 @@ def bom_populate(bom):
     )
     
 
-    bom.components.new(name="ssd1", description="1 TB Samsung Evo", cost=305, sru=1000, power=5, su_perc=100)
-    bom.components.new(name="ssd2", description="2 TB Samsung Evo", cost=740, sru=2000, power=5, su_perc=100)
+    bom.components.new(name="ssd1", description="1.92 TB HPE SSD", cost=1022, sru=1920, power=10, su_perc=100)
     
-    bom.components.new(name="mem16_ecc", description="mem 16", cost=300, mru=16, power=8, cu_perc=100)    
-    bom.components.new(name="mem32_ecc", description="mem 32", cost=600, mru=32, power=8, cu_perc=100)    
+    bom.components.new(name="mem32_ecc", description="mem 32", cost=320, mru=32, power=8, cu_perc=100)    
+    
 
     bom.components.new(
         name="ng2",
@@ -68,21 +67,21 @@ def bom_populate(bom):
     )
 
     # create the template for dc1
-    d = bom.devices.new(name="storage_server")
+    d = bom.devices.new(name="hpe_compute_server")
     d.components.new(name="s1", nr=1)
-    d.components.new(name="intel1", nr=1)
-    d.components.new(name="hd12", nr=18)
-    d.components.new(name="mem32_ecc", nr=2)
-    d.components.new(name="ssd1", nr=1)
+    d.components.new(name="amd1", nr=2)
+    d.components.new(name="hd12", nr=8)
+    d.components.new(name="mem32_ecc", nr=16)
+    d.components.new(name="ssd2", nr=4)
 
     
     # create the templates for the devices
-    d = bom.devices.new(name="archive_compute_frontend")
-    d.components.new(name="s1", nr=1)
-    d.components.new(name="intel1", nr=1)
-    d.components.new(name="hd12", nr=0)
-    d.components.new(name="mem16_ecc", nr=4)
-    d.components.new(name="ssd1", nr=12)
+    d = bom.devices.new(name="hpe_storage_server")
+    d.components.new(name="s2", nr=1)
+    d.components.new(name="intel1", nr=2)
+    d.components.new(name="hd12", nr=56)
+    d.components.new(name="mem32_ecc", nr=8)
+    d.components.new(name="ssd1", nr=3)
 
     d = bom.devices.new(name="switch_48")
     d.components.new(name="ng2", nr=1)
