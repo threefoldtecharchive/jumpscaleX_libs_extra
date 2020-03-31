@@ -182,7 +182,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             path_dest = path_source
         return path_dest
 
-    def start(self, voila=False, background=False, base_url=None, name=None, port=8888, reset=False):
+    def start(self, voila=False, background=False, base_url=None, name=None, port=8888, pname="notebook", reset=False):
         """
         to run:
 
@@ -200,10 +200,10 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         self._log_info("start notebook on:%s" % path_dest)
 
         j.servers.notebook.start(
-            path=path_dest, voila=voila, background=background, base_url=base_url, port=port
+            path=path_dest, voila=voila, background=background, base_url=base_url, port=port, pname=pname
         )  # it will open a browser with access to the right output
         j.application.reset_context()
 
-    def stop(self, voila=False, background=False, base_url=None, name=None):
+    def stop(self, voila=False, background=False, base_url=None, name=None, pname="notebook"):
         path_dest = self.get_path_dest(name=name)
-        j.servers.notebook.stop(path=path_dest, voila=voila, background=background, base_url=base_url)
+        j.servers.notebook.stop(path=path_dest, voila=voila, background=background, base_url=base_url, pname=pname)
