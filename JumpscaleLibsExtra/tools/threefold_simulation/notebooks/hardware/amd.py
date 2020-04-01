@@ -64,7 +64,7 @@ def bom_calc(bom, environment):
     switch = bom.device_get("switch", device_template_name="switch", environment=environment)
 
     # an environment to simulate the overhead per node (eg. 1 switch per node)
-    environment.device_node_add("server", server, 20)
+    environment.device_node_add("compute", server, 20)
     environment.device_overhead_add("switch", switch, 2)
 
     return bom, environment

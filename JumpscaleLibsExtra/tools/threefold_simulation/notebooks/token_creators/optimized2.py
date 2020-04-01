@@ -17,6 +17,15 @@ class TokenCreator:
         self.environment = environment
         self.sheet = j.data.worksheets.sheet_new("tokencreator", nrcols=120)
 
+        self._init_predefined_tft_price()
+
+    def _init_predefined_tft_price(self):
+        self.row_tft = self.sheet.addRow("tft", aggregate="LAST", ttype="float", empty=True, nrcols=120)
+        self.row_tft.cells[0] = 0.15
+        self.row_tft.cells[60] = 0.15 * 20
+        self.row_tft.cells[119] = 0.15 * 30
+        self.row_tft.interpolate()
+
     def cpr_usd(self, month):
 
         # cpr is the cloud production rate, like a hashrate for a bitcoin miner
@@ -28,16 +37,25 @@ class TokenCreator:
 
         return 40 / 6
 
+    def predefined_tft_price(self, month):
+        return self.row_tft.cells[month]
+
     def cpr_tft(self, month):
         # we can choose the model we want
-        return self.cpr_usd(month) / self.simulation.tft_price_get(month)
+#         tftprice_now = self.simulation.tft_price_get(month)
+        tftprice_now = self.predefined_tft_price(month)
+        return self.cpr_usd(month) / tftprice_now
 
     def tft_farm(self, month, nodes_batch):
         """
         @param month is the month to calculate the added tft for
         @param month_batch is when the node batch was originally added
         """
-        
+
+        # if month == 50 and nodes_batch.month_start > 40:
+        #     j.shell()
+        #     w
+
         # FARMING ARGUMENTS ARE CREATED HERE, THIS IS THE MAIN CALCULATION
         tft_new = nodes_batch.cpr * self.cpr_tft(month) / self.difficulty_level_get(month)
 

@@ -135,8 +135,16 @@ class TFGridSimulator(SimulatorBase):
         self._interpolate("utilization", args)
 
     def tokenprice_set_5years(self, val=3):
+        if isinstance(val, str) and val.startswith("auto"):
+            self.tokenprice_set("0:0.15,24:0.4")
+            self._tft_in_relation_to_grid_value = int(val.replace("auto", ""))
+            assert self._tft_in_relation_to_grid_value > 10
+            assert self._tft_in_relation_to_grid_value < 400
+            return
+        else:
+            self._tft_in_relation_to_grid_value = None
         # need to do over 12 years or the price of tokens weirdly stops
-        val = (val - 0.15) * 2
+        val = (val - 0.15) * 2 + 0.15
         self.tokenprice_set("0:0.15,119:%s" % val)
 
     def tokenprice_set(self, args):
@@ -145,9 +153,10 @@ class TFGridSimulator(SimulatorBase):
         :param args:
         :return:
         """
-        if isinstance(args, int) or isinstance(args, float):
+        if isinstance(args, int) or isinstance(args, float) or args.startswith("auto"):
             self.tokenprice_set_5years(args)
         else:
+            self._tft_in_relation_to_grid_value = None
             self._interpolate("tokenprice", args)
 
     def difficulty_level_set(self, args):
@@ -173,7 +182,45 @@ class TFGridSimulator(SimulatorBase):
     def tft_price_get(self, month=None):
         if month == None:
             month = self.sheet.nrcols - 1
-        r = self.sheet.rows.tokenprice.cells[month]
+        if self._tft_in_relation_to_grid_value:
+            r = self.sheet.rows.tokenprice.cells[month]
+            if month > 6:
+
+                revenue = self.rows.revenue.cells[month - 1]
+
+                cost_rackspace = self.rows.cost_rackspace.cells[month - 1]
+                cost_power = self.rows.cost_power.cells[month - 1]
+                cost_hardware = self.rows.cost_hardware.cells[month - 1]
+                cost_maintenance = self.rows.cost_maintenance.cells[month - 1]
+                cost = cost_rackspace + cost_power + cost_hardware + cost_maintenance
+                margin = revenue - cost
+                gridval_margin = margin * 12 * 10  # 10 year margin
+
+                n = self.environment.node_normalized
+                cpr_price = self.environment.sales_price_cpr_unit_get(self, month)
+                nrnodes = self.rows.nrnodes_total.cells[month - 1]
+                gridval_capability = (
+                    float(n.cpr) * float(nrnodes) * float(cpr_price) * 60
+                )  # 4 year recurring rev capability
+
+                gridval = revenue * 12 * 5
+
+                nrtokens = self.sheet.rows.tft_farmed_cumul.cells[month - 1]
+                if gridval_margin > gridval:
+                    gridval = gridval_margin
+                if gridval_capability > gridval:
+                    gridval = gridval_capability
+
+                tft_price_grid_val = gridval / nrtokens
+                tft_price_prev = self.sheet.rows.tokenprice.cells[month - 1]
+                marketcap = nrtokens * tft_price_prev
+                b = self._tft_in_relation_to_grid_value / 100
+                if tft_price_grid_val * b > r:
+                    self.sheet.rows.tokenprice.cells[month] = tft_price_grid_val
+                    r = self.sheet.rows.tokenprice.cells[month]
+        else:
+            r = self.sheet.rows.tokenprice.cells[month]
+
         assert r > 0
         return r
 

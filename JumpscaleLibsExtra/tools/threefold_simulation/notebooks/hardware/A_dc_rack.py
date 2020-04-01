@@ -4,7 +4,7 @@ from Jumpscale import j
 
 def bom_calc(bom, environment):
 
-    from hardware.bom_hpe import bom_populate
+    from hardware.components_hpe import bom_populate
     bom=bom_populate(bom)
 
     # see the bill of material sheet to define the devices
@@ -13,8 +13,8 @@ def bom_calc(bom, environment):
     switch = bom.device_get("switch_48", device_template_name="switch_48", environment=environment)
 
     # an environment to simulate the overhead per node (eg. 1 switch per node)
-    environment.device_node_add("hpe_compute", compute, 11)
-    environment.device_node_add("hpe_storage", storage, 5)
+    environment.device_node_add("compute", compute, 11)
+    environment.device_node_add("storage", storage, 5)
     environment.device_overhead_add("switch", switch, 2)
 
     return bom, environment

@@ -15,31 +15,21 @@ class TokenCreator:
     def __init__(self, simulation, environment):
         self.simulation = simulation
         self.environment = environment
-        self.sheet = j.data.worksheets.sheet_new("tokencreator", nrcols=120)
-
-    def cpr_usd(self, month):
-
-        # cpr is the cloud production rate, like a hashrate for a bitcoin miner
-        # in our case a production rate of capacity for the internet
-
-        # cost to buy 1 cpr production capability in Q1 2020 = 40USD
-        # we took as definition that nr for cpr to usd
-        # we say ROI for batch 1 (month 1) is 6 months, thats why we need to devide by 6
-
-        return 40 / 6
-
-    def cpr_tft(self, month):
-        # we can choose the model we want
-        return self.cpr_usd(month) / self.simulation.tft_price_get(month)
 
     def tft_farm(self, month, nodes_batch):
         """
         @param month is the month to calculate the added tft for
         @param month_batch is when the node batch was originally added
         """
-        
+        tftprice_now = self.simulation.tft_price_get(month)
+        nodes_batch_investment = nodes_batch.node.cost_hardware * nodes_batch.nrnodes
+        # means if difficulty level would be 1, then the investment paid back in nr_months_return months
+        # this is an important parameter, if low then farmers at beginning
+        #     get huge benefit but marketcap vs value becomes challenging
+        nr_months_return = 6
+
         # FARMING ARGUMENTS ARE CREATED HERE, THIS IS THE MAIN CALCULATION
-        tft_new = nodes_batch.cpr * self.cpr_tft(month) / self.difficulty_level_get(month)
+        tft_new = nodes_batch_investment / tftprice_now / self.difficulty_level_get(month) / nr_months_return
 
         return tft_new
 
@@ -51,8 +41,9 @@ class TokenCreator:
         assert utilization < 100
         tft_price = self.simulation.tft_price_get(month)
         cpr_sales_price = self.environment.sales_price_cpr_unit_get(self.simulation, month)
-        tft_received = utilization * float(cpr_sales_price) / float(tft_price) * nodes_batch.cpr
-
+        tft_received = (
+            utilization * float(cpr_sales_price) / float(tft_price) * nodes_batch.node.cpr * nodes_batch.nrnodes
+        )
         return tft_received
 
     def tft_cultivate(self, month, nodes_batch):
@@ -111,10 +102,8 @@ class TokenCreator:
         elif perc < 80:
             return 5
         elif perc < 90:
-            return 10
-        elif perc < 95:
-            return 15
-        elif perc < 98:
-            return 20
+            return 6
+        elif perc < 99:
+            return 7
         else:
-            return 10000000  # now there should be no farming any longer
+            return 1000000  # now there should be no farming any longer

@@ -3,7 +3,7 @@ from Jumpscale import j
 
 def bom_calc(bom, environment):
     
-    from hardware.bom_supermicro import bom_populate
+    from hardware.components_supermicro import bom_populate
     bom=bom_populate(bom)
 
     # see the bill of material sheet to define the devices
@@ -12,7 +12,7 @@ def bom_calc(bom, environment):
     switch = bom.device_get("switch_48", device_template_name="switch_48", environment=environment)
 
     # an environment to simulate the overhead per node (eg. 1 switch per node)
-    environment.device_node_add("server", server, 20)
+    environment.device_node_add("compute", server, 20)
     environment.device_overhead_add("switch", switch, 2)
 
     return bom, environment

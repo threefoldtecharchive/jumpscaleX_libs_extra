@@ -19,7 +19,7 @@ def simulation_calc(simulation, environment, bom):
     environment.cost_rack_unit = "12 USD"
 
     # means at end of period we produce 40% more cpr (*1.4)
-    # cpr = cloud production rate (is like hashrate of bitcoin)
+    # cpr = cloud production rate (is like hashrate of bitcoin mining box)
     simulation.cpr_improve_set("0:0,60:40")
 
     # price of a capacity unit goes down over time, here we say it will go down 40%

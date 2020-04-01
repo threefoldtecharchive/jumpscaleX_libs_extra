@@ -212,7 +212,7 @@ class Environment(SimulatorBase):
         nr_devices = 0
         nr_nodes = 0
         sales_price_total = (N)
-        sales_price_cpr_unit = (N)
+        # sales_price_cpr_unit = (N)
         """
 
     def _init(self, **kwargs):

@@ -73,7 +73,6 @@ class NodesBatch(SimulatorBase):
         n = self.environment.node_normalized
         self.node.rackspace_u = n.rackspace_u
         self.node.cost_hardware = n.cost
-        self.node.cpr = n.cpr
         self.node.power = n.power
 
         improve = self.simulation.sheet.rows["cpr_improve"].cells[self.month_start] / 100
@@ -204,13 +203,15 @@ class NodesBatch(SimulatorBase):
 
     @property
     def roi_end(self):
-        if not self.sheet.rows["roi"].cells[-1]:
-            self.sheet.rows["roi"].interpolate()
-        return self.sheet.rows["roi"].cells[-1]
+        return self.sheet.rows["roi"].cells[self.month_start + self.months_left - 1]
 
     @property
     def cost_hardware(self):
         return self.node.cost_hardware * self.nrnodes
+
+    @property
+    def cpr(self):
+        return self.node.cpr * self.nrnodes
 
     def markdown(self):
         out = SimulatorBase.__repr__(self)

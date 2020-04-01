@@ -72,7 +72,7 @@ def bom_populate(bom):
     d.components.new(name="amd1", nr=2)
     d.components.new(name="hd12", nr=8)
     d.components.new(name="mem32_ecc", nr=16)
-    d.components.new(name="ssd2", nr=4)
+    d.components.new(name="ssd1", nr=4)
 
     
     # create the templates for the devices
