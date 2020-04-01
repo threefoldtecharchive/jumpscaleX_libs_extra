@@ -137,6 +137,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         return (bom,environment)
 
         """
+
         # if reload or name not in self._bom:
         bom = BillOfMaterial(name=name)
         environment = Environment(name=name)
@@ -145,6 +146,17 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         self._environments[name] = environment
         self._bom[name] = bom
         return (bom, environment)
+
+    # =======
+    #         if reload or name not in self._bom:
+    #             bom = BillOfMaterial(name=name)
+    #             environment = Environment(name=name)
+    #             exec(f"from hardware.{name} import bom_calc", globals())
+    #             bom, environment = bom_calc(bom, environment)
+    #             self._environments[name] = environment
+    #             self._bom[name] = bom
+    #         return (self._bom[name], self._environments[name])
+    # >>>>>>> 41d167af3d4380375fb60f0efd0c15940a2db15a
 
     def calc(self, batches_simulation=False, reload=False):
         """
@@ -176,7 +188,19 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         return
 
-    def start(self, voila=False, background=False, base_url=None, name=None, reset=False):
+    def get_path_dest(self, name=None, reset=False):
+        path_source = "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks/home.ipynb"
+        path_source = j.core.tools.text_replace(path_source)
+        if name:
+            path_dest = j.core.tools.text_replace("{DIR_VAR}/notebooks/%s" % name)
+            if reset:
+                j.core.tools.remove(path_dest)
+            j.sal.fs.copyDirTree(path_source, path_dest, overwriteFiles=False)
+        else:
+            path_dest = path_source
+        return path_dest
+
+    def start(self, voila=False, background=False, base_url=None, name=None, port=8888, pname="notebook", reset=False):
         """
         to run:
 
@@ -190,20 +214,14 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         j.core.myenv.log_includes = []
         # e = self.calc()
-
-        path_source = "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks/home.ipynb"
-        path_source = j.core.tools.text_replace(path_source)
-        if name:
-            path_dest = j.core.tools.text_replace("{DIR_VAR}/notebooks/%s" % name)
-            if reset:
-                j.core.tools.remove(path_dest)
-            j.sal.fs.copyDirTree(path_source, path_dest, overwriteFiles=False)
-        else:
-            path_dest = path_source
-
+        path_dest = self.get_path_dest(name=name, reset=reset)
         self._log_info("start notebook on:%s" % path_dest)
 
         j.servers.notebook.start(
-            path=path_dest, voila=voila, background=background, base_url=base_url,
+            path=path_dest, voila=voila, background=background, base_url=base_url, port=port, pname=pname
         )  # it will open a browser with access to the right output
         j.application.reset_context()
+
+    def stop(self, voila=False, background=False, base_url=None, name=None, pname="notebook"):
+        path_dest = self.get_path_dest(name=name)
+        j.servers.notebook.stop(path=path_dest, voila=voila, background=background, base_url=base_url, pname=pname)
