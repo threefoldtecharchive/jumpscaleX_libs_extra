@@ -239,6 +239,8 @@ class Environment(SimulatorBase):
 
     def _node_normalized_get(self):
         devicesfound = []
+        # if self.name == "A_dc_rack":
+        #     j.debug()
         for nr, device, ttype in self.devices.values():
             if ttype == "n":
                 devicesfound.append((nr, device))
@@ -256,6 +258,7 @@ class Environment(SimulatorBase):
         if not self._node_normalized:
             devices = self._node_normalized_get()
             device_n = Device(normalized=True)
+            device_n.name = "normalized_device_%s" % self.name.lower().replace("_", ".")
             nrnodes = 0
             propnames = [
                 "cu_passmark",
@@ -294,6 +297,7 @@ class Environment(SimulatorBase):
                     val_sum += val
                     setattr(device_n, propname, val_sum)
 
+            # normalize to 1 node, so device by nr of nodes for above properties
             for propname in propnames:
                 val_sum = getattr(device_n, propname) / nrnodes
                 setattr(device_n, propname, val_sum)
@@ -305,7 +309,7 @@ class Environment(SimulatorBase):
             for propname in propnames_copy:
                 setattr(device_n, propname, getattr(self, propname))
 
-            self._node_normalized = device
+            self._node_normalized = device_n
 
         return self._node_normalized
 
