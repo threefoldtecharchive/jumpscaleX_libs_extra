@@ -188,8 +188,9 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         return
 
-    def get_path_dest(self, name=None, reset=False):
-        path_source = "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks/home.ipynb"
+    def get_path_dest(self, name=None, path_source=None, reset=False):
+        if not path_source:
+            path_source = "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks/home.ipynb"
         path_source = j.core.tools.text_replace(path_source)
         if name:
             path_dest = j.core.tools.text_replace("{DIR_VAR}/notebooks/%s" % name)
@@ -200,7 +201,17 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             path_dest = path_source
         return path_dest
 
-    def start(self, voila=False, background=False, base_url=None, name=None, port=8888, pname="notebook", reset=False):
+    def start(
+        self,
+        voila=False,
+        background=False,
+        base_url=None,
+        name=None,
+        port=8888,
+        pname="notebook",
+        path_source=None,
+        reset=False,
+    ):
         """
         to run:
 
@@ -214,7 +225,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         j.core.myenv.log_includes = []
         # e = self.calc()
-        path_dest = self.get_path_dest(name=name, reset=reset)
+        path_dest = self.get_path_dest(name=name, reset=reset, path_source=path_source)
         self._log_info("start notebook on:%s" % path_dest)
 
         j.servers.notebook.start(
@@ -222,6 +233,6 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         )  # it will open a browser with access to the right output
         j.application.reset_context()
 
-    def stop(self, voila=False, background=False, base_url=None, name=None, pname="notebook"):
-        path_dest = self.get_path_dest(name=name)
+    def stop(self, voila=False, background=False, base_url=None, name=None, pname="notebook", path_source=None, reset=False):
+        path_dest = self.get_path_dest(name=name, path_source=path_source, reset=reset)
         j.servers.notebook.stop(path=path_dest, voila=voila, background=background, base_url=base_url, pname=pname)
