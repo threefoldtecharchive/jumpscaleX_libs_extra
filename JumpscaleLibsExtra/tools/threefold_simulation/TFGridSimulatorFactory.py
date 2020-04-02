@@ -96,27 +96,44 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         kosmos 'j.tools.tfgrid_simulator.calc_custom_environment(reload=True)'
         """
 
-        # bom_name = "hpe_dl385_amd"
-        bom_name = "A_dc_rack"
-        "0:0,10:1000"
-        simulation = self.simulation_get(
+        startmonth = 1
+
+        # define how the nodes will grow
+        node_growth = "0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000"
+        # node_growth="0:5,6:150,12:1000,24:5000"
+        # node_growth="0:1000"
+
+        # tft price in 5 years, has impact on return
+        tft_price = 3
+
+        simulation = j.tools.tfgrid_simulator.simulation_get(
             name="default",
             tokencreator_name="optimized",
-            bom_name="amd",
-            node_growth=None,
-            tft_growth=3,
-            reload=reload,
+            bom_name="amd",  # dont change here, this is the growth calc
+            node_growth=node_growth,
+            tft_growth=tft_price,
+            reload=True,
         )
 
-        # bom2, environment2 = self.bom_environment_get("supermicro_compute")
-        bom2, environment2 = self.bom_environment_get(bom_name)
+        ###################################################
+        ## NOW THE NODES BATCH WE WANT TO SIMULATE FOR
 
-        nb = simulation.nodesbatch_get_environment(month=10, environment=environment2)
+        # bill of material name
+        # bom_name = "CH_archive"
+        bom_name = "A_dc_rack"
+        # bom_name = "hpe_dl385_amd"
+        # bom_name = "amd"
 
-        server = environment2.node_normalized
+        # parameters for simulation
+        # choose your hardware profile (other choices in stead of amd or supermicro or hpe)
+        bom, environment2 = j.tools.tfgrid_simulator.bom_environment_get(bom_name)
+        nb = simulation.nodesbatch_get_environment(month=startmonth, environment=environment2)
+        normalized = environment2.node_normalized
 
         print(nb)
-        print(server)
+        print(normalized)
+
+        j.shell()
 
         # nb._values_usd_get()
 
