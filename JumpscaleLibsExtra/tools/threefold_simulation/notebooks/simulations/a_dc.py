@@ -2,7 +2,7 @@
 from Jumpscale import j
 
 
-def simulation_calc(simulation, environment, bom):
+def simulation_calc(simulation, environment):
 
     # sales parameters
     # these are enduser prices for people buying capacity
@@ -56,4 +56,4 @@ def simulation_calc(simulation, environment, bom):
     # we can get the simulator to add the batches automatically based on chosen environment
     simulation.nodesbatches_add_auto(environment=environment)
 
-    return (simulation, environment, bom)
+    return (simulation, environment)

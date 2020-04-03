@@ -30,7 +30,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         self,
         name="default",
         tokencreator_name="optimized",
-        bom_name="amd",
+        hardware_config_name="amd",
         node_growth=None,
         tft_growth=None,
         reload=True,
@@ -60,13 +60,14 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         if reload or name not in self._instances:
             simulation = TFGridSimulator(name=name)
             # choose your token simulation !!!
-            bom, environment = self.bom_environment_get(bom_name, reload=reload)
+            environment = self.environment_get(hardware_config_name, reload=reload)
+            assert environment.nr_devices > 0
 
             exec(f"from token_creators.{tokencreator_name} import TokenCreator", globals())
             simulation.token_creator = TokenCreator(simulation=simulation, environment=environment)
 
             exec(f"from simulations.{name} import simulation_calc", globals())
-            simulation, environment, bom = simulation_calc(simulation, environment, bom)
+            simulation, environment = simulation_calc(simulation, environment)
 
             if tft_growth:
                 simulation.tokenprice_set(tft_growth)
@@ -76,7 +77,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
             # put the default bom's
             simulation.environment = environment
-            simulation.bom = bom
+            simulation.bom = environment.bom
 
             self._instances[name] = simulation
 
@@ -85,7 +86,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         # simulation.calc()
 
         if calc and simulation.simulated == False:
-            key = f"{name}_{tokencreator_name}_{bom_name}_{node_growth}_{tft_growth}"
+            key = f"{name}_{tokencreator_name}_{hardware_config_name}_{node_growth}_{tft_growth}"
             simulation.import_redis(key=key, autocacl=True, reset=reload)
 
         return simulation
@@ -109,7 +110,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         simulation = j.tools.tfgrid_simulator.simulation_get(
             name="default",
             tokencreator_name="optimized",
-            bom_name="amd",  # dont change here, this is the growth calc
+            hardware_config_name="amd",  # dont change here, this is the growth calc
             node_growth=node_growth,
             tft_growth=tft_price,
             reload=True,
@@ -119,19 +120,18 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         ## NOW THE NODES BATCH WE WANT TO SIMULATE FOR
 
         # bill of material name
-        # bom_name = "CH_archive"
-        bom_name = "A_dc_rack"
-        # bom_name = "hpe_dl385_amd"
-        # bom_name = "amd"
+        # hardware_config_name = "CH_archive"
+        hardware_config_name = "A_dc_rack"
+        # hardware_config_name = "hpe_dl385_amd"
+        # hardware_config_name = "amd"
 
         # parameters for simulation
         # choose your hardware profile (other choices in stead of amd or supermicro or hpe)
-        bom, environment2 = j.tools.tfgrid_simulator.bom_environment_get(bom_name)
-        nb = simulation.nodesbatch_get_environment(month=startmonth, environment=environment2)
-        normalized = environment2.node_normalized
+        nb = simulation.nodesbatch_simulate(month=startmonth, hardware_config_name=hardware_config_name)
 
         print(nb)
-        print(normalized)
+
+        # print(nb.normalized)
 
         j.shell()
 
@@ -141,9 +141,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         print(nb.roi_end)
 
-        j.shell()
-
-    def bom_environment_get(self, name="amd", reload=False):
+    def environment_get(self, name="amd", reload=False):
         """
         name is name of file in notebooks/params/hardware
 
@@ -154,26 +152,11 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         return (bom,environment)
 
         """
-
-        # if reload or name not in self._bom:
-        bom = BillOfMaterial(name=name)
-        environment = Environment(name=name)
-        exec(f"from hardware.{name} import bom_calc", globals())
-        bom, environment = bom_calc(bom, environment)
-        self._environments[name] = environment
-        self._bom[name] = bom
-        return (bom, environment)
-
-    # =======
-    #         if reload or name not in self._bom:
-    #             bom = BillOfMaterial(name=name)
-    #             environment = Environment(name=name)
-    #             exec(f"from hardware.{name} import bom_calc", globals())
-    #             bom, environment = bom_calc(bom, environment)
-    #             self._environments[name] = environment
-    #             self._bom[name] = bom
-    #         return (self._bom[name], self._environments[name])
-    # >>>>>>> 41d167af3d4380375fb60f0efd0c15940a2db15a
+        if not reload or name not in self._environments:
+            # if reload or name not in self._bom:
+            environment = Environment(name=name)
+            self._environments[name] = environment
+        return self._environments[name]
 
     def calc(self, batches_simulation=False, reload=False):
         """
@@ -184,7 +167,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         simulation = self.simulation_get(
             name="default",
             tokencreator_name="optimized",
-            bom_name="amd",
+            hardware_config_name="amd",
             node_growth=None,
             tft_growth="auto100",
             reload=reload,

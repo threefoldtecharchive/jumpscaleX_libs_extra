@@ -2,7 +2,7 @@
 from Jumpscale import j
 
 
-def simulation_calc(simulation, environment, bom):
+def simulation_calc(simulation, environment):
 
     # sales parameters
     # these are enduser prices for people buying capacity
@@ -50,10 +50,10 @@ def simulation_calc(simulation, environment, bom):
     # first batch of nodes added is 1500 nodes
     # each node is +-4.5k usd (check the bill of material sheet)
     # and we start the simulation with 800m tokens already farmed by the TF Farmers
-    simulation.nodesbatch_start_set(
-        environment=environment, nrnodes=1500, months_left=36, tft_farmed_before_simulation=800 * 1000 * 1000
-    )
+    # simulation.nodesbatch_start_set(
+    #     environment=environment, nrnodes=1500, months_left=36, tft_farmed_before_simulation=800 * 1000 * 1000
+    # )
     # we can get the simulator to add the batches automatically based on chosen environment
     simulation.nodesbatches_add_auto(environment=environment)
 
-    return (simulation, environment, bom)
+    return (simulation, environment)

@@ -67,6 +67,7 @@ class TFGridSimulator(SimulatorBase):
         self.token_creator = TokenCreator()
 
     def nodesbatch_add(self, environment, month, nrnodes):
+        assert environment.nr_devices > 0
         nb = NodesBatch(
             simulation=self, name=f"month_{month}", environment=environment, nrnodes=nrnodes, month_start=month
         )
@@ -281,14 +282,15 @@ class TFGridSimulator(SimulatorBase):
         """
 
         self._prepare()
-        self.nodebatches = self.nodebatches[0:1]  # only maintain first one
+        if len(self.nodebatches) > 0:
+            self.nodebatches = self.nodebatches[0:1]  # only maintain first one
 
         if not environment:
             environment = self.environment
 
         # calculate growth in nr nodes
         for month_now in range(0, 120):
-            if month_now > 0:
+            if len(self.nodebatches) == 0 or month_now > 0:
                 nr_new = self.rows.nrnodes_new.cells[month_now]
                 if nr_new > 0:
                     self.nodesbatch_add(environment=environment, month=month_now, nrnodes=nr_new)
@@ -364,7 +366,7 @@ class TFGridSimulator(SimulatorBase):
         self.rows.tft_farmer_income.clean()
         self.rows.tft_farmer_income_cumul.clean()
 
-        row = self._row_add("grid_valuation_rev_musd", aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True)
+        row = self._row_add("grid_valuation_rev_usd", aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True)
         row = self._row_add(
             "tft_calculated_based_rev_valuation", aggregate="FIRST", ttype="float", defval=0, empty=True, clean=True
         )
@@ -377,10 +379,10 @@ class TFGridSimulator(SimulatorBase):
             rev_over_years = rev_over_years
             return rev_over_years
 
-        self.rows.grid_valuation_rev_musd.function_apply(do)
+        self.rows.grid_valuation_rev_usd.function_apply(do)
 
         row = self._row_add(
-            "grid_valuation_margin_musd", aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True
+            "grid_valuation_margin_usd", aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True
         )
         row = self._row_add(
             "tft_calculated_based_margin_valuation", aggregate="FIRST", ttype="float", defval=0, empty=True, clean=True
@@ -394,7 +396,7 @@ class TFGridSimulator(SimulatorBase):
             marginoveryears = marginoveryears
             return marginoveryears
 
-        self.rows.grid_valuation_margin_musd.function_apply(do)
+        self.rows.grid_valuation_margin_usd.function_apply(do)
 
     def revenue_grid_max_get(self, x, environment=None):
         """
@@ -453,12 +455,15 @@ class TFGridSimulator(SimulatorBase):
     def nodesbatch_get(self, nr):
         return self.nodebatches[nr]
 
-    def nodesbatch_get_environment(self, month=10, environment=None, nrnodes=None):
+    def nodesbatch_simulate(self, month=1, hardware_config_name=None, environment=None, nrnodes=None):
+        if hardware_config_name:
+            environment = j.tools.tfgrid_simulator.environment_get(hardware_config_name)
         if not environment:
             environment = self.environment
+        name = f"nodesbatch_simulate_{environment.name}_{month}"
         if not nrnodes:
             nrnodes = environment.nr_nodes
-        nb = NodesBatch(simulation=self, name="custom", environment=environment, nrnodes=nrnodes, month_start=month)
+        nb = NodesBatch(simulation=self, name=name, environment=environment, nrnodes=nrnodes, month_start=month)
         nb.calc()
         return nb
 
@@ -507,7 +512,7 @@ class TFGridSimulator(SimulatorBase):
         if show:
             fig3.show()
 
-        row = self.rows.grid_valuation_rev_musd
+        row = self.rows.grid_valuation_rev_usd
         fig4 = go.FigureWidget()
         fig4.add_trace(go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="USD", connectgaps=False))
         fig4.update_layout(title="GRID valuation based on 5Y recurring revenue capability of grid", showlegend=True)
@@ -525,7 +530,7 @@ class TFGridSimulator(SimulatorBase):
         if show:
             fig5.show()
 
-        row = self.rows.grid_valuation_margin_musd
+        row = self.rows.grid_valuation_margin_usd
         fig6 = go.FigureWidget()
         fig6.add_trace(go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="USD", connectgaps=False))
         fig6.update_layout(title="GRID valuation based on 10x yearly net profit of grid (all farmers)", showlegend=True)
@@ -613,18 +618,23 @@ class TFGridSimulator(SimulatorBase):
         return fig
 
     def __repr__(self):
-        out = ""
-        for key in self.sheet.rows.keys():
-            row = self.sheet.rows[key]
-            if row.cells[1] and row.cells[1] < 3:
-                res = row.aggregate("Q", roundnr=2)
-            else:
-                res = row.aggregate("Q", roundnr=0)
-            res = [str(i) for i in res]
-            res2 = ", ".join(res)
-            out += " - %-20s %s\n" % (key, res2)
-
+        out = str(SimulatorBase.__repr__(self))
+        out += "\n"
+        out += self.sheet.text_formatted(period="B", aggregate_type=None, exclude=None)
         out += " - %-20s %s\n" % ("tft_sum", int(self.tft_sum))
         return out
+        #
+        #
+        # def __repr__(self):
+        #     out = ""
+        #     for key in self.sheet.rows.keys():
+        #         row = self.sheet.rows[key]
+        #         if row.cells[1] and row.cells[1] < 3:
+        #             res = row.aggregate("Q", roundnr=2)
+        #         else:
+        #             res = row.aggregate("Q", roundnr=0)
+        #         res = [str(i) for i in res]
+        #         res2 = ", ".join(res)
+        #         out += " - %-20s %s\n" % (key, res2)
 
     __str__ = __repr__

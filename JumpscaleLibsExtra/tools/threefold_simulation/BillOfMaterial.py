@@ -42,6 +42,7 @@ class BillOfMaterial(SimulatorBase):
 
     def _init(self, **kwargs):
         self._cat = "bom"
+        self.environment = kwargs["environment"]
 
     def component_get(self, name):
         for item in self.components:
@@ -60,14 +61,16 @@ class BillOfMaterial(SimulatorBase):
                 return item
         raise j.exceptions.Input("cannot find device template with name:%s" % name)
 
-    def device_get(self, name, device_template_name, description="", environment=None):
+    def device_get(self, name, device_template_name=None, description=""):
         """
         get device
         :param name:
         :return:
         """
+        if not device_template_name:
+            device_template_name = name
         d = Device(name=name, description=description, device_template_name=device_template_name)
-        d.calc(self, environment=environment)
+        d.calc(self, environment=self.environment)
         return d
 
 
@@ -219,8 +222,16 @@ class Environment(SimulatorBase):
         self._cat = "environment"
         self.devices = j.baseclasses.dict()
         self._node_normalized = None
-        self.nr_devices = 0
         self._state = "init"
+
+        assert self.name
+        self.bom = BillOfMaterial(self.name, environment=self)
+        exec(f"from hardware.{self.name} import bom_calc", globals())
+        bom_calc(environment=self)
+        assert self.nr_devices > 0
+        assert self.cost_power > 0
+        assert self.nr_nodes > 0
+        assert self.cost > 100
 
     def _device_add(self, name, device, nr, ttype):
         if name in self.devices:
