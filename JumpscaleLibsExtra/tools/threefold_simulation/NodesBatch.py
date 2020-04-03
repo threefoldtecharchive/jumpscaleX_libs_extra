@@ -76,6 +76,7 @@ class NodesBatch(SimulatorBase):
         self.node.power = n.power
 
         improve = self.simulation.sheet.rows["cpr_improve"].cells[self.month_start] / 100
+        assert self.environment.nr_devices
         self.node.cpr = self.environment.cpr / self.environment.nr_devices * (1 + improve)
 
         self.nrcols = self.month_start + self.months_left
@@ -188,6 +189,11 @@ class NodesBatch(SimulatorBase):
 
         self.simulated_months.append(month)
 
+        if month == 5 and self.environment.name != "amd":
+            print(self)
+            j.shell()
+            w
+
         return tft_farmer_income
 
     @property
@@ -212,6 +218,10 @@ class NodesBatch(SimulatorBase):
     @property
     def cpr(self):
         return self.node.cpr * self.nrnodes
+
+    @property
+    def node_normalized(self):
+        return self.environment.node_normalized
 
     def markdown(self):
         out = SimulatorBase.__repr__(self)
@@ -292,20 +302,9 @@ class NodesBatch(SimulatorBase):
         return fig
 
     def __repr__(self):
-        print(SimulatorBase.__repr__(self))
-        out = ""
-        for key in self.sheet.rows.keys():
-            row = self.sheet.rows[key]
-            if row.cells[1] and float(row.cells[1]) < 3:
-                res = row.aggregate("Q", roundnr=2)
-            else:
-                res = row.aggregate("Q", roundnr=0)
-            res = [str(i) for i in res]
-            res2 = ", ".join(res)
-            out += " - %-20s %s\n" % (key, res2)
-
-        for key in ["roi_months"]:
-            res = getattr(self, key)
-            out += " - %-20s %s\n" % (key, res)
-
+        out = str(SimulatorBase.__repr__(self))
+        out += "\n"
+        out += self.sheet.text_formatted(period="B", aggregate_type=None, exclude=None)
         return out
+
+    __str__ = __repr__
