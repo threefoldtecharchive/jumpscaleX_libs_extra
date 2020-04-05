@@ -189,10 +189,10 @@ class NodesBatch(SimulatorBase):
 
         self.simulated_months.append(month)
 
-        if month == 5 and self.environment.name != "amd":
-            print(self)
-            j.shell()
-            w
+        # if month == 5 and self.environment.name != "amd":
+        #     print(self)
+        #     j.shell()
+        #     w
 
         return tft_farmer_income
 
