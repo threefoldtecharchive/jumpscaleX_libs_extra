@@ -221,18 +221,27 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         kosmos -p 'j.tools.tfgrid_simulator.start(name=None)'
         """
 
-        j.application.start("tfsimulation")
+        if background:
+            startup = j.servers.startupcmd.get(name="simulator", cmd_start="j.tools.tfgrid_simulator.start()")
+            startup.interpreter = "jumpscale"
+            startup.timeout = 60
+            startup.ports = [port]
+            startup.start()
+        else:
+            j.application.start("tfsimulation")
 
-        j.core.myenv.log_includes = []
-        # e = self.calc()
-        path_dest = self.get_path_dest(name=name, reset=reset, path_source=path_source)
-        self._log_info("start notebook on:%s" % path_dest)
+            j.core.myenv.log_includes = []
+            # e = self.calc()
+            path_dest = self.get_path_dest(name=name, reset=reset, path_source=path_source)
+            self._log_info("start notebook on:%s" % path_dest)
 
-        j.servers.notebook.start(
-            path=path_dest, voila=voila, background=background, base_url=base_url, port=port, pname=pname
-        )  # it will open a browser with access to the right output
-        j.application.reset_context()
+            j.servers.notebook.start(
+                path=path_dest, voila=voila, background=background, base_url=base_url, port=port, pname=pname
+            )  # it will open a browser with access to the right output
+            j.application.reset_context()
 
-    def stop(self, voila=False, background=False, base_url=None, name=None, pname="notebook", path_source=None, reset=False):
+    def stop(
+        self, voila=False, background=False, base_url=None, name=None, pname="notebook", path_source=None, reset=False
+    ):
         path_dest = self.get_path_dest(name=name, path_source=path_source, reset=reset)
         j.servers.notebook.stop(path=path_dest, voila=voila, background=background, base_url=base_url, pname=pname)
