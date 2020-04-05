@@ -83,11 +83,11 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         simulation = self._instances[name]
 
-        # simulation.calc()
-
-        if calc and simulation.simulated == False:
-            key = f"{name}_{tokencreator_name}_{hardware_config_name}_{node_growth}_{tft_growth}"
-            simulation.import_redis(key=key, autocacl=True, reset=reload)
+        simulation.calc()
+        # calc = True
+        # if calc and simulation.simulated == False:
+        #     key = f"{name}_{tokencreator_name}_{hardware_config_name}_{node_growth}_{tft_growth}"
+        #     simulation.import_redis(key=key, autocacl=True, reset=reload)
 
         return simulation
 
@@ -132,8 +132,6 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         print(nb)
 
         # print(nb.normalized)
-
-        j.shell()
 
         # nb._values_usd_get()
 
