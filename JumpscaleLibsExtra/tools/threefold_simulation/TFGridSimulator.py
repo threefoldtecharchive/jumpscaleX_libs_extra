@@ -411,7 +411,8 @@ class TFGridSimulator(SimulatorBase):
         device = environment.node_normalized
         cpr_usd = environment.sales_price_cpr_unit_get(self, x)
         nrnodes = self.rows.nrnodes_total.cells[x]
-        rev = float(device.cpr) * float(nrnodes) * float(cpr_usd)
+        # 10% less than max
+        rev = float(device.cpr) * float(nrnodes) * float(cpr_usd) * 0.9
         return rev
 
     def cost_grid_max_get(self, x, environment=None):

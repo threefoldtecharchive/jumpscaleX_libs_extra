@@ -126,6 +126,15 @@ class NodesBatch(SimulatorBase):
         for i in range(self.month_start, self.month_start + self.months_left):
             self._calc(i)
 
+    @property
+    def tft_farmed_total(self):
+        total = 0
+        for x in self.sheet.rows.tft_farmed.cells:
+            if x:
+                total += float(x)
+
+        return int(total)
+
     def _calc(self, month):
 
         if month < self.month_start:
