@@ -40,6 +40,7 @@ def simulation_calc(simulation, environment):
     # so below will let the price go from 0.15 first month to 3 over 60 months
     # 119 is the last month we need to set (10 years from now, the relevant one is 5 years but simulator needs a further one
     # simulation.tokenprice_set("0:0.15,60:3,119:6")
+    # simulation.tokenprice_set("0:0.15")
 
     # month:growth_percent of nodes being added
     # this means month 1 (is 0 in this file) we add 5 nodes, month 12 we add 1000 new nodes
@@ -51,7 +52,7 @@ def simulation_calc(simulation, environment):
     # each node is +-4.5k usd (check the bill of material sheet)
     # and we start the simulation with 800m tokens already farmed by the TF Farmers
     simulation.nodesbatch_start_set(
-        environment=environment, nrnodes=1500, months_left=36, tft_farmed_before_simulation=800 * 1000 * 1000
+        environment=environment, nrnodes=1500, months_left=36, tft_farmed_before_simulation=700 * 1000 * 1000
     )
     # we can get the simulator to add the batches automatically based on chosen environment
     simulation.nodesbatches_add_auto(environment=environment)

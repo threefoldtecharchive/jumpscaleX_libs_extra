@@ -37,7 +37,7 @@ class TokenCreator:
         @param month is the month to calculate the added tft for
         @param month_batch is when the node batch was originally added
         """
-        
+
         # FARMING ARGUMENTS ARE CREATED HERE, THIS IS THE MAIN CALCULATION
         tft_new = nodes_batch.cpr * self.cpr_tft(month) / self.difficulty_level_get(month)
 
@@ -92,7 +92,10 @@ class TokenCreator:
         this is the main formulla to make sure we can never have more than 2billion tokens
 
         """
-        tft_total = int(self.simulation.tft_total(month - 1))
+        if month == 0:
+            tft_total = int(self.simulation.tft_total(month))
+        else:
+            tft_total = int(self.simulation.tft_total(month - 1))
         perc = tft_total / 2000000000 * 100
         if perc < 10:
             return 1

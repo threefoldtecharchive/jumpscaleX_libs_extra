@@ -45,11 +45,16 @@ class NodesBatch(SimulatorBase):
         self.__init()
 
         self._row_add("tft_farmed")
+        self._row_add("tft_farmed_usd")
         self._row_add("tft_cultivated")  # sold capacity
+        self._row_add("tft_cultivated_usd")  # sold capacity
         self._row_add("tft_sold")  # sold tft to cover power & rackspace costs
         self._row_add("tft_burned")
         self._row_add("tft_farmer_income")
         self._row_add("tft_farmer_income_cumul")
+
+        self._row_add("difficulty_level")
+        self._row_add("tft_price")
 
         self._row_add("cost_rackspace")
         self._row_add("cost_power")
@@ -144,6 +149,8 @@ class NodesBatch(SimulatorBase):
             utilization = self.simulation.utilization_get(month)
             if utilization < 0.8:
                 utilization = utilization * 1.2  # take buffer
+            if utilization < 0.2:
+                utilization = 0.2
             power = self.node.power * self.nrnodes * utilization
             self._set("power", month, power)
             cost_power = power / 1000 * 24 * 30 * self.simulation.cost_power_kwh_get(month)
@@ -162,7 +169,9 @@ class NodesBatch(SimulatorBase):
             tft_cultivated = int(self.simulation.token_creator.tft_cultivate(month, self))
             tft_burned = int(self.simulation.token_creator.tft_burn(month, self))
             self._set("tft_farmed", month, tft_farmed)
+            self._set("tft_farmed_usd", month, tft_farmed * tftprice_now)
             self._set("tft_cultivated", month, tft_cultivated)
+            self._set("tft_cultivated_usd", month, tft_cultivated * tftprice_now)
             self._set("tft_burned", month, -tft_burned)
             tft_sold = (float(cost_power) + float(cost_rackspace) + float(cost_maintenance)) / float(tftprice_now)
             self._set("tft_sold", month, -tft_sold)
@@ -170,6 +179,10 @@ class NodesBatch(SimulatorBase):
             self._set("tft_farmer_income", month, tft_farmer_income)
 
             self._set("tft_movement_usd", month, tftprice_now * floatt(tft_farmer_income))
+
+            self._set("difficulty_level", month, self.simulation.token_creator.difficulty_level_get(month))
+            self._set("tft_price", month, tftprice_now)
+
         else:
             tft_farmer_income = 0
 
