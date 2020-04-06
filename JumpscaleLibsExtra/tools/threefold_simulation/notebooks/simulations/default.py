@@ -4,14 +4,6 @@ from Jumpscale import j
 
 def simulation_calc(simulation, environment):
 
-    # sales parameters
-    # these are enduser prices for people buying capacity
-    # following prices are very aggressive
-    # compute unit = 4 GB memory and 2 virtual CPU, in market price between 40 and USD120
-    simulation.sales_price_cu = "8 USD"
-    # storage unit = 1 TB of netto usable storage, in market prices between 20 and USD120
-    simulation.sales_price_su = "5 USD"
-
     # costs for environment
     # is the cost of 1 kwh
     environment.cost_power_kwh = "0.15 USD"
@@ -31,7 +23,7 @@ def simulation_calc(simulation, environment):
 
     # super important factor, how does token price goes up
     # this is ofcourse complete speculation, no-one knows
-    simulation.tokenprice_set_5years(3)
+    # simulation.tokenprice_set_5years(3)
 
     ##if you want to do it more specific
     # 0:0 means month 0 we have value 0
@@ -45,7 +37,7 @@ def simulation_calc(simulation, environment):
     # month:growth_percent of nodes being added
     # this means month 1 (is 0 in this file) we add 5 nodes, month 12 we add 1000 new nodes
 
-    simulation.nrnodes_new_set("0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000")
+    # simulation.nrnodes_new_set("0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000")
     # simulation.nrnodes_new_set("0:5,6:150,20:5000")
 
     # first batch of nodes added is 1500 nodes
@@ -54,7 +46,4 @@ def simulation_calc(simulation, environment):
     simulation.nodesbatch_start_set(
         environment=environment, nrnodes=1500, months_left=36, tft_farmed_before_simulation=700 * 1000 * 1000
     )
-    # we can get the simulator to add the batches automatically based on chosen environment
-    simulation.nodesbatches_add_auto(environment=environment)
-
     return (simulation, environment)
