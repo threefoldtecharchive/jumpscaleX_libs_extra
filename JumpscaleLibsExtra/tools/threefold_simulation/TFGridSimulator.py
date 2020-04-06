@@ -14,8 +14,8 @@ class TFGridSimulator(SimulatorBase):
     _SCHEMATEXT = """
         @url = threefold.simulation
         name = ""
-        cpr_sum = 0.0 (F)
-        tft_sum = 0.0 (F)
+        # cpr_sum = 0.0 (F)
+        # tft_sum = 0.0 (F)
         simulated = false (B)
         sales_price_cu = (N)
         sales_price_su = (N)
@@ -67,6 +67,7 @@ class TFGridSimulator(SimulatorBase):
         self.token_creator = TokenCreator()
 
     def nodesbatch_add(self, environment, month, nrnodes):
+        self._nodesbatch_start_check(environment=environment)
         assert environment.nr_devices > 0
         nb = NodesBatch(
             simulation=self, name=f"month_{month}", environment=environment, nrnodes=nrnodes, month_start=month
@@ -76,9 +77,13 @@ class TFGridSimulator(SimulatorBase):
         self.nodebatches[month] = nb
         return self.nodebatches[month]
 
+    def _nodesbatch_start_check(self, environment):
+        if not "cost_rack_unit" in self.sheet.rows:
+            self.cost_rack_unit_set(environment)
+            self.cost_power_kwh_set(environment)
+
     def nodesbatch_start_set(self, environment, nrnodes=1500, months_left=36, tft_farmed_before_simulation=0):
-        self.cost_rack_unit_set(environment)
-        self.cost_power_kwh_set(environment)
+        self._nodesbatch_start_check(environment=environment)
         nb = self.nodesbatch_add(environment=environment, month=0, nrnodes=nrnodes)
         nb.tft_farmed_before_simulation = tft_farmed_before_simulation
         nb.months_left = months_left
@@ -230,11 +235,10 @@ class TFGridSimulator(SimulatorBase):
         amounts of tft in the blockchain
         total nr of tft
         """
-        if month == None:
-            month = self.sheet.nrcols - 1
+        assert month != None
         tft_total = int(self.rows.tft_farmed_cumul.cells[month])
-        if month == 0:
-            tft_total += int(self.nodesbatch_get(0).tft_farmed_before_simulation)
+        # if month == 0:
+        #     tft_total += int(self.nodesbatch_get(0).tft_farmed_before_simulation)
         return tft_total
 
     def _row_add(self, name, aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True):
@@ -621,7 +625,7 @@ class TFGridSimulator(SimulatorBase):
         out = str(SimulatorBase.__repr__(self))
         out += "\n"
         out += self.sheet.text_formatted(period="B", aggregate_type=None, exclude=None)
-        out += " - %-20s %s\n" % ("tft_sum", int(self.tft_sum))
+        # out += " - %-20s %s\n" % ("tft_sum", int(self.tft_sum))
         return out
         #
         #

@@ -91,13 +91,49 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         return simulation
 
+    def calc_custom_environment2(self):
+
+        startmonth = 0
+
+        # define how the nodes will grow
+        # can also change this in your simulation file, which is recommended
+        # node_growth="0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000"
+        # node_growth="0:5,6:150,12:1000,24:5000"
+        # node_growth="0:1000"
+
+        simulation = j.tools.tfgrid_simulator.simulation_get(
+            name="a_dc",  # name of the simulator
+            tokencreator_name="optimized",
+            hardware_config_name="amd",  # dont change here, this simulates the baseline
+            node_growth=None,
+            tft_growth=None,
+            reload=True,
+        )
+
+        ###################################################
+        ## NOW THE NODES BATCH WE WANT TO SIMULATE FOR
+
+        # bill of material name
+        # hardware_config_name = "CH_archive"
+        hardware_config_name = "A_dc_rack"
+        # hardware_config_name = "hpe_dl385_amd"
+        # hardware_config_name = "amd"
+
+        # parameters for simulation
+        # choose your hardware profile (other choices in stead of amd or supermicro or hpe)
+        nb = simulation.nodesbatch_simulate(month=startmonth, hardware_config_name=hardware_config_name)
+        node_normalized = nb.node_normalized
+        environment2 = nb.environment
+
+        j.shell()
+
     def calc_custom_environment(self, reload=False):
         """
         kosmos 'j.tools.tfgrid_simulator.calc_custom_environment()'
         kosmos 'j.tools.tfgrid_simulator.calc_custom_environment(reload=True)'
         """
 
-        startmonth = 1
+        startmonth = 0
 
         # define how the nodes will grow
         node_growth = "0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000"
@@ -106,6 +142,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         # tft price in 5 years, has impact on return
         tft_price = 3
+        tft_price = "0:0.15"
 
         simulation = j.tools.tfgrid_simulator.simulation_get(
             name="default",
@@ -130,6 +167,8 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         nb = simulation.nodesbatch_simulate(month=startmonth, hardware_config_name=hardware_config_name)
 
         print(nb)
+
+        j.shell()
 
         # print(nb.normalized)
 
@@ -162,14 +201,30 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         kosmos 'j.tools.tfgrid_simulator.calc(reload=True)'
         :return:
         """
+
+        startmonth = 1
+
+        # define how the nodes will grow
+        node_growth = "0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000"
+        # node_growth="0:5,6:150,12:1000,24:5000"
+        # node_growth="0:1000"
+
+        # tft price in 5 years, has impact on return
+        tft_price = 3
+        tft_price = "0:0.15"
+        # tft_price = "auto100"
+
         simulation = self.simulation_get(
             name="default",
             tokencreator_name="optimized",
             hardware_config_name="amd",
-            node_growth=None,
-            tft_growth="auto100",
+            node_growth=node_growth,
+            tft_growth=tft_price,
             reload=reload,
         )
+
+        nb0 = simulation.nodesbatch_get(0)
+        j.shell()
 
         if batches_simulation:
             # nrnodes is 2nd
