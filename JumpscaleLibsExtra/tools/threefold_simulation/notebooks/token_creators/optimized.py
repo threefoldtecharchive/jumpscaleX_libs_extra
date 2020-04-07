@@ -16,7 +16,11 @@ class TokenCreator:
         self.simulation = simulation
         self.environment = environment
         self.sheet = j.data.worksheets.sheet_new("tokencreator", nrcols=120)
-
+        
+        self.burn=j.tools.tfgrid_simulator.simulator_config.tokenomics.burn_percent
+        assert self.burn>=0
+        assert self.burn<51    
+        
     def cpr_usd(self, month):
 
         # cpr is the cloud production rate, like a hashrate for a bitcoin miner
@@ -26,7 +30,7 @@ class TokenCreator:
         # we took as definition that nr for cpr to usd
         # we say ROI for batch 1 (month 1) is 6 months, thats why we need to devide by 6
 
-        return 40 / 6
+        return j.tools.tfgrid_simulator.simulator_config.tokenomics.cpr_investment_usd / 6
 
     def cpr_tft(self, month):
         # we can choose the model we want
@@ -50,11 +54,35 @@ class TokenCreator:
         utilization = self.simulation.utilization_get(month)
         assert utilization < 100
         tft_price = self.simulation.tft_price_get(month)
-        cpr_sales_price = self.environment.sales_price_cpr_unit_get(self.simulation, month)
-        tft_received = utilization * float(cpr_sales_price) / float(tft_price) * nodes_batch.cpr
+        cpr_sales_price = self.simulation.sales_price_cpr_unit_get(month, forindex=False)
+        assert cpr_sales_price > 0
+        tft_received = nodes_batch.cpr * utilization * cpr_sales_price / tft_price
 
         return tft_received
-
+    
+    def burn_split(self,month):
+        """
+        split the burning for farmer & blockchain
+        take into consideration the 5 a 10% for TF Foundation
+        """
+        burn = self.burn+0 #to have copy        
+        farmerpart = 100-burn
+        if month<24:
+            #ThreeFold Foundation gets 10%
+            tfpart=10
+        else:
+            if burn<30:
+                tfpart=10
+            else:
+                tfpart=5
+        
+        if burn<tfpart:
+            farmerpart = farmerpart - (tfpart-burn)
+            
+        blockchainburn_part = 100 - farmerpart - tfpart
+            
+        return (farmerpart/100,blockchainburn_part/100)
+            
     def tft_cultivate(self, month, nodes_batch):
         """
         calculate the nr of TFT cultivated for the full batch
@@ -63,7 +91,9 @@ class TokenCreator:
         @param month is the month to calculate the added tft for
         @param month_batch is when the node batch was originally added
         """
-        return self._tft_for_capacity_sold(month=month, nodes_batch=nodes_batch) * 0.5
+        farmerpart,blockchainburn_part=self.burn_split(month=month)
+        return self._tft_for_capacity_sold(month=month, nodes_batch=nodes_batch) * farmerpart
+
 
     def tft_burn(self, month, nodes_batch):
         """
@@ -74,14 +104,8 @@ class TokenCreator:
         this is the benefit of any TFT holder because we burn (destroy) tokens as capacity is sold
 
         """
-
-        if month < 24:
-            # 10% is kept for foundation for first 24 months
-            part = 0.4
-        else:
-            # 5% is kept for foundation
-            part = 0.45
-        return self._tft_for_capacity_sold(month=month, nodes_batch=nodes_batch) * part
+        farmerpart,blockchainburn_part=self.burn_split(month=month)        
+        return self._tft_for_capacity_sold(month=month, nodes_batch=nodes_batch) * blockchainburn_part
 
     def difficulty_level_get(self, month):
         """
