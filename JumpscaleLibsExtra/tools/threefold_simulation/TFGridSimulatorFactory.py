@@ -36,6 +36,18 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             if j.sal.fs.getFileExtension(i) == "py"
         ]
 
+    def _code_links_create(self):
+        """
+        create the links to code so its visible from the notebook
+
+        kosmos 'j.tools.tfgrid_simulator.code_links_create()'
+
+        """
+        src = f"{self._dirpath}"
+        dest = f"{self._dirpath}/notebooks/code/"
+        j.core.tools.delete(dest)
+        j.sal.fs.symlinkFilesInDir(src, dest, delete=False, includeDirs=False, makeExecutable=False, filter="*.py")
+
     def simulation_get(
         self,
         name="default",
@@ -94,13 +106,15 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             simulation = TFGridSimulator(name=name)
             # choose your token simulation !!!
             environment = self.environment_get(hardware_config_name, reload=reload)
-            assert environment.nr_devices > 0
+            assert environment.nodes_production_count > 0
 
             exec(f"from token_creators.{tokencreator_name} import TokenCreator", globals())
             simulation.token_creator = TokenCreator(simulation=simulation, environment=environment)
 
             exec(f"from simulations.{name} import simulation_calc", globals())
             simulation, environment = simulation_calc(simulation, environment)
+
+            environment.calc()
 
             # if node_growth:
             simulation.nrnodes_new_set(node_growth)
@@ -133,7 +147,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         kosmos 'j.tools.tfgrid_simulator.calc_custom_environment(reload=True)'
         """
 
-        startmonth = 0
+        startmonth = 1
 
         simulation = j.tools.tfgrid_simulator.simulation_get(tokencreator_name="optimized", reload=True,)
 
@@ -194,13 +208,10 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             name="default", tokencreator_name="optimized", hardware_config_name="amd", reload=reload
         )
 
-        nb0 = simulation.nodesbatch_get(0)
+        nb0 = simulation.nodesbatch_get(startmonth)
 
         print(simulation)
         print(nb0)
-
-        j.shell()
-        nb0.tft_farmed_total
 
         j.shell()
 
@@ -238,6 +249,8 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         #means we run the notebook in the code env (careful)
         kosmos -p 'j.tools.tfgrid_simulator.start(name=None)'
         """
+
+        self._code_links_create()
 
         if background:
             startup = j.servers.startupcmd.get(name="simulator", cmd_start="j.tools.tfgrid_simulator.start()")
