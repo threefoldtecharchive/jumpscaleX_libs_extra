@@ -14,7 +14,7 @@ kosmos
 ```
 
 ```python
-dns_machine = j.tools.threebot_deploy.get("dns", do_machine_name="dogateway", do_token="YOUR DIGITAL OCEAN TOKEN", do_project_name="codescalers", ssh_key="YOUR SSH KEY")
+dns_machine = j.me.encryptor.tools_deploy.get("dns", do_machine_name="dogateway", do_token="YOUR DIGITAL OCEAN TOKEN", do_project_name="codescalers", ssh_key="YOUR SSH KEY")
 ```
 
 **Note**: YOUR SSH KEY is the one which you will use to access the machine with. It should be saved on digital ocean's account, if not you can use your docker's ssh key
@@ -58,7 +58,7 @@ kosmos
 ```
 
 ```python
-wikis_machine = j.tools.threebot_deploy.get("wikis", do_machine_name="wikis", do_token="YOUR DIGITAL OCEAN TOKEN", ssh_key="YOUR SSH KEY")
+wikis_machine = j.me.encryptor.tools_deploy.get("wikis", do_machine_name="wikis", do_token="YOUR DIGITAL OCEAN TOKEN", ssh_key="YOUR SSH KEY")
 ```
 
 **Note**: YOUR SSH KEY is the one which you will use to access the machine with. It should be saved on digital ocean's account, if not you can use your docker's ssh key
