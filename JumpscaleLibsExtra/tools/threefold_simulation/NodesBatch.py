@@ -25,15 +25,6 @@ class NodesBatch(SimulatorBase):
         month_start = 0
         months_left = 60
         tft_farmed_before_simulation = 0 (F)
-        node = (O) !threefold.simulation.nodesbatch.node
-        simulated_months = (L)
-        
-        #the params at start
-        @url = threefold.simulation.nodesbatch.node
-        rackspace_u = (F)
-        cost_hardware = (N)
-        cpr = (F)
-        power = (F)
         """
 
     def _init(self, **kwargs):
@@ -60,12 +51,16 @@ class NodesBatch(SimulatorBase):
         self._row_add("cost_power")
         self._row_add("cost_hardware")
         self._row_add("cost_maintenance")
+        self._row_add("cost_network")
         self._row_add("rackspace_u")
         self._row_add("power")
+        self._row_add("mbit_sec_used")
 
         self._row_add("tft_movement_usd")
         self._row_add("tft_farmer_income_cumul_usd")
         self._row_add("roi")
+
+        self._period = "B"  # can be Y, Q
 
     def __init(self):
 
@@ -75,14 +70,16 @@ class NodesBatch(SimulatorBase):
 
         self.batch_nr = self.month_start
 
-        n = self.environment.node_normalized
-        self.node.rackspace_u = n.rackspace_u
-        self.node.cost_hardware = n.cost
-        self.node.power = n.power
+        self.simulated_months = []
 
-        improve = self.simulation.sheet.rows["cpr_improve"].cells[self.month_start] / 100
-        assert self.environment.nr_devices
-        self.node.cpr = self.environment.cpr / self.environment.nr_devices * (1 + improve)
+        # n = self.environment.node_normalized
+        # self.node_normalized.rackspace_u = n.rackspace_u
+        # self.node_normalized.cost_hardware = n.cost
+        # self.node_normalized.power = n.power
+
+        # improve = self.simulation.sheet.rows["cpr_improve"].cells[self.month_start] / 100
+        # assert self.environment.nr_devices
+        # self.node_normalized.cpr = self.environment.cpr / self.environment.nr_devices * (1 + improve)
 
         self.nrcols = self.month_start + self.months_left
 
@@ -99,6 +96,9 @@ class NodesBatch(SimulatorBase):
         self.sheet.clean()
 
     def _row_add(self, name, aggregate="FIRST", ttype=None):
+        """
+
+        """
         row = self.sheet.addRow(name, aggregate=aggregate, ttype=ttype, nrcols=120)
         row.window_month_start = self.month_start
         row.window_month_period = self.months_left
@@ -135,10 +135,23 @@ class NodesBatch(SimulatorBase):
 
         return int(total)
 
-    def _calc(self, month):
+    def calc_detail(self):
+
+        for i in range(self.month_start, self.month_start + self.months_left):
+            self._calc(i, detail=True)
+
+    def _calc(self, month, detail=False):
 
         if month < self.month_start:
             return
+
+        if details:
+
+            self._row_add("cost_rackspace")
+            self._row_add("cost_power")
+            self._row_add("cost_hardware")
+            self._row_add("cost_maintenance")
+            self._row_add("cost_network")
 
         floatt = self.simulation._float
         tftprice_now = self.simulation.tft_price_get(month)
@@ -150,7 +163,7 @@ class NodesBatch(SimulatorBase):
             if month in self.simulated_months:
                 raise j.exceptions.Input("should not calculate month:%s again" % month)
 
-            rackspace_u = self.node.rackspace_u * self.nrnodes
+            rackspace_u = self.node_normalized.total.rackspace_u * self.nrnodes
             self._set("rackspace_u", month, rackspace_u)
             cost_rackspace = rackspace_u * self.simulation.cost_rack_unit_get(month)
             self._set("cost_rackspace", month, cost_rackspace)
@@ -160,16 +173,21 @@ class NodesBatch(SimulatorBase):
                 utilization = utilization * 1.2  # take buffer
             if utilization < 0.2:
                 utilization = 0.2
-            power = self.node.power * self.nrnodes * utilization
+
+            power = self.node_normalized.total.power * self.nrnodes * utilization
             self._set("power", month, power)
-            cost_power = power / 1000 * 24 * 30 * self.simulation.cost_power_kwh_get(month)
+            cost_power = self.node_normalized.total.cost_power_month_usd * self.nrnodes * utilization
             self._set("cost_power", month, cost_power)
 
-            cost_hardware = self.node.cost_hardware * self.nrnodes / 60
+            cost_hardware = self.node_normalized.total.cost_hardware_month * self.nrnodes
             self._set("cost_hardware", month, cost_hardware)
 
-            cost_maintenance = cost_hardware * 0.2  # means we spend 20% on cost of HW on maintenance/people
+            cost_maintenance = cost_hardware * self.environment.params.cost_maintenance_percent_of_hw / 100
             self._set("cost_maintenance", month, cost_maintenance)
+
+            cost_network = self.node_normalized.production.cost_nu_month * self.nrnodes
+
+            self._set("cost_network", month, cost_network)
 
             tft_farmed = self.simulation.token_creator.tft_farm(month, self)
             if month == 0:
@@ -205,7 +223,7 @@ class NodesBatch(SimulatorBase):
         tft_farmer_income_cumul_usd = tftprice_now * tft_farmer_income_cumul
         self._set("tft_farmer_income_cumul_usd", month, tft_farmer_income_cumul_usd)
 
-        cost_total_hardware_investment = float(self.node.cost_hardware * self.nrnodes)
+        cost_total_hardware_investment = float(self.node_normalized.total.cost_hardware * self.nrnodes)
         roi = float(tft_farmer_income_cumul_usd) / float(cost_total_hardware_investment)
         self._set("roi", month, roi)
 
@@ -235,11 +253,15 @@ class NodesBatch(SimulatorBase):
 
     @property
     def cost_hardware(self):
-        return self.node.cost_hardware * self.nrnodes
+        return self.node_normalized.total.cost_hardware * self.nrnodes
+
+    @property
+    def cost_hardware_month(self):
+        return self.node_normalized.total.cost_hardware_month * self.nrnodes
 
     @property
     def cpr(self):
-        return self.node.cpr * self.nrnodes
+        return self.node_normalized.production.cpr * self.nrnodes
 
     @property
     def node_normalized(self):
@@ -326,7 +348,7 @@ class NodesBatch(SimulatorBase):
     def __repr__(self):
         out = str(SimulatorBase.__repr__(self))
         out += "\n"
-        out += self.sheet.text_formatted(period="B", aggregate_type=None, exclude=None)
+        out += self.sheet.text_formatted(period=self._period, aggregate_type=None, exclude=None)
         return out
 
     __str__ = __repr__

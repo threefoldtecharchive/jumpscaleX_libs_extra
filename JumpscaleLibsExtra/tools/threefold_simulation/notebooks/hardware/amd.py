@@ -7,11 +7,6 @@ def bom_calc(environment):
 
     environment.bom = bom_populate(environment.bom)
 
-    # see the bill of material sheet to define the devices
-    server = environment.bom.device_get("server")
-    # the switch added to the node
-    switch = environment.bom.device_get("switch")
-
     # an environment to simulate the overhead per node (eg. 1 switch per node)
-    environment.device_node_add("compute", server, 20)
-    environment.device_overhead_add("switch", switch, 2)
+    environment.device_node_add("compute", template="server", nr=20)
+    environment.device_overhead_add("switch", template="switch", nr=2)

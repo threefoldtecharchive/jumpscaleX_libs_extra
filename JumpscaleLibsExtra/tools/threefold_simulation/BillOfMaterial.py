@@ -61,17 +61,16 @@ class BillOfMaterial(SimulatorBase):
                 return item
         raise j.exceptions.Input("cannot find device template with name:%s" % name)
 
-    def device_get(self, name, device_template_name=None, description=""):
-        """
-        get device
-        :param name:
-        :return:
-        """
-        if not device_template_name:
-            device_template_name = name
-        d = Device(name=name, description=description, device_template_name=device_template_name)
-        d.calc(self, environment=self.environment)
-        return d
+    # def device_get(self, name, device_template_name=None, description=""):
+    #     """
+    #     get device
+    #     :param name:
+    #     :return:
+    #     """
+    #     if not device_template_name:
+    #         device_template_name = name
+    #     d = Device(name=name, description=description, device_template_name=device_template_name)
+    #     return d
 
 
 class Component(j.baseclasses.object):
@@ -85,293 +84,348 @@ class Component(j.baseclasses.object):
     __repr__ = __str__
 
 
-class Device(SimulatorBase):
+class DeviceEnvBase(SimulatorBase):
+
+    _SCHEMATEXT = """
+        @url = threefold.simulation.device_or_environment
+        name = ""
+        description = ""
+        device_template_name = ""
+
+        production = (O) !threefold.simulation.bom.production
+        total = (O) !threefold.simulation.bom.total
+        costunits = (O) !threefold.simulation.bom.costunits
+        layout = (O) !threefold.simulation.bom.layout     
+        params = (O) !threefold.simulation.bom.params           
+        
+
+        #aggregation for nodes only (the ones who deliver cloud units)
+        @url = threefold.simulation.bom.production        
+        cpr = 0 (I)  #cloud production rate        
+        cru = 0 (I)
+        sru = 0 (I)
+        hru = 0 (I)
+        mru = 0 (I)
+        su = 0 (F)
+        cu = 0 (F)
+        nu_used_month = 0 (I)
+        cu_perc = 0 (P)
+        su_perc = 0 (P)
+        cu_passmark = 0 (I)
+        #special one is the multiplication of GB transfered with the cost of 1 NU
+        cost_nu_month = 0 (N)
+
+        #aggregation over all devices in env (nodes + overhead)
+        @url = threefold.simulation.bom.total
+        cost_hardware = 0 (I)
+        power = 0 (I)
+        power_kwh_month = 0 (I)
+        rackspace_u = 0 (F)
+        cost_hardware_month = 0 (N)
+        cost_rack_month = 0 (N)
+        cost_power_month = 0 (N)        
+        cost_maintenance_month = 0 (N)
+        cost_total_month = 0 (N)
+
+        #no aggregation for device same as for environment
+        @url = threefold.simulation.bom.costunits
+        cost_cu_month = 0 (F)
+        cost_su_month = 0 (F)
+        cost_nu_month = 0 (F)        
+        cost_su_capex = 0 (F)
+        cost_cu_capex = 0 (F)
+
+        #make distinction between overhead and production nodes        
+        @url = threefold.simulation.bom.layout
+        nr_devices_overhead = 0 (I)
+        nr_devices_production = 0 (I)
+        devices_production = [] (LS)
+        devices_overhead = [] (LS)
+        
+        @url = threefold.simulation.bom.params
+        cost_power_kwh = 0.15 (N)
+        cost_rack_unit = 12 (N)
+        cost_mbitsec_month = 2 (N)
+        cost_maintenance_percent_of_hw = 10 (I)
+        months_writeoff = 60 (I)         
+
+        """
+
+    @property
+    def _property_names(self):
+        """
+
+        production, total, costunits, params = self._property_names
+
+        """
+        production = [p.name for p in self._data.production._schema.properties]
+        total = [p.name for p in self._data.total._schema.properties]
+        costunits = [p.name for p in self._data.costunits._schema.properties]
+        params = [p.name for p in self._data.params._schema.properties]
+        return (production, total, costunits, params)
+
+    def clear(self):
+
+        production_names, total_names, costunits_names, param_names = self._property_names
+
+        for propname in production_names:
+            setattr(self.production, propname, 0.0)
+        for propname in total_names:
+            setattr(self.total, propname, 0.0)
+        for propname in costunits_names:
+            setattr(self.costunits, propname, 0.0)
+
+    @property
+    def nodes_all_count(self):
+        return self.layout.nr_devices_overhead + self.layout.nr_devices_production
+
+    @property
+    def nodes_production_count(self):
+        return self.layout.nr_devices_production
+
+
+class Device(DeviceEnvBase):
     """
     a device which can be used to build a cloud with
     """
 
-    _SCHEMATEXT = """
-        @url = threefold.simulation.device
-        name = ""
-        description = ""
-        device_template_name =
-        cost = (N)
-        power = (I)
-        rackspace_u = (F)
-        cru = (F)
-        sru = (F)
-        hru = (F)
-        mru = (F)
-        su = (F)
-        cu = (F)
-        nu = (F)
-        cu_passmark = 0 (I)
-        su_perc = (P)
-        cu_perc = (P)
-        cpr = (I)  #cloud production rate
-        cost_su_capex = (N)
-        cost_cu_capex = (N)
-        cost_power = (N)
-        cost_rack = (N)
-        cost_month = (N)
-        cost_cu_month = (N)
-        cost_su_month = (N)
-
-        """
-
-    def _init(self, **kwargs):
+    def _init(self, bom=None, environment=None, template=None, normalized=False, **kwargs):
         self._cat = "device"
-        # if not self.device_template_name and "device_template_name" in kwargs:
-        #     self.device_template_name = kwargs["device_template_name"]
-        if "normalized" not in kwargs:
-            assert self.device_template_name
+        if not normalized:
+            template = bom.device_template_get(template)
+            self.device_template_name = template.name
+        else:
+            self.device_template_name = "normalized"
         self.components = j.baseclasses.dict()
+        self._calculated = False
+        if not normalized:
+            self._calc(bom=bom, environment=environment)
 
-    def calc(self, bom, environment=None):
+    def nu_calc(self, environment):
+        """
+        calculate the cost of 1 network unit
+        """
+        # how many GB per month can one mbit transfer if used 50% of time
+        nrGB_month = 1 * 0.5 * (3600 * 24 * 30) / (1024 * 8)
+        self.costunits.cost_nu_month = environment.params.cost_mbitsec_month / nrGB_month
+        config = j.tools.tfgrid_simulator.simulator_config.network
+        self.production.nu_used_month = (
+            config.nu_multiplier_from_cu * self.production.cu + config.nu_multiplier_from_su * self.production.su
+        )
+        # self.cost_nu_month = nrnu * self.cost_nu
+
+    def _calc(self, bom, environment=None):
+        assert self._calculated == False
         templ = bom.device_template_get(self.device_template_name)
-        self.cost = 0
-        self.power = 0
-        self.rackspace_u = 0
-        self.cru = 0
-        self.sru = 0
-        self.hru = 0
-        self.mru = 0
-        self.su_perc = 0
-        self.cu_perc = 0
-        self.su = 0
-        self.cu = 0
-        self.cu_passmark = 0.0
+        self.clear()
+        passmark = 0.0
         su_weight = 0.0
         cu_weight = 0.0
-        self.cpr = 0
-        passmark = 0
         for component in templ.components:
             c = bom.component_get(name=component.name)
             c2 = Component(nr=component.nr, component=c)
-            self.cost += c.cost * c2.nr
-            self.power += c.power * c2.nr
-            self.rackspace_u += c.rackspace_u * c2.nr
-            self.cru += c.cru * c2.nr
-            self.sru += c.sru * c2.nr
-            self.hru += c.hru * c2.nr
-            self.mru += c.mru * c2.nr
+            self.total.cost_hardware += float(c.cost) * c2.nr
+            self.total.power += float(c.power) * c2.nr
+            self.total.rackspace_u += c.rackspace_u * c2.nr
+            self.production.cru += c.cru * c2.nr
+            self.production.sru += c.sru * c2.nr
+            self.production.hru += c.hru * c2.nr
+            self.production.mru += c.mru * c2.nr
             passmark += c.passmark * c2.nr
             # not right: needs to be weighted one way or the other
             su_weight += float(c.cost * c2.nr * c.su_perc)
             cu_weight += float(c.cost * c2.nr * c.cu_perc)
             self.components[component.name] = c2
-        self.su = self.hru / 1000 / 1.2 + self.sru / 100 / 1.2
-        self.cu = min((self.mru - 1) / 4, self.cru * 4)
-        self.cu_passmark = passmark / self.cu
+        self.production.su = self.production.hru / 1000 / 1.2 + self.production.sru / 100 / 1.2
+        self.production.cu = min((self.production.mru - 1) / 4, self.production.cru * 4)
+        self.production.cu_passmark = passmark / self.production.cu
         if su_weight or cu_weight:
-            self.cu_perc = cu_weight / (su_weight + cu_weight)
-            self.su_perc = su_weight / (su_weight + cu_weight)
-            self.cost_su_capex = self.cost / self.su * self.su_perc
-            self.cost_cu_capex = self.cost / self.cu * self.cu_perc
+            self.production.cu_perc = cu_weight / (su_weight + cu_weight)
+            self.production.su_perc = su_weight / (su_weight + cu_weight)
+            self.costunits.cost_cu_capex = self.total.cost_hardware / self.production.cu * self.production.cu_perc
+            self.costunits.cost_su_capex = self.total.cost_hardware / self.production.su * self.production.su_perc
+
         if environment:
-            self.cost_power = self.power * 24 * 30 / 1000 * float(environment._data.cost_power_kwh)
-            self.cost_rack = self.rackspace_u * float(environment._data.cost_rack_unit)
-        self.cost_month = self.cost_power + self.cost_rack + self.cost / 60
-        if self.cu:
-            self.cost_cu_month = self.cost_month / self.cu * self.cu_perc
-        if self.su:
-            self.cost_su_month = self.cost_month / self.su * self.su_perc
+            self.nu_calc(environment)
+            self.total.power_kwh_month = self.total.power * 24 * 30
+            self.total.cost_power_month = (
+                self.total.power_kwh_month * float(environment._data.params.cost_power_kwh) / 1000
+            )
 
-        self.cpr = self.cu * 1.5 + self.su
+            self.total.cost_rack_month = self.total.rackspace_u * float(environment._data.params.cost_rack_unit)
 
-        config = j.tools.tfgrid_simulator.simulator_config.network
-        self.nu = config.nu_multiplier_from_cu * self.cu + config.nu_multiplier_from_su * self.su
+            self.total.cost_hardware_month = self.total.cost_hardware / environment._data.params.months_writeoff
+            self.total.cost_maintenance_month = (
+                self.total.cost_hardware_month * environment._data.params.cost_maintenance_percent_of_hw / 100
+            )
+            self.total.cost_total_month = (
+                self.total.cost_power_month
+                + self.total.cost_rack_month
+                + self.total.cost_hardware_month
+                + self.total.cost_maintenance_month
+            )
+            if self.production.cu:
+                self.costunits.cost_cu_month = (
+                    self.total.cost_total_month / self.production.cu * self.production.cu_perc
+                )
+            if self.production.su:
+                self.costunits.cost_su_month = (
+                    self.total.cost_total_month / self.production.su * self.production.su_perc
+                )
+            self.production.cost_nu_month = float(self.costunits.cost_nu_month) * self.production.nu_used_month
+
+        self.production.cpr = self.production.cu * 1.5 + self.production.su
+
+        self.params = environment.params
+
+        self._calculated = True
 
 
-class Environment(SimulatorBase):
+class Environment(DeviceEnvBase):
     """
     x nr of devices in 1 environment
     """
 
-    _SCHEMATEXT = """
-        @url = threefold.simulation.environment
-        name = ""
-        description = ""
-        cost_power_kwh = 0.15 (N)
-        cost_rack_unit = 12 (N)
-        cost = (N)
-        power = (I)
-        rackspace_u = (F)
-        cru = (F)
-        sru = (F)
-        hru = (F)
-        mru = (F)
-        su = (F)
-        cu = (F)
-        nu = (F)
-        cu_passmark = (I)
-        su_perc = (P)
-        cu_perc = (P)
-        cpr = (I)  #cloud production rate
-        cost_su_capex = (N)
-        cost_cu_capex = (N)
-        cost_power = (N)
-        cost_rack = (N)
-        cost_month = (N)
-        cost_cu_month = (N)
-        cost_su_month = (N)
-        # bandwidth_mbit = (F)
-        # cost_bandwidth = (N)
-        nr_devices = 0
-        nr_nodes = 0
-        # sales_price_total = (N)
-        # sales_price_cpr_unit = (N)
-        """
+    # def __init__(self, **kwargs):
+    #     Device.__init__(self, **kwargs)
 
     def _init(self, **kwargs):
         self._cat = "environment"
         self.devices = j.baseclasses.dict()
-        self._node_normalized = None
         self._state = "init"
 
         assert self.name
         self.bom = BillOfMaterial(self.name, environment=self)
         exec(f"from hardware.{self.name} import bom_calc", globals())
         bom_calc(environment=self)
-        assert self.nr_devices > 0
-        assert self.cost_power > 0
-        assert self.nr_nodes > 0
-        assert self.cost > 100
+        assert self.params.cost_power_kwh > 0
+        assert self.params.months_writeoff > 20
+        assert self.layout.nr_devices_overhead > 0
+        assert self.layout.nr_devices_production > 0
+        self._calcdone = False
 
-    def _device_add(self, name, device, nr, ttype):
+    def device_node_add(self, name, template=None, nr=None):
+        assert template
+        assert isinstance(template, str)
+        assert nr
+        assert nr > 0
         if name in self.devices:
             raise j.exceptions.Input("device with name:%s already added" % name)
-        assert ttype in ["n", "o"]
-        self.devices[name] = (nr, device, ttype)
-        self.nr_devices += nr
-        self.calc()
+        device = Device(name=name, template=template, bom=self.bom, environment=self)
+        device.layout.nr_devices_production = nr
+        self.layout.nr_devices_production += nr
+        self.devices[name] = device
+        self.layout.devices_production.append(f"{device.name}*{nr}")
 
-    def device_node_add(self, name, device, nr):
-        self._device_add(name, device, nr, "n")
-        self.nr_nodes += nr
+    def device_overhead_add(self, name, template=None, nr=None):
+        assert template
+        assert isinstance(template, str)
+        assert nr
+        assert nr > 0
+        if name in self.devices:
+            raise j.exceptions.Input("device with name:%s already added" % name)
+        device = Device(name=name, template=template, bom=self.bom, environment=self)
+        device.layout.nr_devices_overhead = nr
+        self.layout.nr_devices_overhead += nr
+        self.devices[name] = device
+        self.layout.devices_overhead.append(f"{device.name}*{nr}")
 
-    def device_overhead_add(self, name, device, nr):
-        self._device_add(name, device, nr, "o")
-
-    def _node_normalized_get(self):
+    @property
+    def nodes_production(self):
         devicesfound = []
-        # if self.name == "A_dc_rack":
-        #     j.debug()
-        for nr, device, ttype in self.devices.values():
-            if ttype == "n":
-                devicesfound.append((nr, device))
+        for device in self.devices.values():
+            if device.layout.nr_devices_production > 0:
+                assert device.layout.nr_devices_overhead == 0
+                devicesfound.append(device)
         if len(devicesfound) == 0:
             raise j.exceptions.Input("did not find a device in he environment, cannot calculate node normalized")
         else:
             return devicesfound
 
     @property
-    def node_normalized(self):
-        """
-        add all nodes which can deal with workloads and create avg node out of it
-        easier to deal with in simulation
-        """
-        if not self._node_normalized:
-            devices = self._node_normalized_get()
-            device_n = Device(normalized=True)
-            device_n.name = "normalized_device_%s" % self.name.lower().replace("_", ".")
-            nrnodes = 0
-            propnames = [
-                "cu_passmark",
-                "cpr",
-                "cru",
-                "sru",
-                "hru",
-                "mru",
-                "su",
-                "nu",
-                "cu",
-                "cu_perc",
-                "su_perc",
-            ]
-            propnames_env = [
-                "rackspace_u",
-                "cost_rack",
-                "cost_power",
-                "cost_month",
-                "cost",
-                "power",
-            ]
-            propnames_copy = [
-                "cost_cu_month",
-                "cost_su_month",
-                "cost_su_capex",
-                "cost_cu_capex",
-            ]
-            for propname in propnames + propnames_env + propnames_copy:
-                setattr(device_n, propname, 0.0)
+    def nr_nodes(self):
+        return len(self.nodes_production)
 
-            for nr, device in devices:
-                nrnodes += nr
-                for propname in propnames:
-                    val_sum = getattr(device_n, propname)
-                    val = getattr(device, propname) * nr
-                    val_sum += val
-                    setattr(device_n, propname, val_sum)
+    @property
+    def nodes_overhead(self):
+        devicesfound = []
+        for device in self.devices.values():
+            if device.layout.nr_devices_overhead > 0:
+                assert device.layout.nr_devices_production == 0
+                devicesfound.append(device)
+        return devicesfound
 
-            # normalize to 1 node, so device by nr of nodes for above properties
-            for propname in propnames:
-                val_sum = getattr(device_n, propname) / nrnodes
-                setattr(device_n, propname, val_sum)
-
-            for propname in propnames_env:
-                val_sum = getattr(self, propname) / nrnodes
-                setattr(device_n, propname, val_sum)
-
-            for propname in propnames_copy:
-                setattr(device_n, propname, getattr(self, propname))
-
-            self._node_normalized = device_n
-
-        return self._node_normalized
+    @property
+    def nodes_all(self):
+        return [d for d in self.devices.values()]
 
     def calc(self):
-        self.cost = 0
-        self.power = 0
-        self.rackspace_u = 0
-        self.cru = 0
-        self.sru = 0
-        self.hru = 0
-        self.mru = 0
-        self.su_perc = 0
-        self.cu_perc = 0
-        self.su = 0
-        self.cu = 0
+
+        assert self._calcdone == False
+
         su_weight = 0.0
         cu_weight = 0.0
-        self.cu_passmark = 0.0
-        p_nr = 0
-        for nr, device, ttype in self.devices.values():
-            self.cost += device.cost * nr
-            self.power += device.power * nr
-            self.rackspace_u += device.rackspace_u * nr
-            if ttype == "n":
-                self.cru += device.cru * nr
-                self.sru += device.sru * nr
-                self.hru += device.hru * nr
-                self.mru += device.mru * nr
-                self.su += device.su * nr
-                self.cu += device.cu * nr
-                # not 100% right: needs to be weighted one way or the other
-                su_weight += device.su_perc * nr * float(device.cost)
-                cu_weight += device.cu_perc * nr * float(device.cost)
-                self.cu_passmark += device.cu_passmark * nr
+        self.clear()
+
+        production_names, total_names, costunits_names, param_names = self._property_names
+
+        # sum for all production values
+        for device in self.nodes_production:
+
+            for propname in production_names:
+                val_sum = getattr(self.production, propname)
+                val = getattr(device.production, propname) * device.nodes_production_count
+                val_sum += val
+                setattr(self.production, propname, val_sum)
+
+            su_weight += float(device.layout.nr_devices_production * device.production.su_perc)
+            cu_weight += float(device.layout.nr_devices_production * device.production.cu_perc)
+
+        # aggregate for all nodes
+        for device in self.nodes_all:
+
+            for propname in total_names:
+                val_sum = getattr(self.total, propname)
+                val = getattr(device.total, propname) * device.nodes_all_count
+                val_sum += val
+                setattr(self.total, propname, val_sum)
+
+        # just copy
+        for device in self.nodes_all:
+
+            for propname in costunits_names:
+                setattr(self.costunits, propname, getattr(device.costunits, propname))
 
         if su_weight or cu_weight:
-            self.cu_perc = cu_weight / (su_weight + cu_weight)
-            self.su_perc = su_weight / (su_weight + cu_weight)
-        self.cost_su_capex = self.cost / self.su * self.su_perc
-        self.cost_cu_capex = self.cost / self.cu * self.cu_perc
-        self.cost_power = self.power * 24 * 30 / 1000 * float(self._data.cost_power_kwh)
-        self.cost_rack = self.rackspace_u * float(self._data.cost_rack_unit)
-        self.cost_month = self.cost_power + self.cost_rack + self.cost / 60
-        self.cost_cu_month = self.cost_month / self.cu * self.cu_perc
-        self.cost_su_month = self.cost_month / self.su * self.su_perc
-        self.cpr = self.cu * 1.5 + self.su
-        config = j.tools.tfgrid_simulator.simulator_config.network
-        self.nu = config.nu_multiplier_from_cu * self.cu + config.nu_multiplier_from_su * self.su
+            self.production.cu_perc = cu_weight / (su_weight + cu_weight)
+            self.production.su_perc = su_weight / (su_weight + cu_weight)
+            self.costunits.cost_cu_capex = self.total.cost_hardware / self.production.cu * self.production.cu_perc
+            self.costunits.cost_su_capex = self.total.cost_hardware / self.production.su * self.production.su_perc
+            self.costunits.cost_cu_month = self.total.cost_total_month / self.production.cu * self.production.cu_perc
+            self.costunits.cost_su_month = self.total.cost_total_month / self.production.su * self.production.su_perc
+            self.production.cost_nu_month = float(self.costunits.cost_nu_month) * self.production.nu_used_month
+
+        # calculate the normalized node
+        device = Device(normalized=True)
+        device.name = "normalized_device_%s" % self.name.lower().replace("_", ".")
+        device.clear()  # make sure its empty
+
+        # normalize to 1 node, so device by nr of nodes for above properties
+        nrnodes = self.nodes_production_count
+        for propname in production_names:
+            setattr(device.production, propname, getattr(self.production, propname) / nrnodes)
+
+        for propname in total_names:
+            setattr(device.total, propname, getattr(self.total, propname) / nrnodes)
+
+        for propname in param_names:
+            setattr(device.params, propname, getattr(device.params, propname))
+
+        for propname in costunits_names:
+            setattr(device.costunits, propname, getattr(self.costunits, propname))
+
+        device.layout.nr_devices_production = 1
+
+        self.node_normalized = device
+
+        self._calcdone = True

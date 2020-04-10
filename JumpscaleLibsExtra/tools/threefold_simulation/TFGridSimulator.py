@@ -78,7 +78,7 @@ class TFGridSimulator(SimulatorBase):
 
     def nodesbatch_add(self, environment, month, nrnodes):
         self._nodesbatch_start_check(environment=environment)
-        assert environment.nr_devices > 0
+        assert environment.nodes_production_count > 0
         nb = NodesBatch(
             simulation=self, name=f"month_{month}", environment=environment, nrnodes=nrnodes, month_start=month
         )
@@ -158,7 +158,7 @@ class TFGridSimulator(SimulatorBase):
         """
         config = j.tools.tfgrid_simulator.simulator_config
         if config.tft_pricing_type == "auto":
-            tft_price_5y = config.cloudindex.tft_price_5y_baseline
+            tft_price_5y = config.cloudvaluation.tft_price_5y_baseline
         else:
             tft_price_5y = config.tft_price_5y
 
@@ -365,13 +365,15 @@ class TFGridSimulator(SimulatorBase):
         node = self.environment.node_normalized
         cpr_sales_price_decline = self.cpr_sales_price_decline_get(month)
         if forindex:
-            pricegetter = j.tools.tfgrid_simulator.simulator_config.cloudindex
+            pricegetter = j.tools.tfgrid_simulator.simulator_config.cloudvaluation
         else:
             pricegetter = j.tools.tfgrid_simulator.simulator_config.pricing
         sales_price_total = (
-            pricegetter.price_cu * node.cu + pricegetter.price_su * node.su + pricegetter.price_nu * node.nu
+            pricegetter.price_cu * node.production.cu
+            + pricegetter.price_su * node.production.su
+            + pricegetter.price_nu * node.production.nu_used_month
         )
-        sales_price_cpr_unit = (sales_price_total / node.cpr) / (1 + cpr_sales_price_decline)
+        sales_price_cpr_unit = (sales_price_total / node.production.cpr) / (1 + cpr_sales_price_decline)
         return sales_price_cpr_unit
 
     def cloud_index_revenue_get(self, x):
@@ -383,7 +385,7 @@ class TFGridSimulator(SimulatorBase):
         # includes networking
         cpr_usd = self.sales_price_cpr_unit_get(month=x, forindex=True)
         nrnodes = self.rows.nrnodes_total.cells[x]
-        rev = float(node.cpr) * float(nrnodes) * float(cpr_usd)
+        rev = float(node.production.cpr) * float(nrnodes) * float(cpr_usd)
         return rev
 
     def cloud_index_cost_get(self, x):
@@ -393,7 +395,7 @@ class TFGridSimulator(SimulatorBase):
         """
         node = self.environment.node_normalized
         nrnodes = self.rows.nrnodes_total.cells[x]
-        cost = float(node.cost_month) * float(nrnodes)
+        cost = float(node.total.cost_month) * float(nrnodes)
         return cost
 
     def cloud_index_margin_get(self, x):
@@ -407,7 +409,7 @@ class TFGridSimulator(SimulatorBase):
         the value of the grid at that month based on selected cloud index calculation method
         """
         rev = self.cloud_index_revenue_get(x)
-        config = j.tools.tfgrid_simulator.simulator_config.cloudindex
+        config = j.tools.tfgrid_simulator.simulator_config.cloudvaluation
 
         if config.indextype == "revenue":
             rev = int(rev * config.revenue_months)
@@ -431,12 +433,12 @@ class TFGridSimulator(SimulatorBase):
     def cost_rack_unit_set(self, environment=None):
         if not environment:
             environment = self.environment
-        self._interpolate("cost_rack_unit", "0:%s" % environment.cost_rack_unit)
+        self._interpolate("cost_rack_unit", "0:%s" % environment.params.cost_rack_unit)
 
     def cost_power_kwh_set(self, environment=None):
         if not environment:
             environment = self.environment
-        self._interpolate("cost_power_kwh", "0:%s" % environment.cost_power_kwh)
+        self._interpolate("cost_power_kwh", "0:%s" % environment.params.cost_power_kwh)
 
     def nodesbatch_get(self, nr):
         return self.nodebatches[nr]
@@ -449,6 +451,8 @@ class TFGridSimulator(SimulatorBase):
         name = f"nodesbatch_simulate_{environment.name}_{month}"
         if not nrnodes:
             nrnodes = environment.nr_nodes
+        if not environment._calcdone:
+            environment.calc()
         nb = NodesBatch(simulation=self, name=name, environment=environment, nrnodes=nrnodes, month_start=month)
         nb.calc()
         return nb
@@ -460,7 +464,7 @@ class TFGridSimulator(SimulatorBase):
         for i in [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]:
             nb = self.nodesbatch_get(i)
             x, name, values, row = nb._values_usd_get(names=["farmer_income_cumul"], single=True)[0]
-            values = [i / float(nb.node.cost_hardware) for i in values]
+            values = [i / float(nb.node_normalized.total.cost_hardware) for i in values]
             fig.add_trace(go.Scatter(x=x, y=values, name="batch_%s" % i, connectgaps=False))
         fig.update_layout(title="Return on investment per node over months.", showlegend=True)
 
