@@ -292,7 +292,6 @@ class Environment(DeviceEnvBase):
     def _init(self, **kwargs):
         self._cat = "environment"
         self.devices = j.baseclasses.dict()
-        self._node_normalized = None
         self._state = "init"
 
         assert self.name
@@ -342,6 +341,10 @@ class Environment(DeviceEnvBase):
             raise j.exceptions.Input("did not find a device in he environment, cannot calculate node normalized")
         else:
             return devicesfound
+
+    @property
+    def nr_nodes(self):
+        return len(self.nodes_production)
 
     @property
     def nodes_overhead(self):
@@ -419,7 +422,9 @@ class Environment(DeviceEnvBase):
             setattr(device.params, propname, getattr(device.params, propname))
 
         for propname in costunits_names:
-            setattr(device.costunits, propname, getattr(device.costunits, propname))
+            setattr(device.costunits, propname, getattr(self.costunits, propname))
+
+        device.layout.nr_devices_production = 1
 
         self.node_normalized = device
 

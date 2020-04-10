@@ -25,15 +25,6 @@ class NodesBatch(SimulatorBase):
         month_start = 0
         months_left = 60
         tft_farmed_before_simulation = 0 (F)
-        # node = (O) !threefold.simulation.nodesbatch.node
-        # simulated_months = (L)
-        # 
-        # #the params at start
-        # @url = threefold.simulation.nodesbatch.node
-        # rackspace_u = (F)
-        # cost_hardware = (N)
-        # cpr = (F)
-        # power = (F)
         """
 
     def _init(self, **kwargs):
@@ -69,6 +60,8 @@ class NodesBatch(SimulatorBase):
         self._row_add("tft_farmer_income_cumul_usd")
         self._row_add("roi")
 
+        self._period = "B"  # can be Y, Q
+
     def __init(self):
 
         self.sheet = j.data.worksheets.sheet_new("batch_%s" % self.batch_nr, nrcols=120)
@@ -103,6 +96,9 @@ class NodesBatch(SimulatorBase):
         self.sheet.clean()
 
     def _row_add(self, name, aggregate="FIRST", ttype=None):
+        """
+
+        """
         row = self.sheet.addRow(name, aggregate=aggregate, ttype=ttype, nrcols=120)
         row.window_month_start = self.month_start
         row.window_month_period = self.months_left
@@ -139,10 +135,23 @@ class NodesBatch(SimulatorBase):
 
         return int(total)
 
-    def _calc(self, month):
+    def calc_detail(self):
+
+        for i in range(self.month_start, self.month_start + self.months_left):
+            self._calc(i, detail=True)
+
+    def _calc(self, month, detail=False):
 
         if month < self.month_start:
             return
+
+        if details:
+
+            self._row_add("cost_rackspace")
+            self._row_add("cost_power")
+            self._row_add("cost_hardware")
+            self._row_add("cost_maintenance")
+            self._row_add("cost_network")
 
         floatt = self.simulation._float
         tftprice_now = self.simulation.tft_price_get(month)
@@ -339,7 +348,7 @@ class NodesBatch(SimulatorBase):
     def __repr__(self):
         out = str(SimulatorBase.__repr__(self))
         out += "\n"
-        out += self.sheet.text_formatted(period="B", aggregate_type=None, exclude=None)
+        out += self.sheet.text_formatted(period=self._period, aggregate_type=None, exclude=None)
         return out
 
     __str__ = __repr__

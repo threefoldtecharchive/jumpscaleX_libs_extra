@@ -451,6 +451,8 @@ class TFGridSimulator(SimulatorBase):
         name = f"nodesbatch_simulate_{environment.name}_{month}"
         if not nrnodes:
             nrnodes = environment.nr_nodes
+        if not environment._calcdone:
+            environment.calc()
         nb = NodesBatch(simulation=self, name=name, environment=environment, nrnodes=nrnodes, month_start=month)
         nb.calc()
         return nb
@@ -462,7 +464,7 @@ class TFGridSimulator(SimulatorBase):
         for i in [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]:
             nb = self.nodesbatch_get(i)
             x, name, values, row = nb._values_usd_get(names=["farmer_income_cumul"], single=True)[0]
-            values = [i / float(nb.node.cost_hardware) for i in values]
+            values = [i / float(nb.node_normalized.total.cost_hardware) for i in values]
             fig.add_trace(go.Scatter(x=x, y=values, name="batch_%s" % i, connectgaps=False))
         fig.update_layout(title="Return on investment per node over months.", showlegend=True)
 

@@ -165,10 +165,9 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         nb = simulation.nodesbatch_simulate(month=startmonth, hardware_config_name=hardware_config_name)
 
         print(nb)
+        print(nb.node_normalized)
 
         j.shell()
-
-        # print(nb.normalized)
 
         print(nb.tft_farmed_total)
 
@@ -209,6 +208,8 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         )
 
         nb0 = simulation.nodesbatch_get(startmonth)
+
+        nb0.graph("cost_network")
 
         print(simulation)
         print(nb0)
