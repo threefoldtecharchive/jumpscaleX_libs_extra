@@ -234,7 +234,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
     def start(
         self,
         voila=False,
-        background=False,
+        background=True,
         base_url=None,
         name=None,
         port=8888,
@@ -254,7 +254,8 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         self._code_links_create()
 
         if background:
-            startup = j.servers.startupcmd.get(name="simulator", cmd_start="j.tools.tfgrid_simulator.start()")
+            cmd_start = f"j.tools.tfgrid_simulator.start(port={port},background=False)"
+            startup = j.servers.startupcmd.get(name="simulator", cmd_start=cmd_start)
             startup.interpreter = "jumpscale"
             startup.timeout = 60
             startup.ports = [port]
@@ -272,8 +273,6 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             )  # it will open a browser with access to the right output
             j.application.reset_context()
 
-    def stop(
-        self, voila=False, background=False, base_url=None, name=None, pname="notebook", path_source=None, reset=False
-    ):
-        path_dest = self.get_path_dest(name=name, path_source=path_source, reset=reset)
-        j.servers.notebook.stop(path=path_dest, voila=voila, background=background, base_url=base_url, pname=pname)
+    def stop(self):
+        startup = j.servers.startupcmd.get(name="simulator")
+        startup.stop()
