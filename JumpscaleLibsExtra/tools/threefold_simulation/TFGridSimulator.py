@@ -14,22 +14,20 @@ class TFGridSimulator(SimulatorBase):
     _SCHEMATEXT = """
         @url = threefold.simulation
         name = ""
-        # cpr_sum = 0.0 (F)
-        # tft_sum = 0.0 (F)
         simulated = false (B)               
         """
 
     @property
     def sales_price_cu(self):
-        return self.config.price_cu
+        return self.config.pricing.price_cu
 
     @property
     def sales_price_su(self):
-        return self.config.price_su
+        return self.config.pricing.price_su
 
     @property
     def sales_price_nu(self):
-        return self.config.price_nu
+        return self.config.pricing.price_nu
 
     def export_(self):
         r = {}
@@ -119,6 +117,16 @@ class TFGridSimulator(SimulatorBase):
         """
         self._interpolate("cpr_improve", args)
 
+    def cpr_improve_get(self, month):
+        """
+        return 0->0.4
+        0.4 means price declide of 40%
+        """
+        cpr_improve = self.rows.cpr_improve.cells[month]
+        assert cpr_improve >= 0
+        assert cpr_improve < 101
+        return self._float(cpr_improve / 100)
+
     def cpr_sales_price_decline_set(self, args):
         """
         The salesprice will decline over time
@@ -130,10 +138,10 @@ class TFGridSimulator(SimulatorBase):
         """
         self._interpolate("cpr_sales_price_decline", args)
 
-    def cpr_sales_price_decline_get(self, month):
+    def sales_price_decline_get(self, month):
         """
-        return 0->40
-        40 means price declide of 40%
+        return 0->0.4
+        0.4 means price declide of 40%
         """
         cpr_sales_price_decline = self.rows.cpr_sales_price_decline.cells[month]
         assert cpr_sales_price_decline >= 0
@@ -191,7 +199,7 @@ class TFGridSimulator(SimulatorBase):
     def grid_valuation(self, month=None):
         if month == None:
             month = self.sheet.nrcols - 1
-        return self.cloud_index_get(x=month)
+        return self.cloud_valuation_get(x=month)
 
     def tft_price_get(self, month=None):
         config = j.tools.tfgrid_simulator.simulator_config
@@ -244,6 +252,8 @@ class TFGridSimulator(SimulatorBase):
             self._row_add("cost_power")
             self._row_add("cost_hardware")
             self._row_add("cost_maintenance")
+            self._row_add("cost_network")
+            self._row_add("cost_total")
             self._row_add("rackspace_u", ttype="float")
             self._row_add("power_kw", ttype="float")
 
@@ -253,6 +263,15 @@ class TFGridSimulator(SimulatorBase):
             self._row_add("tft_movement_usd")
             self._row_add("tft_farmer_income_cumul_usd")  # What is cumul = cumulative (all aggregated)
             self._row_add("tft_marketcap")
+
+            self._row_add("rev_compute")
+            self._row_add("rev_storage")
+            self._row_add("rev_network")
+            self._row_add("rev_total")
+            self._row_add("rev_compute_max")
+            self._row_add("rev_storage_max")
+            self._row_add("rev_network_max")
+            self._row_add("rev_total_max")
 
             self.tokenprice_set()
 
@@ -326,8 +345,18 @@ class TFGridSimulator(SimulatorBase):
                 self.rows.cost_power.cells[month] += self._float(nb.rows.cost_power.cells[month])
                 self.rows.cost_hardware.cells[month] += self._float(nb.rows.cost_hardware.cells[month])
                 self.rows.cost_maintenance.cells[month] += self._float(nb.rows.cost_maintenance.cells[month])
+                self.rows.cost_network.cells[month] += self._float(nb.rows.cost_network.cells[month])
 
                 self.rows.investment.cells[month] += self._float(nb.cost_hardware)
+
+                self.rows.rev_compute.cells[month] += self._float(nb.rows.rev_compute.cells[month])
+                self.rows.rev_storage.cells[month] += self._float(nb.rows.rev_storage.cells[month])
+                self.rows.rev_network.cells[month] += self._float(nb.rows.rev_network.cells[month])
+                self.rows.rev_total.cells[month] += self._float(nb.rows.rev_total.cells[month])
+                self.rows.rev_compute_max.cells[month] += self._float(nb.rows.rev_compute_max.cells[month])
+                self.rows.rev_storage_max.cells[month] += self._float(nb.rows.rev_storage_max.cells[month])
+                self.rows.rev_network_max.cells[month] += self._float(nb.rows.rev_network_max.cells[month])
+                self.rows.rev_total_max.cells[month] += self._float(nb.rows.rev_total_max.cells[month])
 
             self.rows.tft_movement_usd.cells[month] = tftprice_now * self.rows.tft_farmer_income.cells[month]
             self.rows.tft_farmer_income_cumul_usd.cells[month] = (
@@ -350,6 +379,15 @@ class TFGridSimulator(SimulatorBase):
         self.rows.tft_farmer_income.clean()
         self.rows.tft_farmer_income_cumul.clean()
 
+        t = (
+            self.rows.cost_network
+            + self.rows.cost_hardware
+            + self.rows.cost_maintenance
+            + self.rows.cost_rackspace
+            + self.rows.cost_power
+        )
+        self.rows.cost_total.cells = t.cells
+
         self._grid_valuation_calc()
 
     def _grid_valuation_calc(self):
@@ -357,68 +395,98 @@ class TFGridSimulator(SimulatorBase):
         row = self._row_add("grid_valuation_usd", aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True)
 
         def do(val, x, args):
-            return self.cloud_index_get(x)
+            return self.cloud_valuation_get(x)
 
         row.function_apply(do)
 
-    def sales_price_cpr_unit_get(self, month=0, forindex=True):
-        node = self.environment.node_normalized
-        cpr_sales_price_decline = self.cpr_sales_price_decline_get(month)
-        if forindex:
-            pricegetter = j.tools.tfgrid_simulator.simulator_config.cloudvaluation
-        else:
-            pricegetter = j.tools.tfgrid_simulator.simulator_config.pricing
-        sales_price_total = (
-            pricegetter.price_cu * node.production.cu
-            + pricegetter.price_su * node.production.su
-            + pricegetter.price_nu * node.production.nu_used_month
-        )
-        sales_price_cpr_unit = (sales_price_total / node.production.cpr) / (1 + cpr_sales_price_decline)
-        return sales_price_cpr_unit
-
-    def cloud_index_revenue_get(self, x):
-        """
-        is the max revenue the grid can do at that time (per month)
-        using our index calculation
-        """
-        node = self.environment.node_normalized
-        # includes networking
-        cpr_usd = self.sales_price_cpr_unit_get(month=x, forindex=True)
-        nrnodes = self.rows.nrnodes_total.cells[x]
-        rev = float(node.production.cpr) * float(nrnodes) * float(cpr_usd)
-        return rev
-
-    def cloud_index_cost_get(self, x):
+    def cloud_cost_get(self, x):
         """
         is the max cost of the grid (at full utilization)
         for power, rackspace & hardware (written off over 5 years)
         """
         node = self.environment.node_normalized
         nrnodes = self.rows.nrnodes_total.cells[x]
-        cost = float(node.total.cost_month) * float(nrnodes)
+        cost = float(node.total.cost_total_month) * float(nrnodes)
         return cost
 
-    def cloud_index_margin_get(self, x):
-        """
-        is the max margin the grid can do at that time (per month)
-        """
-        return self.cloud_index_revenue_get(x=x) - self.cloud_index_cost_get(x=x)
-
-    def cloud_index_get(self, x):
+    def cloud_valuation_get(self, x):
         """
         the value of the grid at that month based on selected cloud index calculation method
         """
-        rev = self.cloud_index_revenue_get(x)
+        rev = self.rows.rev_total_max.cells[x]
         config = j.tools.tfgrid_simulator.simulator_config.cloudvaluation
 
         if config.indextype == "revenue":
             rev = int(rev * config.revenue_months)
             return rev
         else:
-            cost = self.cloud_index_cost_get(x)
+            cost = self.cloud_cost_get(x)
             margin = rev - cost
             margin = int(margin * config.margin_months)
             return margin
+
+    def markdown_cloud_valuation(self, month):
+        fi = j.core.text.format_item
+        rev_compute = self.rows.rev_compute.cells[month]
+        rev_storage = self.rows.rev_storage.cells[month]
+        rev_network = self.rows.rev_network.cells[month]
+        rev_total = self.rows.rev_total.cells[month]
+        rev_compute_max = self.rows.rev_compute_max.cells[month]
+        rev_storage_max = self.rows.rev_storage_max.cells[month]
+        rev_network_max = self.rows.rev_network_max.cells[month]
+        rev_total_max = self.rows.rev_total_max.cells[month]
+
+        cost_rackspace = self.rows.cost_rackspace.cells[month]
+        cost_maintenance = self.rows.cost_maintenance.cells[month]
+        cost_hardware = self.rows.cost_hardware.cells[month]
+        cost_network = self.rows.cost_network.cells[month]
+        cost_power = self.rows.cost_power.cells[month]
+        cost_total = self.rows.cost_total.cells[month]
+
+        if self.config.cloudvaluation.indextype == "REVENUE":
+            nrmonths = self.config.cloudvaluation.revenue_months
+        else:
+            nrmonths = self.config.cloudvaluation.margin_months
+
+        C = f"""
+        ## cloud valuation report for month: {month}
+
+        ### revenues with utilization in account
+
+        - rev cu                : {fi(rev_compute)}
+        - rev su                : {fi(rev_storage)}
+        - rev nu                : {fi(rev_network)}
+        - rev total             : {fi(rev_total)}
+
+        ### revenues if all resources used
+
+        - rev cu                : {fi(rev_compute_max)}
+        - rev su                : {fi(rev_storage_max)}
+        - rev nu                : {fi(rev_network_max)}
+        - rev total             : {fi(rev_total_max)}
+
+        ### costs
+
+        - cost hardware         : {fi(cost_hardware)}
+        - cost power            : {fi(cost_power)}
+        - cost maintenance      : {fi(cost_maintenance)}
+        - cost rackspace        : {fi(cost_rackspace)}
+        - cost network          : {fi(cost_network)}
+        - cost total            : {fi(cost_total)}
+
+        ### valuation parameters
+
+        - price_cu              : {self.config.cloudvaluation.price_cu}
+        - price_su              : {self.config.cloudvaluation.price_su}
+        - price_nu              : {self.config.cloudvaluation.price_nu}
+
+        ### valuation report
+
+        - valuation based on {nrmonths} months of {self.config.cloudvaluation.indextype}
+        - valuation is          : {fi(self.cloud_valuation_get(month))}
+
+        """
+        return j.core.tools.text_strip(C)
 
     def utilization_get(self, month):
         utilization = self.rows.utilization.cells[month] / 100
@@ -450,7 +518,7 @@ class TFGridSimulator(SimulatorBase):
             environment = self.environment
         name = f"nodesbatch_simulate_{environment.name}_{month}"
         if not nrnodes:
-            nrnodes = environment.nr_nodes
+            nrnodes = environment.layout.nr_devices_production
         if not environment._calcdone:
             environment.calc()
         nb = NodesBatch(simulation=self, name=name, environment=environment, nrnodes=nrnodes, month_start=month)

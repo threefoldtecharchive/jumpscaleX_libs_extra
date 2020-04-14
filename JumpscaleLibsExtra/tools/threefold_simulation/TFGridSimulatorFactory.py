@@ -167,13 +167,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         print(nb)
         print(nb.node_normalized)
 
-        j.shell()
-
-        print(nb.tft_farmed_total)
-
-        # nb._values_usd_get()
-
-        nb.graph_tft(single=True)
+        # nb.graph_tft(single=True)
 
         print(nb.roi_end)
 
@@ -194,7 +188,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             self._environments[name] = environment
         return self._environments[name]
 
-    def calc(self, batches_simulation=False, reload=False):
+    def calc(self, batches_simulation=False, reload=False, detail=False):
         """
         kosmos 'j.tools.tfgrid_simulator.calc()'
         kosmos 'j.tools.tfgrid_simulator.calc(reload=True)'
@@ -208,6 +202,8 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         )
 
         nb0 = simulation.nodesbatch_get(startmonth)
+        if detail:
+            nb0.calc(detail=True)
 
         nb0.graph("cost_network")
 

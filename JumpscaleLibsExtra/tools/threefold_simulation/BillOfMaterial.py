@@ -247,10 +247,8 @@ class Device(DeviceEnvBase):
 
         if environment:
             self.nu_calc(environment)
-            self.total.power_kwh_month = self.total.power * 24 * 30
-            self.total.cost_power_month = (
-                self.total.power_kwh_month * float(environment._data.params.cost_power_kwh) / 1000
-            )
+            self.total.power_kwh_month = self.total.power * 24 * 30 / 1000
+            self.total.cost_power_month = self.total.power_kwh_month * float(environment._data.params.cost_power_kwh)
 
             self.total.cost_rack_month = self.total.rackspace_u * float(environment._data.params.cost_rack_unit)
 
@@ -344,7 +342,7 @@ class Environment(DeviceEnvBase):
 
     @property
     def nr_nodes(self):
-        return len(self.nodes_production)
+        return len(self.layout.nr_devices_production)
 
     @property
     def nodes_overhead(self):
@@ -425,6 +423,8 @@ class Environment(DeviceEnvBase):
             setattr(device.costunits, propname, getattr(self.costunits, propname))
 
         device.layout.nr_devices_production = 1
+        device.production.cu_perc = self.production.cu_perc
+        device.production.su_perc = self.production.su_perc
 
         self.node_normalized = device
 
