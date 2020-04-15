@@ -250,7 +250,10 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         self._code_links_create()
 
         if background:
-            cmd_start = f"j.tools.tfgrid_simulator.start(port={port},background=False)"
+            if base_url:
+                cmd_start = f"j.tools.tfgrid_simulator.start(port={port},background=False, base_url='{base_url}')"
+            else:
+                cmd_start = f"j.tools.tfgrid_simulator.start(port={port},background=False)"
             startup = j.servers.startupcmd.get(name="simulator", cmd_start=cmd_start)
             startup.interpreter = "jumpscale"
             startup.timeout = 60
