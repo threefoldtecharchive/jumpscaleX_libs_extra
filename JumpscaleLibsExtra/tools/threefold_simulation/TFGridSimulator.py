@@ -14,13 +14,20 @@ class TFGridSimulator(SimulatorBase):
     _SCHEMATEXT = """
         @url = threefold.simulation
         name = ""
-        cpr_sum = 0.0 (F)
-        tft_sum = 0.0 (F)
-        simulated = false (B)
-        sales_price_cu = (N)
-        sales_price_su = (N)
-        sales_price_nu = (N)                
+        simulated = false (B)               
         """
+
+    @property
+    def sales_price_cu(self):
+        return self.config.pricing.price_cu
+
+    @property
+    def sales_price_su(self):
+        return self.config.pricing.price_su
+
+    @property
+    def sales_price_nu(self):
+        return self.config.pricing.price_nu
 
     def export_(self):
         r = {}
@@ -65,8 +72,11 @@ class TFGridSimulator(SimulatorBase):
         self.rows = self.sheet.rows
         self.nodebatches = []  # 0 is the first batch, which stands for month 1
         self.token_creator = TokenCreator()
+        self.config = j.tools.tfgrid_simulator.simulator_config
 
     def nodesbatch_add(self, environment, month, nrnodes):
+        self._nodesbatch_start_check(environment=environment)
+        assert environment.nodes_production_count > 0
         nb = NodesBatch(
             simulation=self, name=f"month_{month}", environment=environment, nrnodes=nrnodes, month_start=month
         )
@@ -75,9 +85,13 @@ class TFGridSimulator(SimulatorBase):
         self.nodebatches[month] = nb
         return self.nodebatches[month]
 
+    def _nodesbatch_start_check(self, environment):
+        if not "cost_rack_unit" in self.sheet.rows:
+            self.cost_rack_unit_set(environment)
+            self.cost_power_kwh_set(environment)
+
     def nodesbatch_start_set(self, environment, nrnodes=1500, months_left=36, tft_farmed_before_simulation=0):
-        self.cost_rack_unit_set(environment)
-        self.cost_power_kwh_set(environment)
+        self._nodesbatch_start_check(environment=environment)
         nb = self.nodesbatch_add(environment=environment, month=0, nrnodes=nrnodes)
         nb.tft_farmed_before_simulation = tft_farmed_before_simulation
         nb.months_left = months_left
@@ -103,6 +117,16 @@ class TFGridSimulator(SimulatorBase):
         """
         self._interpolate("cpr_improve", args)
 
+    def cpr_improve_get(self, month):
+        """
+        return 0->0.4
+        0.4 means price declide of 40%
+        """
+        cpr_improve = self.rows.cpr_improve.cells[month]
+        assert cpr_improve >= 0
+        assert cpr_improve < 101
+        return self._float(cpr_improve / 100)
+
     def cpr_sales_price_decline_set(self, args):
         """
         The salesprice will decline over time
@@ -114,10 +138,10 @@ class TFGridSimulator(SimulatorBase):
         """
         self._interpolate("cpr_sales_price_decline", args)
 
-    def cpr_sales_price_decline_get(self, month):
+    def sales_price_decline_get(self, month):
         """
-        return 0->40
-        40 means price declide of 40%
+        return 0->0.4
+        0.4 means price declide of 40%
         """
         cpr_sales_price_decline = self.rows.cpr_sales_price_decline.cells[month]
         assert cpr_sales_price_decline >= 0
@@ -134,30 +158,23 @@ class TFGridSimulator(SimulatorBase):
         """
         self._interpolate("utilization", args)
 
-    def tokenprice_set_5years(self, val=3):
-        if isinstance(val, str) and val.startswith("auto"):
-            self.tokenprice_set("0:0.15,24:0.4")
-            self._tft_in_relation_to_grid_value = int(val.replace("auto", ""))
-            assert self._tft_in_relation_to_grid_value > 10
-            assert self._tft_in_relation_to_grid_value < 400
-            return
-        else:
-            self._tft_in_relation_to_grid_value = None
-        # need to do over 12 years or the price of tokens weirdly stops
-        val = (val - 0.15) * 2 + 0.15
-        self.tokenprice_set("0:0.15,119:%s" % val)
-
-    def tokenprice_set(self, args):
+    def tokenprice_set(self):
         """
         define how tokenprice goes up (in $)
         :param args:
         :return:
         """
-        if isinstance(args, int) or isinstance(args, float) or args.startswith("auto"):
-            self.tokenprice_set_5years(args)
+        config = j.tools.tfgrid_simulator.simulator_config
+        if config.tft_pricing_type == "auto":
+            tft_price_5y = config.cloudvaluation.tft_price_5y_baseline
         else:
-            self._tft_in_relation_to_grid_value = None
-            self._interpolate("tokenprice", args)
+            tft_price_5y = config.tft_price_5y
+
+        assert tft_price_5y > 0.09
+
+        # need to do over 12 years or the price of tokens weirdly stops
+        val = (tft_price_5y - 0.15) * 2 + 0.15
+        self._interpolate("tokenprice", "0:0.15,119:%s" % val)
 
     def difficulty_level_set(self, args):
         """
@@ -179,48 +196,26 @@ class TFGridSimulator(SimulatorBase):
         row.interpolate()
         return row
 
-    def tft_price_get(self, month=None):
+    def grid_valuation(self, month=None):
         if month == None:
             month = self.sheet.nrcols - 1
-        if self._tft_in_relation_to_grid_value:
-            r = self.sheet.rows.tokenprice.cells[month]
-            if month > 6:
+        return self.cloud_valuation_get(x=month)
 
-                revenue = self.rows.revenue.cells[month - 1]
-
-                cost_rackspace = self.rows.cost_rackspace.cells[month - 1]
-                cost_power = self.rows.cost_power.cells[month - 1]
-                cost_hardware = self.rows.cost_hardware.cells[month - 1]
-                cost_maintenance = self.rows.cost_maintenance.cells[month - 1]
-                cost = cost_rackspace + cost_power + cost_hardware + cost_maintenance
-                margin = revenue - cost
-                gridval_margin = margin * 12 * 10  # 10 year margin
-
-                n = self.environment.node_normalized
-                cpr_price = self.environment.sales_price_cpr_unit_get(self, month)
-                nrnodes = self.rows.nrnodes_total.cells[month - 1]
-                gridval_capability = (
-                    float(n.cpr) * float(nrnodes) * float(cpr_price) * 60
-                )  # 4 year recurring rev capability
-
-                gridval = revenue * 12 * 5
-
-                nrtokens = self.sheet.rows.tft_farmed_cumul.cells[month - 1]
-                if gridval_margin > gridval:
-                    gridval = gridval_margin
-                if gridval_capability > gridval:
-                    gridval = gridval_capability
-
-                tft_price_grid_val = gridval / nrtokens
-                tft_price_prev = self.sheet.rows.tokenprice.cells[month - 1]
-                marketcap = nrtokens * tft_price_prev
-                b = self._tft_in_relation_to_grid_value / 100
-                if tft_price_grid_val * b > r:
-                    self.sheet.rows.tokenprice.cells[month] = tft_price_grid_val
-                    r = self.sheet.rows.tokenprice.cells[month]
-        else:
-            r = self.sheet.rows.tokenprice.cells[month]
-
+    def tft_price_get(self, month=None):
+        config = j.tools.tfgrid_simulator.simulator_config
+        if month > 12 and config.tft_pricing_type == "auto":
+            if month == 0:
+                month2 = 1
+            else:
+                month2 = month
+            tft_baseline = self.sheet.rows.tokenprice.cells[month]
+            grid_valuation = self.grid_valuation(month=month)
+            nrtokens = self.sheet.rows.tft_farmed_cumul.cells[month2 - 1]
+            tft_index_price = grid_valuation / nrtokens
+            if tft_index_price < tft_baseline:
+                tft_index_price = tft_baseline
+            self.sheet.rows.tokenprice.cells[month] = tft_index_price
+        r = self.sheet.rows.tokenprice.cells[month]
         assert r > 0
         return r
 
@@ -229,11 +224,8 @@ class TFGridSimulator(SimulatorBase):
         amounts of tft in the blockchain
         total nr of tft
         """
-        if month == None:
-            month = self.sheet.nrcols - 1
+        assert month != None
         tft_total = int(self.rows.tft_farmed_cumul.cells[month])
-        if month == 0:
-            tft_total += int(self.nodesbatch_get(0).tft_farmed_before_simulation)
         return tft_total
 
     def _row_add(self, name, aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True):
@@ -260,6 +252,8 @@ class TFGridSimulator(SimulatorBase):
             self._row_add("cost_power")
             self._row_add("cost_hardware")
             self._row_add("cost_maintenance")
+            self._row_add("cost_network")
+            self._row_add("cost_total")
             self._row_add("rackspace_u", ttype="float")
             self._row_add("power_kw", ttype="float")
 
@@ -269,6 +263,17 @@ class TFGridSimulator(SimulatorBase):
             self._row_add("tft_movement_usd")
             self._row_add("tft_farmer_income_cumul_usd")  # What is cumul = cumulative (all aggregated)
             self._row_add("tft_marketcap")
+
+            self._row_add("rev_compute")
+            self._row_add("rev_storage")
+            self._row_add("rev_network")
+            self._row_add("rev_total")
+            self._row_add("rev_compute_max")
+            self._row_add("rev_storage_max")
+            self._row_add("rev_network_max")
+            self._row_add("rev_total_max")
+
+            self.tokenprice_set()
 
     def _float(self, val):
         if val == None:
@@ -281,14 +286,15 @@ class TFGridSimulator(SimulatorBase):
         """
 
         self._prepare()
-        self.nodebatches = self.nodebatches[0:1]  # only maintain first one
+        if len(self.nodebatches) > 0:
+            self.nodebatches = self.nodebatches[0:1]  # only maintain first one
 
         if not environment:
             environment = self.environment
 
         # calculate growth in nr nodes
         for month_now in range(0, 120):
-            if month_now > 0:
+            if len(self.nodebatches) == 0 or month_now > 0:
                 nr_new = self.rows.nrnodes_new.cells[month_now]
                 if nr_new > 0:
                     self.nodesbatch_add(environment=environment, month=month_now, nrnodes=nr_new)
@@ -312,7 +318,6 @@ class TFGridSimulator(SimulatorBase):
         self._prepare()
 
         for month in range(0, 120):
-
             tftprice_now = self.tft_price_get(month)
             # now walk over all batches which came live since day 0
             for month_batch in range(0, month + 1):
@@ -340,8 +345,18 @@ class TFGridSimulator(SimulatorBase):
                 self.rows.cost_power.cells[month] += self._float(nb.rows.cost_power.cells[month])
                 self.rows.cost_hardware.cells[month] += self._float(nb.rows.cost_hardware.cells[month])
                 self.rows.cost_maintenance.cells[month] += self._float(nb.rows.cost_maintenance.cells[month])
+                self.rows.cost_network.cells[month] += self._float(nb.rows.cost_network.cells[month])
 
                 self.rows.investment.cells[month] += self._float(nb.cost_hardware)
+
+                self.rows.rev_compute.cells[month] += self._float(nb.rows.rev_compute.cells[month])
+                self.rows.rev_storage.cells[month] += self._float(nb.rows.rev_storage.cells[month])
+                self.rows.rev_network.cells[month] += self._float(nb.rows.rev_network.cells[month])
+                self.rows.rev_total.cells[month] += self._float(nb.rows.rev_total.cells[month])
+                self.rows.rev_compute_max.cells[month] += self._float(nb.rows.rev_compute_max.cells[month])
+                self.rows.rev_storage_max.cells[month] += self._float(nb.rows.rev_storage_max.cells[month])
+                self.rows.rev_network_max.cells[month] += self._float(nb.rows.rev_network_max.cells[month])
+                self.rows.rev_total_max.cells[month] += self._float(nb.rows.rev_total_max.cells[month])
 
             self.rows.tft_movement_usd.cells[month] = tftprice_now * self.rows.tft_farmer_income.cells[month]
             self.rows.tft_farmer_income_cumul_usd.cells[month] = (
@@ -364,71 +379,114 @@ class TFGridSimulator(SimulatorBase):
         self.rows.tft_farmer_income.clean()
         self.rows.tft_farmer_income_cumul.clean()
 
-        row = self._row_add("grid_valuation_rev_musd", aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True)
-        row = self._row_add(
-            "tft_calculated_based_rev_valuation", aggregate="FIRST", ttype="float", defval=0, empty=True, clean=True
+        t = (
+            self.rows.cost_network
+            + self.rows.cost_hardware
+            + self.rows.cost_maintenance
+            + self.rows.cost_rackspace
+            + self.rows.cost_power
         )
+        self.rows.cost_total.cells = t.cells
+
+        self._grid_valuation_calc()
+
+    def _grid_valuation_calc(self):
+
+        row = self._row_add("grid_valuation_usd", aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True)
 
         def do(val, x, args):
-            rev_over_years = self.revenue_grid_max_get(environment=environment, x=x) * 60
-            tft_farmer_income_cumul = float(self.rows.tft_farmed_cumul.cells[x])
-            tft_farmer_income_cumul_usd = tft_farmer_income_cumul * self.tft_price_get(x)
-            self.rows.tft_calculated_based_rev_valuation.cells[x] = rev_over_years / tft_farmer_income_cumul_usd
-            rev_over_years = rev_over_years
-            return rev_over_years
+            return self.cloud_valuation_get(x)
 
-        self.rows.grid_valuation_rev_musd.function_apply(do)
+        row.function_apply(do)
 
-        row = self._row_add(
-            "grid_valuation_margin_musd", aggregate="FIRST", ttype="int", defval=0, empty=True, clean=True
-        )
-        row = self._row_add(
-            "tft_calculated_based_margin_valuation", aggregate="FIRST", ttype="float", defval=0, empty=True, clean=True
-        )
-
-        def do(val, x, args):
-            marginoveryears = self.margin_grid_max_get(environment=environment, x=x) * 12 * 10
-            tft_farmer_income_cumul = float(self.rows.tft_farmed_cumul.cells[x])
-            tft_farmer_income_cumul_usd = tft_farmer_income_cumul * self.tft_price_get(x)
-            self.rows.tft_calculated_based_margin_valuation.cells[x] = marginoveryears / tft_farmer_income_cumul_usd
-            marginoveryears = marginoveryears
-            return marginoveryears
-
-        self.rows.grid_valuation_margin_musd.function_apply(do)
-
-    def revenue_grid_max_get(self, x, environment=None):
-        """
-        is the max revenue the grid can do at that time
-        """
-        if not environment:
-            environment = self.environment
-        device = environment.node_normalized
-        cpr_usd = environment.sales_price_cpr_unit_get(self, x)
-        nrnodes = self.rows.nrnodes_total.cells[x]
-        rev = float(device.cpr) * float(nrnodes) * float(cpr_usd)
-        return rev
-
-    def cost_grid_max_get(self, x, environment=None):
+    def cloud_cost_get(self, x):
         """
         is the max cost of the grid (at full utilization)
-        for power, rackspace & manpower (maintenance)
+        for power, rackspace & hardware (written off over 5 years)
         """
-        if not environment:
-            environment = self.environment
-        device = environment.node_normalized
+        node = self.environment.node_normalized
         nrnodes = self.rows.nrnodes_total.cells[x]
-        cost = float(device.cost_month) * float(nrnodes)
+        cost = float(node.total.cost_total_month) * float(nrnodes)
         return cost
 
-    def margin_grid_max_get(self, x, environment=None):
+    def cloud_valuation_get(self, x):
         """
-        is the max revenue the grid can do at that time
+        the value of the grid at that month based on selected cloud index calculation method
         """
-        if not environment:
-            environment = self.environment
-        return self.revenue_grid_max_get(environment=environment, x=x) - self.cost_grid_max_get(
-            environment=environment, x=x
-        )
+        rev = self.rows.rev_total_max.cells[x]
+        config = j.tools.tfgrid_simulator.simulator_config.cloudvaluation
+
+        if config.indextype == "revenue":
+            rev = int(rev * config.revenue_months)
+            return rev
+        else:
+            cost = self.cloud_cost_get(x)
+            margin = rev - cost
+            margin = int(margin * config.margin_months)
+            return margin
+
+    def markdown_cloud_valuation(self, month):
+        fi = j.core.text.format_item
+        rev_compute = self.rows.rev_compute.cells[month]
+        rev_storage = self.rows.rev_storage.cells[month]
+        rev_network = self.rows.rev_network.cells[month]
+        rev_total = self.rows.rev_total.cells[month]
+        rev_compute_max = self.rows.rev_compute_max.cells[month]
+        rev_storage_max = self.rows.rev_storage_max.cells[month]
+        rev_network_max = self.rows.rev_network_max.cells[month]
+        rev_total_max = self.rows.rev_total_max.cells[month]
+
+        cost_rackspace = self.rows.cost_rackspace.cells[month]
+        cost_maintenance = self.rows.cost_maintenance.cells[month]
+        cost_hardware = self.rows.cost_hardware.cells[month]
+        cost_network = self.rows.cost_network.cells[month]
+        cost_power = self.rows.cost_power.cells[month]
+        cost_total = self.rows.cost_total.cells[month]
+
+        if self.config.cloudvaluation.indextype == "REVENUE":
+            nrmonths = self.config.cloudvaluation.revenue_months
+        else:
+            nrmonths = self.config.cloudvaluation.margin_months
+
+        C = f"""
+        ## cloud valuation report for month: {month}
+
+        ### revenues with utilization in account
+
+        - rev cu                : {fi(rev_compute)}
+        - rev su                : {fi(rev_storage)}
+        - rev nu                : {fi(rev_network)}
+        - rev total             : {fi(rev_total)}
+
+        ### revenues if all resources used
+
+        - rev cu                : {fi(rev_compute_max)}
+        - rev su                : {fi(rev_storage_max)}
+        - rev nu                : {fi(rev_network_max)}
+        - rev total             : {fi(rev_total_max)}
+
+        ### costs
+
+        - cost hardware         : {fi(cost_hardware)}
+        - cost power            : {fi(cost_power)}
+        - cost maintenance      : {fi(cost_maintenance)}
+        - cost rackspace        : {fi(cost_rackspace)}
+        - cost network          : {fi(cost_network)}
+        - cost total            : {fi(cost_total)}
+
+        ### valuation parameters
+
+        - price_cu              : {self.config.cloudvaluation.price_cu}
+        - price_su              : {self.config.cloudvaluation.price_su}
+        - price_nu              : {self.config.cloudvaluation.price_nu}
+
+        ### valuation report
+
+        - valuation based on {nrmonths} months of {self.config.cloudvaluation.indextype}
+        - valuation is          : {fi(self.cloud_valuation_get(month))}
+
+        """
+        return j.core.tools.text_strip(C)
 
     def utilization_get(self, month):
         utilization = self.rows.utilization.cells[month] / 100
@@ -443,22 +501,27 @@ class TFGridSimulator(SimulatorBase):
     def cost_rack_unit_set(self, environment=None):
         if not environment:
             environment = self.environment
-        self._interpolate("cost_rack_unit", "0:%s" % environment.cost_rack_unit)
+        self._interpolate("cost_rack_unit", "0:%s" % environment.params.cost_rack_unit)
 
     def cost_power_kwh_set(self, environment=None):
         if not environment:
             environment = self.environment
-        self._interpolate("cost_power_kwh", "0:%s" % environment.cost_power_kwh)
+        self._interpolate("cost_power_kwh", "0:%s" % environment.params.cost_power_kwh)
 
     def nodesbatch_get(self, nr):
         return self.nodebatches[nr]
 
-    def nodesbatch_get_environment(self, month=10, environment=None, nrnodes=None):
+    def nodesbatch_simulate(self, month=1, hardware_config_name=None, environment=None, nrnodes=None):
+        if hardware_config_name:
+            environment = j.tools.tfgrid_simulator.environment_get(hardware_config_name)
         if not environment:
             environment = self.environment
+        name = f"nodesbatch_simulate_{environment.name}_{month}"
         if not nrnodes:
-            nrnodes = environment.nr_nodes
-        nb = NodesBatch(simulation=self, name="custom", environment=environment, nrnodes=nrnodes, month_start=month)
+            nrnodes = environment.layout.nr_devices_production
+        if not environment._calcdone:
+            environment.calc()
+        nb = NodesBatch(simulation=self, name=name, environment=environment, nrnodes=nrnodes, month_start=month)
         nb.calc()
         return nb
 
@@ -469,7 +532,7 @@ class TFGridSimulator(SimulatorBase):
         for i in [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]:
             nb = self.nodesbatch_get(i)
             x, name, values, row = nb._values_usd_get(names=["farmer_income_cumul"], single=True)[0]
-            values = [i / float(nb.node.cost_hardware) for i in values]
+            values = [i / float(nb.node_normalized.total.cost_hardware) for i in values]
             fig.add_trace(go.Scatter(x=x, y=values, name="batch_%s" % i, connectgaps=False))
         fig.update_layout(title="Return on investment per node over months.", showlegend=True)
 
@@ -480,79 +543,60 @@ class TFGridSimulator(SimulatorBase):
 
         x = [i for i in range(1, 61)]
 
-        fig1 = go.FigureWidget()
-        fig1.add_trace(
+        fig_nrnodes = go.FigureWidget()
+        fig_nrnodes.add_trace(
             go.Scatter(x=x, y=self.rows.nrnodes_total.values_all[0:60], name="nrnodes_total", connectgaps=False)
         )
-        fig1.add_trace(go.Scatter(x=x, y=self.rows.nrnodes_new.values_all[0:60], name="nrnodes_new", connectgaps=False))
-        fig1.update_layout(title="Nr Nodes.", showlegend=True)
+        fig_nrnodes.add_trace(
+            go.Scatter(x=x, y=self.rows.nrnodes_new.values_all[0:60], name="nrnodes_new", connectgaps=False)
+        )
+        fig_nrnodes.update_layout(title="Nr Nodes.", showlegend=True)
         if show:
-            fig1.show()
+            fig_nrnodes.show()
 
-        fig2 = go.FigureWidget()
-        fig2.add_trace(go.Scatter(x=x, y=self.rows.tft_farmed.values_all[0:60], name="tft_farmed", connectgaps=False))
-        fig2.add_trace(
+        fig_tft_movement = go.FigureWidget()
+        fig_tft_movement.add_trace(
+            go.Scatter(x=x, y=self.rows.tft_farmed.values_all[0:60], name="tft_farmed", connectgaps=False)
+        )
+        fig_tft_movement.add_trace(
             go.Scatter(x=x, y=self.rows.tft_cultivated.values_all[0:60], name="tft_cultivated", connectgaps=False)
         )
-        fig2.add_trace(go.Scatter(x=x, y=self.rows.tft_sold.values_all[0:60], name="tft_sold", connectgaps=False))
-        fig2.add_trace(go.Scatter(x=x, y=self.rows.tft_burned.values_all[0:60], name="tft_burned", connectgaps=False))
-        fig2.update_layout(title="TFT Movement per Month", showlegend=True)
+        fig_tft_movement.add_trace(
+            go.Scatter(x=x, y=self.rows.tft_sold.values_all[0:60], name="tft_sold", connectgaps=False)
+        )
+        fig_tft_movement.add_trace(
+            go.Scatter(x=x, y=self.rows.tft_burned.values_all[0:60], name="tft_burned", connectgaps=False)
+        )
+        fig_tft_movement.update_layout(title="TFT Movement per Month", showlegend=True)
         if show:
-            fig2.show()
+            fig_tft_movement.show()
 
         y = self.rows.tft_farmed_cumul.values_all[0:60]
-        fig3 = go.FigureWidget()
-        fig3.add_trace(go.Scatter(x=x, y=y, name="tft_farmed_cumul", connectgaps=False))
-        fig3.update_layout(title="TFT Total Tokens Evolution (Farmed Total)", showlegend=True)
+        fig_nrtokens = go.FigureWidget()
+        fig_nrtokens.add_trace(go.Scatter(x=x, y=y, name="tft_farmed_cumul", connectgaps=False))
+        fig_nrtokens.update_layout(title="TFT Total Tokens Evolution (Farmed Total)", showlegend=True)
         if show:
-            fig3.show()
+            fig_nrtokens.show()
 
-        row = self.rows.grid_valuation_rev_musd
-        fig4 = go.FigureWidget()
-        fig4.add_trace(go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="USD", connectgaps=False))
-        fig4.update_layout(title="GRID valuation based on 5Y recurring revenue capability of grid", showlegend=True)
-        if show:
-            fig4.show()
-
-        row = self.rows.tft_calculated_based_rev_valuation
-        fig5 = go.FigureWidget()
-        fig5.add_trace(
-            go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="multiple", connectgaps=False)
+        row = self.rows.grid_valuation_usd
+        fig_grid_valuation = go.FigureWidget()
+        fig_grid_valuation.add_trace(
+            go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="USD", connectgaps=False)
         )
-        fig5.update_layout(
-            title="tft value index based on grid revenue valuation = multiple (grid more than TFT)", showlegend=True
-        )
+        fig_grid_valuation.update_layout(title="GRID valuation.", showlegend=True)
         if show:
-            fig5.show()
-
-        row = self.rows.grid_valuation_margin_musd
-        fig6 = go.FigureWidget()
-        fig6.add_trace(go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="USD", connectgaps=False))
-        fig6.update_layout(title="GRID valuation based on 10x yearly net profit of grid (all farmers)", showlegend=True)
-        if show:
-            fig6.show()
-
-        row = self.rows.tft_calculated_based_margin_valuation
-        fig7 = go.FigureWidget()
-        fig7.add_trace(
-            go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="multiple", connectgaps=False)
-        )
-        fig7.update_layout(
-            title="tft value index based on grid margin valuation =multiple (grid more than TFT)", showlegend=True
-        )
-        if show:
-            fig7.show()
+            fig_grid_valuation.show()
 
         row = self.rows.tft_marketcap
-        fig8 = go.FigureWidget()
-        fig8.add_trace(
+        fig_tft_marketcap = go.FigureWidget()
+        fig_tft_marketcap.add_trace(
             go.Scatter(x=[i for i in range(20, 60)], y=row.values_all[20:60], name="tft_marketcap", connectgaps=False)
         )
-        fig8.update_layout(title="TFT Market Cap (nrTFT X valueTFT)", showlegend=True)
+        fig_tft_marketcap.update_layout(title="TFT Market Cap (nrTFT X valueTFT).", showlegend=True)
         if show:
-            fig8.show()
+            fig_tft_marketcap.show()
 
-        return (fig1, fig2, fig3, fig4, fig5, fig6, fig7, fig8)
+        return (fig_nrnodes, fig_tft_movement, fig_nrtokens, fig_grid_valuation, fig_tft_marketcap)
 
     def markdown_reality_check(self, month):
         cl = j.data.types.numeric.clean
@@ -613,18 +657,10 @@ class TFGridSimulator(SimulatorBase):
         return fig
 
     def __repr__(self):
-        out = ""
-        for key in self.sheet.rows.keys():
-            row = self.sheet.rows[key]
-            if row.cells[1] and row.cells[1] < 3:
-                res = row.aggregate("Q", roundnr=2)
-            else:
-                res = row.aggregate("Q", roundnr=0)
-            res = [str(i) for i in res]
-            res2 = ", ".join(res)
-            out += " - %-20s %s\n" % (key, res2)
-
-        out += " - %-20s %s\n" % ("tft_sum", int(self.tft_sum))
+        out = str(SimulatorBase.__repr__(self))
+        out += "\n"
+        out += self.sheet.text_formatted(period="B", aggregate_type=None, exclude=None)
+        # out += " - %-20s %s\n" % ("tft_sum", int(self.tft_sum))
         return out
 
     __str__ = __repr__

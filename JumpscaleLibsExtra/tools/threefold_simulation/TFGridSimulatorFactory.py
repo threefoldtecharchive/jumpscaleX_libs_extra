@@ -3,6 +3,7 @@ from Jumpscale import j
 from .TFGridSimulator import TFGridSimulator
 from .BillOfMaterial import Environment, BillOfMaterial
 import sys
+from .SimulatorConfig import SimulatorConfig
 
 
 class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
@@ -21,18 +22,38 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         if notebookpath not in sys.path:
             sys.path.append(notebookpath)
 
+        self.simulator_config = SimulatorConfig()
+
     @property
     def default(self):
         s = self.simulation_get("default")
         return s
 
+    def hardware_platform_choices(self):
+        return [
+            j.sal.fs.getBaseName(i)[:-3]
+            for i in j.sal.fs.listFilesInDir(self._dirpath + "/notebooks/hardware")
+            if j.sal.fs.getFileExtension(i) == "py"
+        ]
+
+    def _code_links_create(self):
+        """
+        create the links to code so its visible from the notebook
+
+        kosmos 'j.tools.tfgrid_simulator.code_links_create()'
+
+        """
+        src = f"{self._dirpath}"
+        dest = f"{self._dirpath}/notebooks/code/"
+        j.core.tools.delete(dest)
+        j.sal.fs.symlinkFilesInDir(src, dest, delete=False, includeDirs=False, makeExecutable=False, filter="*.py")
+
     def simulation_get(
         self,
         name="default",
         tokencreator_name="optimized",
-        bom_name="amd",
+        hardware_config_name="amd",
         node_growth=None,
-        tft_growth=None,
         reload=True,
         calc=True,
     ):
@@ -56,37 +77,67 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
 
         """
+        config = self.simulator_config
+
+        if not node_growth:
+            growth = config.node_growth
+            if growth == 50000:
+                node_growth = "0:5,6:150,20:1000"
+            elif growth == 100000:
+                node_growth = "0:5,6:150,20:2000"
+            elif growth == 200000:
+                node_growth = "0:5,6:150,12:1000,18:2000,24:4800"
+            elif growth == 600000:
+                node_growth = "0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000"
+            elif growth == 1000000:
+                node_growth = "0:5,6:150,12:1000,18:6000,24:12000,48:34000,60:34000"
+            elif growth == 2000000:
+                node_growth = "0:5,6:150,12:2000,18:16000,24:36000,48:60000,60:60000"
+
+            else:
+                node_growth = "0:5,6:150,20:2000"
+        else:
+            node_growth = "0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000"
+
+        print(f" - tft_price_5y: {config.tft_price_5y}")
+        print(f" - node_growth: {node_growth}")
 
         if reload or name not in self._instances:
             simulation = TFGridSimulator(name=name)
             # choose your token simulation !!!
-            bom, environment = self.bom_environment_get(bom_name, reload=reload)
+            environment = self.environment_get(hardware_config_name, reload=reload)
+            assert environment.nodes_production_count > 0
 
             exec(f"from token_creators.{tokencreator_name} import TokenCreator", globals())
             simulation.token_creator = TokenCreator(simulation=simulation, environment=environment)
 
             exec(f"from simulations.{name} import simulation_calc", globals())
-            simulation, environment, bom = simulation_calc(simulation, environment, bom)
+            simulation, environment = simulation_calc(simulation, environment)
 
-            if tft_growth:
-                simulation.tokenprice_set(tft_growth)
+            environment.calc()
 
-            if node_growth:
-                simulation.nrnodes_new_set(node_growth)
+            # if node_growth:
+            simulation.nrnodes_new_set(node_growth)
 
+            print(f" - price_cu: {config.pricing.price_cu}")
+            print(f" - price_su: {config.pricing.price_su}")
+            print(f" - price_nu: {config.pricing.price_nu}")
+
+            # we need the simulator to add the batches automatically based on chosen environment
+            simulation.nodesbatches_add_auto(environment=environment)
             # put the default bom's
             simulation.environment = environment
-            simulation.bom = bom
+            simulation.bom = environment.bom
 
             self._instances[name] = simulation
 
         simulation = self._instances[name]
 
-        # simulation.calc()
-
-        if calc and simulation.simulated == False:
-            key = f"{name}_{tokencreator_name}_{bom_name}_{node_growth}_{tft_growth}"
-            simulation.import_redis(key=key, autocacl=True, reset=reload)
+        simulation.calc()
+        # calc = True
+        # if calc and simulation.simulated == False:
+        #     key = f"{name}_{tokencreator_name}_{hardware_config_name}_{node_growth}_{tft_growth}"
+        #     simulation.import_redis(key=key, autocacl=True, reset=reload)
 
         return simulation
 
@@ -96,37 +147,31 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         kosmos 'j.tools.tfgrid_simulator.calc_custom_environment(reload=True)'
         """
 
-        # bom_name = "hpe_dl385_amd"
-        bom_name = "A_dc_rack"
-        "0:0,10:1000"
-        simulation = self.simulation_get(
-            name="default",
-            tokencreator_name="optimized",
-            bom_name="amd",
-            node_growth=None,
-            tft_growth=3,
-            reload=reload,
-        )
+        startmonth = 1
 
-        # bom2, environment2 = self.bom_environment_get("supermicro_compute")
-        bom2, environment2 = self.bom_environment_get(bom_name)
+        simulation = j.tools.tfgrid_simulator.simulation_get(tokencreator_name="optimized", reload=True,)
 
-        nb = simulation.nodesbatch_get_environment(month=10, environment=environment2)
+        ###################################################
+        ## NOW THE NODES BATCH WE WANT TO SIMULATE FOR
 
-        server = environment2.node_normalized
+        # bill of material name
+        # hardware_config_name = "CH_archive"
+        hardware_config_name = "A_dc_rack"
+        # hardware_config_name = "hpe_dl385_amd"
+        # hardware_config_name = "amd"
+
+        # parameters for simulation
+        # choose your hardware profile (other choices in stead of amd or supermicro or hpe)
+        nb = simulation.nodesbatch_simulate(month=startmonth, hardware_config_name=hardware_config_name)
 
         print(nb)
-        print(server)
+        print(nb.node_normalized)
 
-        # nb._values_usd_get()
-
-        nb.graph_tft(single=True)
+        # nb.graph_tft(single=True)
 
         print(nb.roi_end)
 
-        j.shell()
-
-    def bom_environment_get(self, name="amd", reload=False):
+    def environment_get(self, name="amd", reload=False):
         """
         name is name of file in notebooks/params/hardware
 
@@ -137,54 +182,35 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         return (bom,environment)
 
         """
+        if not reload or name not in self._environments:
+            # if reload or name not in self._bom:
+            environment = Environment(name=name)
+            self._environments[name] = environment
+        return self._environments[name]
 
-        # if reload or name not in self._bom:
-        bom = BillOfMaterial(name=name)
-        environment = Environment(name=name)
-        exec(f"from hardware.{name} import bom_calc", globals())
-        bom, environment = bom_calc(bom, environment)
-        self._environments[name] = environment
-        self._bom[name] = bom
-        return (bom, environment)
-
-    # =======
-    #         if reload or name not in self._bom:
-    #             bom = BillOfMaterial(name=name)
-    #             environment = Environment(name=name)
-    #             exec(f"from hardware.{name} import bom_calc", globals())
-    #             bom, environment = bom_calc(bom, environment)
-    #             self._environments[name] = environment
-    #             self._bom[name] = bom
-    #         return (self._bom[name], self._environments[name])
-    # >>>>>>> 41d167af3d4380375fb60f0efd0c15940a2db15a
-
-    def calc(self, batches_simulation=False, reload=False):
+    def calc(self, batches_simulation=False, reload=False, detail=False):
         """
         kosmos 'j.tools.tfgrid_simulator.calc()'
         kosmos 'j.tools.tfgrid_simulator.calc(reload=True)'
         :return:
         """
+
+        startmonth = 1
+
         simulation = self.simulation_get(
-            name="default",
-            tokencreator_name="optimized",
-            bom_name="amd",
-            node_growth=None,
-            tft_growth="auto100",
-            reload=reload,
+            name="default", tokencreator_name="optimized", hardware_config_name="amd", reload=reload
         )
 
-        if batches_simulation:
-            # nrnodes is 2nd
-            nb0 = simulation.nodesbatch_get(0)
-            nb0.graph_tft(cumul=True)
-            nb0.graph_usd(cumul=True)
-            nb = simulation.nodesbatch_get(20)
-            nb.graph_tft(single=True)
-            # nb.graph_usd(cumul=True,single=True)
-            for month in [1, 10, 30, 50]:
-                simulation.nodesbatch_get(month).graph_usd(cumul=True, single=True)
+        nb0 = simulation.nodesbatch_get(startmonth)
+        if detail:
+            nb0.calc(detail=True)
 
-        # simulation.graph_tft_simulation()
+        nb0.graph("cost_network")
+
+        print(simulation)
+        print(nb0)
+
+        j.shell()
 
         return
 
@@ -204,7 +230,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
     def start(
         self,
         voila=False,
-        background=False,
+        background=True,
         base_url=None,
         name=None,
         port=8888,
@@ -221,18 +247,31 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         kosmos -p 'j.tools.tfgrid_simulator.start(name=None)'
         """
 
-        j.application.start("tfsimulation")
+        self._code_links_create()
 
-        j.core.myenv.log_includes = []
-        # e = self.calc()
-        path_dest = self.get_path_dest(name=name, reset=reset, path_source=path_source)
-        self._log_info("start notebook on:%s" % path_dest)
+        if background:
+            if base_url:
+                cmd_start = f"j.tools.tfgrid_simulator.start(port={port},background=False, base_url='{base_url}')"
+            else:
+                cmd_start = f"j.tools.tfgrid_simulator.start(port={port},background=False)"
+            startup = j.servers.startupcmd.get(name="simulator", cmd_start=cmd_start)
+            startup.interpreter = "jumpscale"
+            startup.timeout = 60
+            startup.ports = [port]
+            startup.start()
+        else:
+            j.application.start("tfsimulation")
 
-        j.servers.notebook.start(
-            path=path_dest, voila=voila, background=background, base_url=base_url, port=port, pname=pname
-        )  # it will open a browser with access to the right output
-        j.application.reset_context()
+            j.core.myenv.log_includes = []
+            # e = self.calc()
+            path_dest = self.get_path_dest(name=name, reset=reset, path_source=path_source)
+            self._log_info("start notebook on:%s" % path_dest)
 
-    def stop(self, voila=False, background=False, base_url=None, name=None, pname="notebook", path_source=None, reset=False):
-        path_dest = self.get_path_dest(name=name, path_source=path_source, reset=reset)
-        j.servers.notebook.stop(path=path_dest, voila=voila, background=background, base_url=base_url, pname=pname)
+            j.servers.notebook.start(
+                path=path_dest, voila=voila, background=background, base_url=base_url, port=port, pname=pname
+            )  # it will open a browser with access to the right output
+            j.application.reset_context()
+
+    def stop(self):
+        startup = j.servers.startupcmd.get(name="simulator")
+        startup.stop()
