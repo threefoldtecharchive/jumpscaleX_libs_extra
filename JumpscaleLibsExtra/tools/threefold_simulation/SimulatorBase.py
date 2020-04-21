@@ -1,5 +1,7 @@
 from Jumpscale import j
 
+import plotly.graph_objects as go
+
 
 class SimulatorBase(j.baseclasses.object_config):
     """
@@ -27,8 +29,10 @@ class SimulatorBase(j.baseclasses.object_config):
 
         # walk over properties
         for key in [i for i in self._properties if not i.startswith("_") and i not in ["id", "name"]]:
-
+            if key == "markdown":
+                continue
             try:
+
                 val = getattr(self, key)
                 val = self._numeric_get(val)
                 out += " - {RED}%-30s{RESET} : %s\n" % (key, val)
@@ -50,3 +54,19 @@ class SimulatorBase(j.baseclasses.object_config):
             self
         )
         return out
+
+    def graph(self, rownames, title=None):
+
+        if isinstance(rownames, str):
+            rownames = [rownames]
+
+        fig = go.FigureWidget()
+        for name in rownames:
+            row = self.rows[name]
+            xx, yy = row.values_xy
+            fig.add_trace(go.Scatter(x=xx, y=yy, name=name, connectgaps=False))
+
+        if len(rownames) > 0 or title:
+            fig.update_layout(title=title, showlegend=True)
+
+        return fig

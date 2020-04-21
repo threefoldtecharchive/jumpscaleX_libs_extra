@@ -1,4 +1,9 @@
-from reportlab.lib.pagesizes import A4
+try:
+    from reportlab.lib.pagesizes import A4
+except ImportError:
+    j.tools.reportlab.install()
+    from reportlab.lib.pagesizes import A4
+
 from reportlab.lib.units import cm
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate, Paragraph

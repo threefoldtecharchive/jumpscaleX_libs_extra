@@ -11,6 +11,9 @@ class ReportlabFactory(j.baseclasses.object):
         """ gets a RL document"""
         return RLDoc(file_name)
 
+    def install(self):
+        j.builders.runtimes.python3.pip_package_install("reportlab>=3.5.42")
+
     def test(self):
 
         d = self.get_doc("/sandbox/code/test_out.pdf")
