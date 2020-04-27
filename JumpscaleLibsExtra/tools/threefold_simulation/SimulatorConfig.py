@@ -18,7 +18,7 @@ class SimulatorConfig(j.baseclasses.object_config_redis):
         cloudvaluation = (O) !threefold.simulation.cloudvaluation.config
 
         @url = threefold.simulation.tokenomics
-        cpr_investment_usd = 30 (I)
+        cpr_investment_usd = 40 (I)
         burn_percent = 0 (I)        
         
         @url = threefold.simulation.network
