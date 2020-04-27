@@ -237,7 +237,7 @@ class Device(DeviceEnvBase):
             cu_weight += float(c.cost * c2.nr * c.cu_perc)
             self.components[component.name] = c2
         self.production.su = self.production.hru / 1000 / 1.2 + self.production.sru / 100 / 1.2
-        self.production.cu = min((self.production.mru - 1) / 4, self.production.cru * 4)
+        self.production.cu = min((self.production.mru - 1) / 4, self.production.cru * 2)
         self.production.cu_passmark = passmark / self.production.cu
         if su_weight or cu_weight:
             self.production.cu_perc = cu_weight / (su_weight + cu_weight)
