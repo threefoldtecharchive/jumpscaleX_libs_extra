@@ -26,7 +26,7 @@ class SimulatorConfig(j.baseclasses.object_config_redis):
         nu_multiplier_from_su = 40 (I)        
 
         @url = threefold.simulation.pricing
-        price_cu = 12 (F)
+        price_cu = 10 (F)
         price_su = 8 (F)
         price_nu = 0.05 (F)
         
