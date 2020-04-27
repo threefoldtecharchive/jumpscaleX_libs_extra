@@ -422,8 +422,8 @@ class NodesBatch(SimulatorBase):
 
         ### profit this month
 
-        - margin                : {fi(rev_total-self.cloud_cost_get(month))}
-        - margin ma             : {fi(rev_total_max-cost_total)}
+        - margin in month       : {fi(rev_total-self.cloud_cost_get(month))}
+        - margin 100% used      : {fi(rev_total_max-cost_total)}
 
         ### valuation parameters
 
