@@ -7,7 +7,7 @@ class SimulatorConfig(j.baseclasses.object_config_redis):
         name= ""
         tft_pricing_type = "fixed,auto" (E)
         tft_price_5y = 3 (F)
-        node_growth = 600000 (I)
+        node_growth = 1000000 (I)
         startmonth = 1 (I)
         hardwareconfig = "A_dc_rack"
         
@@ -18,7 +18,7 @@ class SimulatorConfig(j.baseclasses.object_config_redis):
         cloudvaluation = (O) !threefold.simulation.cloudvaluation.config
 
         @url = threefold.simulation.tokenomics
-        cpr_investment_usd = 30 (I)
+        cpr_investment_usd = 40 (I)
         burn_percent = 0 (I)        
         
         @url = threefold.simulation.network
@@ -26,8 +26,8 @@ class SimulatorConfig(j.baseclasses.object_config_redis):
         nu_multiplier_from_su = 40 (I)        
 
         @url = threefold.simulation.pricing
-        price_cu = 15 (F)
-        price_su = 10 (F)
+        price_cu = 10 (F)
+        price_su = 8 (F)
         price_nu = 0.05 (F)
         
         @url = threefold.simulation.cloudvaluation.config

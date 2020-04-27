@@ -98,9 +98,9 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                 node_growth = "0:5,6:150,20:2000"
         else:
             node_growth = "0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000"
-
-        print(f" - tft_price_5y: {config.tft_price_5y}")
-        print(f" - node_growth: {node_growth}")
+        #
+        # print(f" - tft_price_5y: {config.tft_price_5y}")
+        # print(f" - node_growth: {node_growth}")
 
         if reload or name not in self._instances:
             simulation = TFGridSimulator(name=name)
@@ -119,9 +119,9 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             # if node_growth:
             simulation.nrnodes_new_set(node_growth)
 
-            print(f" - price_cu: {config.pricing.price_cu}")
-            print(f" - price_su: {config.pricing.price_su}")
-            print(f" - price_nu: {config.pricing.price_nu}")
+            # print(f" - price_cu: {config.pricing.price_cu}")
+            # print(f" - price_su: {config.pricing.price_su}")
+            # print(f" - price_nu: {config.pricing.price_nu}")
 
             # we need the simulator to add the batches automatically based on chosen environment
             simulation.nodesbatches_add_auto(environment=environment)
@@ -205,10 +205,13 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         if detail:
             nb0.calc(detail=True)
 
-        nb0.graph("cost_network")
+        # nb0.graph("cost_network")
 
         print(simulation)
         print(nb0)
+
+        print(nb0.markdown_profit_loss(10))
+        print(nb0.markdown_profit_loss(10))
 
         j.shell()
 
