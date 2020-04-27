@@ -205,10 +205,13 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         if detail:
             nb0.calc(detail=True)
 
-        nb0.graph("cost_network")
+        # nb0.graph("cost_network")
 
         print(simulation)
         print(nb0)
+
+        print(nb0.markdown_profit_loss(10))
+        print(nb0.markdown_profit_loss(10))
 
         j.shell()
 
