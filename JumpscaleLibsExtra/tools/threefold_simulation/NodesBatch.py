@@ -342,7 +342,9 @@ class NodesBatch(SimulatorBase):
         rev_compute_max = self.rows.rev_compute_max.cells[month]
         rev_storage_max = self.rows.rev_storage_max.cells[month]
         rev_network_max = self.rows.rev_network_max.cells[month]
-        rev_total = rev_compute + rev_storage + rev_network
+        if not rev_compute or not rev_storage or not rev_storage:
+            return "CANNOT CALCULATE THE P&L REPORT, check if month asked for is in the active simulation."
+        rev_total = rev_compute + rev_storage + rev_storage
         rev_total_max = rev_compute_max + rev_storage_max + rev_network_max
 
         cost_rackspace = self.rows.cost_rackspace.cells[month]

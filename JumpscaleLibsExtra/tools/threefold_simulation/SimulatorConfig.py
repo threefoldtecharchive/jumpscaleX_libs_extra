@@ -7,7 +7,7 @@ class SimulatorConfig(j.baseclasses.object_config_redis):
         name= ""
         tft_pricing_type = "fixed,auto" (E)
         tft_price_5y = 3 (F)
-        node_growth = 600000 (I)
+        node_growth = 1000000 (I)
         startmonth = 1 (I)
         hardwareconfig = "A_dc_rack"
         
