@@ -78,7 +78,7 @@ def bom_populate(bom):
     
     #bom.components.new(name="front_fan", description="front fan kit", cost=44, power=0, cu_perc=50, su_perc=50)
 
-   bom.components.new(
+    bom.components.new(
         name="ng2",
         description="48 ports 10 gbit + 4 ports 10 gbit sfp: fs.com + cables",
         cost=1,
