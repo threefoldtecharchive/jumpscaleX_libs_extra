@@ -3,7 +3,7 @@ from Jumpscale import j
 from .BillOfMaterial import *
 from .NodesBatch import *
 from .SimulatorBase import SimulatorBase
-
+import matplotlib.pyplot as plt
 
 class TokenCreator:
     pass
@@ -57,8 +57,8 @@ class TFGridSimulator(SimulatorBase):
         for m in months:
             md = self.markdown_reality_check(m)
             j.sal.fs.writeFile(f"{path}/reality_check_{m}.md",md)
-            md = self.markdown_cloud_valuation(m)
-            j.sal.fs.writeFile(f"{path}/cloud_valuation_{m}.md",md)
+
+        self.markdown_cloud_valuation(60,path=path)
 
         export("environment", self.environment._data._ddict_hr, 1)
         export("bom", self.environment.bom._data._ddict_hr, 1)
@@ -227,6 +227,13 @@ class TFGridSimulator(SimulatorBase):
         if month == None:
             month = self.sheet.nrcols - 1
         return self.cloud_valuation_get(x=month)
+
+    def grid_valuation_values(self,rev=None,multiple=None):
+        res=[]
+        for x in range(24,60):
+            v=self.cloud_valuation_get( x, rev=rev, multiple=multiple)
+            res.append(v/1000000)
+        return res
 
     def tft_price_get(self, month=None):
         config = j.tools.tfgrid_simulator.simulator_config
@@ -436,23 +443,32 @@ class TFGridSimulator(SimulatorBase):
         cost = float(node.total.cost_total_month) * float(nrnodes)
         return cost
 
-    def cloud_valuation_get(self, x):
+    def cloud_valuation_get(self, x,rev=None,multiple=None):
         """
         the value of the grid at that month based on selected cloud index calculation method
         """
         rev = self.rows.rev_total_max.cells[x]
-        config = j.tools.tfgrid_simulator.simulator_config.cloudvaluation
-
-        if config.indextype == "revenue":
-            rev = int(rev * config.revenue_months)
-            return rev
+        if multiple!=None:
+            if rev:
+                rev = int(rev * multiple)
+                return rev
+            else:
+                cost = self.cloud_cost_get(x)
+                margin = rev - cost
+                margin = int(margin * multiple)
+                return margin
         else:
-            cost = self.cloud_cost_get(x)
-            margin = rev - cost
-            margin = int(margin * config.margin_months)
-            return margin
+            config = j.tools.tfgrid_simulator.simulator_config.cloudvaluation
+            if config.indextype == "revenue":
+                rev = int(rev * config.revenue_months)
+                return rev
+            else:
+                cost = self.cloud_cost_get(x)
+                margin = rev - cost
+                margin = int(margin * config.margin_months)
+                return margin
 
-    def markdown_cloud_valuation(self, month):
+    def markdown_cloud_valuation(self, month=60,path=None):
         fi = j.core.text.format_item
         rev_compute = self.rows.rev_compute.cells[month]
         rev_storage = self.rows.rev_storage.cells[month]
@@ -475,51 +491,147 @@ class TFGridSimulator(SimulatorBase):
         else:
             nrmonths = self.config.cloudvaluation.margin_months
 
+        pi=self.price_index_get()
+
         C = f"""
-        ## cloud valuation report for month: {month}
+        ## TF Grid Valuation Report.
 
-        ### revenues with utilization in account
+        ### Token Price 
 
-        - rev cu                : {fi(rev_compute)}
-        - rev su                : {fi(rev_storage)}
-        - rev nu                : {fi(rev_network)}
-        - rev total             : {fi(rev_total)}
+        The price of the tokens in relation to the simulator.
 
-        ### revenues if all resources used
+        ![]({self.graph_token_price_png(path=path)} ':size=800x600')
 
-        - rev cu                : {fi(rev_compute_max)}
-        - rev su                : {fi(rev_storage_max)}
-        - rev nu                : {fi(rev_network_max)}
-        - rev total             : {fi(rev_total_max)}
+        ### Valuation Of Grid Calculation
 
-        ### costs
+        | valuation mechanism | multiple | valuation in USD |
+        | --- | --- | --- |
+        | revenue | 12 | {fi(self.cloud_valuation_get( 60, rev=True, multiple=12))} |
+        | revenue | 20 | {fi(self.cloud_valuation_get( 60, rev=True, multiple=20))} |
+        | revenue | 30 | {fi(self.cloud_valuation_get( 60, rev=True, multiple=30))} |
+        | revenue | 40 | {fi(self.cloud_valuation_get( 60, rev=True, multiple=40))} |
+        | margin | 30 | {fi(self.cloud_valuation_get( 60, rev=False, multiple=30))} |
+        | margin | 40 | {fi(self.cloud_valuation_get( 60, rev=False, multiple=40))} |
+        | margin | 50 | {fi(self.cloud_valuation_get( 60, rev=False, multiple=50))} |
+        | margin | 60 | {fi(self.cloud_valuation_get( 60, rev=False, multiple=60))} |
 
-        - cost hardware         : {fi(cost_hardware)}
-        - cost power            : {fi(cost_power)}
-        - cost maintenance      : {fi(cost_maintenance)}
-        - cost rackspace        : {fi(cost_rackspace)}
-        - cost network          : {fi(cost_network)}
-        - cost total            : {fi(cost_total)}
+        ![]({self.graph_valuation_png(path=path,rev=True,multiple=[12,20,30,40])} ':size=800x600')        
 
-        ### valuation parameters
+        ![]({self.graph_valuation_png(path=path,rev=False,multiple=[30,40,50,60])} ':size=800x600')
+        
+        ### TFT price index
 
-        - price_cu              : {self.config.cloudvaluation.price_cu}
-        - price_su              : {self.config.cloudvaluation.price_su}
-        - price_nu              : {self.config.cloudvaluation.price_nu}
+        If the token price would be ```value of the grid / nr of TFT in the network``` then we can calculate an estimate TFT price index.
+        Disclaimer, this is by no means a suggestion that the TFT will go to this price, its just a logical index which could indicate a value for the TFT.
+        Realize this is just a simulation, and no indication of any future price.
 
-        ### valuation report
+        | valuation mechanism | multiple | TFT Price Index USD |
+        | --- | --- | --- |
+        | revenue | 12 | {fi(pi[0])} |
+        | revenue | 20 | {fi(pi[1])} |
+        | revenue | 30 | {fi(pi[2])} |
+        | revenue | 40 | {fi(pi[3])} |
+        | margin | 30 | {fi(pi[4])} |
+        | margin | 40 | {fi(pi[5])} |
+        | margin | 50 | {fi(pi[6])} |
+        | margin | 60 | {fi(pi[7])} |
+        
+        ### example detailed calculation for month {month}
 
-        - valuation based on {nrmonths} months of {self.config.cloudvaluation.indextype}
-        - valuation is          : {fi(self.cloud_valuation_get(month))}
+        In case the TFT price is auto then it gets calculated with the params as defined below.
 
-        ### token price
+        #### revenues with utilization in account
 
-        - this month {fi(self.rows.tokenprice.cells[month])}
-        - month 60 {fi(self.rows.tokenprice.cells[60])}
+        This does not take token price increase into consideration.
+
+        | | USD |
+        | --- | ---: |
+        | rev cu                |  {fi(rev_compute)} | 
+        | rev su                |  {fi(rev_storage)} | 
+        | rev nu                |  {fi(rev_network)} | 
+        | rev total             |  {fi(rev_total)} | 
+
+        #### revenues if all resources used
+
+        | | USD |
+        | --- | ---: |
+        | rev cu                |  {fi(rev_compute_max)} | 
+        | rev su                |  {fi(rev_storage_max)} | 
+        | rev nu                |  {fi(rev_network_max)} | 
+        | rev total             |  {fi(rev_total_max)} | 
+
+        #### costs
+        
+        | | USD |
+        | --- | ---: |
+        | cost hardware         |  {fi(cost_hardware)} | 
+        | cost power            |  {fi(cost_power)} | 
+        | cost maintenance      |  {fi(cost_maintenance)} | 
+        | cost rackspace        |  {fi(cost_rackspace)} | 
+        | cost network          |  {fi(cost_network)} | 
+        | cost total            |  {fi(cost_total)} | 
+
+        #### valuation report
+
+        - valuation based on {nrmonths}  months of {self.config.cloudvaluation.indextype}
+        - valuation is {fi(self.cloud_valuation_get(month))}
 
         """
 
-        return j.core.tools.text_strip(C)
+        #TODO: to be added if ok again
+        #        ![]({self.graph_price_index(path=path)} ':size=800x600')
+
+
+        C =  j.core.tools.text_strip(C)
+        if path:
+            j.sal.fs.writeFile(f"{path}/tfgrid_valuation.md",C)
+        return C
+
+    def price_index_get(self):
+        res=[]
+        nrtft = self.tft_total(60)
+        for m in [12,20,30,40]:
+            res.append(self.cloud_valuation_get(60, rev=True, multiple=m))
+        for m in [30,40,50,60]:
+            res.append(self.cloud_valuation_get(60, rev=False, multiple=m))
+        res = [i/nrtft for i in res]
+        return res
+
+    def graph_price_index(self,path):
+        r=self.price_index_get()
+        titles=[]
+        titles.append(("revenue",12))
+        titles.append(("revenue", 20))
+        titles.append(("revenue", 30))
+        titles.append(("revenue", 40))
+        titles.append(("margin", 30))
+        titles.append(("margin", 40))
+        titles.append(("margin", 40))
+        titles.append(("margin", 60))
+
+        titles2 = [f"{t[0]} {t[1]}" for t in titles]
+
+        title=f"tft_index"
+        path2=f"{path}/{title}.png"
+
+        #TODO: need to improve see https://matplotlib.org/3.2.1/gallery/ticks_and_spines/custom_ticker1.html#sphx-glr-gallery-ticks-and-spines-custom-ticker1-py
+
+        with plt.style.context('Solarize_Light2'):
+            # fig, ax = plt.subplots()
+            # ax.yaxis.set_major_formatter(formatter)
+            # j.shell()
+            plt.bar(r,max(r))
+            # plt.xticks(x, titles2)
+            plt.show()
+            # plt.plot(x,y,label="usd")[0]
+        plt.title(title.replace("_"," "))
+        fig = plt.gcf()
+        fig.set_size_inches(10, 7)
+        # plt.legend(loc='best')
+        plt.show()
+        plt.savefig(path2, dpi=200)
+        plt.close()
+        return f"{title}.png"
 
     def utilization_get(self, month):
         utilization = self.rows.utilization.cells[month] / 100
@@ -630,6 +742,49 @@ class TFGridSimulator(SimulatorBase):
             fig_tft_marketcap.show()
 
         return (fig_nrnodes, fig_tft_movement, fig_nrtokens, fig_grid_valuation, fig_tft_marketcap)
+
+    def graph_token_price_png(self,path):
+        title=f"tokenprice"
+        path2=f"{path}/{title}.png"
+        with plt.style.context('Solarize_Light2'):
+            x, y = self.rows.tokenprice.values_xy
+            plt.plot(x,y,label="usd")[0]
+        plt.title(title.replace("_"," "))
+        fig = plt.gcf()
+        fig.set_size_inches(10, 7)
+        plt.legend(loc='best')
+        plt.show()
+        plt.savefig(path2, dpi=200)
+        plt.close()
+        return f"{title}.png"
+
+    def graph_valuation_png(self,path, rev=True, multiple=None):
+        if not multiple:
+            multiple = [30, 40, 50]
+        if rev:
+            title=f"TF Grid valuation based on recurring rev"
+            title2 = f"tfgridvaluation_recurring_revenue"
+        else:
+            title = f"TF Grid valuation based on recurring net margin"
+            title2=f"tfgridvaluation_recurring_margin"
+        path2=f"{path}/{title2}.png"
+        with plt.style.context('Solarize_Light2'):
+            for m in multiple:
+                if rev:
+                    label = f"rev x {m} in million USD"
+                else:
+                    label = f"margin x {m} in million USD"
+                y=self.grid_valuation_values(rev=rev,multiple=m)
+                x=[i for i in range(24,60)]
+                plt.plot(x,y,label=label)[0]
+        plt.title(title.replace("_"," "))
+        fig = plt.gcf()
+        fig.set_size_inches(10, 7)
+        plt.legend(loc='best')
+        plt.show()
+        plt.savefig(path2, dpi=200)
+        plt.close()
+        return f"{title2}.png"
 
     def markdown_reality_check(self, month):
         cl = j.data.types.numeric.clean

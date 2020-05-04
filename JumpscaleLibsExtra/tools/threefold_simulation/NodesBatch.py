@@ -255,7 +255,6 @@ class NodesBatch(SimulatorBase):
             self._set("tft_sold_usd", month,-tft_sold*tftprice_now)
             tft_farmer_income = tft_farmed + tft_cultivated - tft_sold
             self._set("tft_farmer_income", month, tft_farmer_income)
-
             self._set("tft_farmer_income_usd", month, tftprice_now * floatt(tft_farmer_income))
 
             self._set("difficulty_level", month, self.simulation.token_creator.difficulty_level_get(month))
@@ -281,6 +280,7 @@ class NodesBatch(SimulatorBase):
             tft_farmer_income_cumul_previous = 0
         else:
             tft_farmer_income_cumul_previous = floatt(self.rows.tft_farmer_income_cumul.cells[month - 1])
+
         tft_farmer_income_cumul = tft_farmer_income_cumul_previous + floatt(tft_farmer_income)
         self._set("tft_farmer_income_cumul", month, tft_farmer_income_cumul)
 
@@ -416,6 +416,8 @@ class NodesBatch(SimulatorBase):
 
         ### revenues if all resources used
 
+        This does not take TFT price increase in consideration.
+
         - rev cu                : {fi(rev_compute_max)}
         - rev su                : {fi(rev_storage_max)}
         - rev nu                : {fi(rev_network_max)}
@@ -473,7 +475,7 @@ class NodesBatch(SimulatorBase):
         # no improvement on nu because we kept it same
         nu = self.node_normalized.production.nu_used_month
 
-        m=self.month_start+60
+        month_end=self.month_start+self.months_left
 
         # rev_total = self.rows.tft_farmer_income_cumul.cells[-1]
         rev_compute = self.rows.rev_compute.sum() #sum over all values
@@ -482,6 +484,10 @@ class NodesBatch(SimulatorBase):
         rev_farming = self.rows.tft_farmer_income.sum()
         # rev_total = self.rows.rev_total.sum()
         rev_total = rev_farming + rev_compute + rev_storage + rev_network
+
+        tft_margin = self.rows.tft_farmed.sum()+self.rows.tft_cultivated.sum()-self.rows.tft_sold.sum()
+        tftprice = self.simulation.tft_price_get(month_end)
+        rev_total2 = tft_margin * tftprice
 
         cost_rackspace = self.rows.cost_rackspace.sum()
         cost_maintenance = self.rows.cost_maintenance.sum()
@@ -495,7 +501,7 @@ class NodesBatch(SimulatorBase):
 
         wo = self.months_left
 
-        roi_end = (rev_total - cost_hardware)/cost_hardware
+        roi_end = (rev_total2 - cost_hardware)/cost_hardware
 
         C = f"""
 
@@ -520,6 +526,8 @@ class NodesBatch(SimulatorBase):
         | #nu                   | {fi(nu)} |
 
         ### revenue per node
+        
+        This does not take TFT token price increase into consideration.
         
         | | USD |
         | --- | ---: |    
@@ -551,17 +559,31 @@ class NodesBatch(SimulatorBase):
         | cost network          | {fi(cost_network / nr / wo)} |
         | cost total            | {fi(cost_total / nr / wo)} |
 
+        ### TFT income
 
+        TFT Price at end of period: {fi(tftprice)}
+
+        | | TFT |
+        | --- | ---: |
+        | TFT Farmed  | {fi(self.rows.tft_farmed.sum()/nr)} |
+        | TFT Cultivated  | {fi(self.rows.tft_cultivated.sum()/nr)} |
+        | TFT Sold  | {fi(self.rows.tft_sold.sum()/nr)} |
+        | TFT Margin  | {fi(tft_margin)} |
+
+         
         ### net margin & roi
         | | |
         | --- | ---: |
-        | revenue               | {fi((rev_total ) / nr)} |
-        | margin                | {fi((rev_total - cost_total ) / nr)} |
+        | revenue without TFT upside    | {fi((rev_total ) / nr)} |
+        | margin without TFT upside  | {fi((rev_total - cost_total ) / nr)} |
+        | revenue with TFT upside    | {fi((rev_total2 ) / nr)} |
+        | margin with TFT upside  | {fi((rev_total2 - cost_total ) / nr)} |
         | roi                   | {fi(roi_end)}|
 
 
         """
         C=j.core.tools.text_strip(C)
+
         j.sal.fs.writeFile(f"{path}/nodesbatch_{self.month_start}_report.md",C)
         return C
 
@@ -674,7 +696,7 @@ class NodesBatch(SimulatorBase):
         title=f"nodebatch_{self.month_start}_income"
         path2=f"{path}/{title}.png"
         with plt.style.context('Solarize_Light2'):
-            names = ["tft_farmed_usd", "tft_cultivated_usd", "tft_sold_usd", "tft_farmer_income"]
+            names = ["tft_farmed_usd", "tft_cultivated_usd", "tft_sold_usd", "tft_farmer_income_usd"]
             for name in names:
                 x, y = self.rows[name].values_xy
                 if singlenode:
