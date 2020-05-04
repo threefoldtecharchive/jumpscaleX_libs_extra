@@ -36,6 +36,34 @@ class TFGridSimulator(SimulatorBase):
         r["nodebatches"] = [i.export_() for i in self.nodebatches]
         return r
 
+    def export_minimal(self,path):
+
+        def export(name,data,indent=None):
+            if not isinstance(data,str):
+                data = j.data.serializers.json.dumps(data, sort_keys=True, indent=indent, encoding='ascii')
+            j.sal.fs.writeFile(f"{path}/{name}.json", data)
+
+        export("sheet",self.sheet.export_())
+        export("config", self.config._data._ddict_hr,1)
+        months=[1,20,40]
+        for m in months:
+            nb=self.nodebatches[m]
+            nb.markdown_report(path=path)
+            export("nodebatch_%s"%m, nb.export_())
+            for m2 in months:
+                md = nb.markdown_profit_loss(m2)
+                j.sal.fs.writeFile(f"{path}/nodesbatch_profit_loss_{m}_{m2}.md",md)
+        months = [1, 20, 40, 60]
+        for m in months:
+            md = self.markdown_reality_check(m)
+            j.sal.fs.writeFile(f"{path}/reality_check_{m}.md",md)
+            md = self.markdown_cloud_valuation(m)
+            j.sal.fs.writeFile(f"{path}/cloud_valuation_{m}.md",md)
+
+        export("environment", self.environment._data._ddict_hr, 1)
+        export("bom", self.environment.bom._data._ddict_hr, 1)
+
+
     def export_redis(self):
         data = j.data.serializers.msgpack.dumps(self.export_())
         j.core.db.hset("simulations", self.name, data)
@@ -169,7 +197,6 @@ class TFGridSimulator(SimulatorBase):
             tft_price_5y = config.cloudvaluation.tft_price_5y_baseline
         else:
             tft_price_5y = config.tft_price_5y
-
         assert tft_price_5y > 0.09
 
         # need to do over 12 years or the price of tokens weirdly stops
@@ -260,7 +287,7 @@ class TFGridSimulator(SimulatorBase):
             self._row_add("investment", defval=0)
             self._row_add("revenue")
 
-            self._row_add("tft_movement_usd")
+            self._row_add("tft_farmer_income_usd")
             self._row_add("tft_farmer_income_cumul_usd")  # What is cumul = cumulative (all aggregated)
             self._row_add("tft_marketcap")
 
@@ -336,7 +363,7 @@ class TFGridSimulator(SimulatorBase):
                     nb.rows.tft_farmer_income_cumul.cells[month]
                 ) - self._float(nb.rows.tft_burned.cells[month])
 
-                self.rows.tft_movement_usd.cells[month] += self._float(nb.rows.tft_movement_usd.cells[month])
+                self.rows.tft_farmer_income_usd.cells[month] += self._float(nb.rows.tft_farmer_income_usd.cells[month])
                 self.rows.tft_farmer_income_cumul_usd.cells[month] += self._float(
                     nb.rows.tft_farmer_income_cumul_usd.cells[month]
                 )
@@ -358,7 +385,7 @@ class TFGridSimulator(SimulatorBase):
                 self.rows.rev_network_max.cells[month] += self._float(nb.rows.rev_network_max.cells[month])
                 self.rows.rev_total_max.cells[month] += self._float(nb.rows.rev_total_max.cells[month])
 
-            self.rows.tft_movement_usd.cells[month] = tftprice_now * self.rows.tft_farmer_income.cells[month]
+            self.rows.tft_farmer_income_usd.cells[month] = tftprice_now * self.rows.tft_farmer_income.cells[month]
             self.rows.tft_farmer_income_cumul_usd.cells[month] = (
                 tftprice_now * self.rows.tft_farmer_income_cumul.cells[month]
             )
@@ -485,7 +512,13 @@ class TFGridSimulator(SimulatorBase):
         - valuation based on {nrmonths} months of {self.config.cloudvaluation.indextype}
         - valuation is          : {fi(self.cloud_valuation_get(month))}
 
+        ### token price
+
+        - this month {fi(self.rows.tokenprice.cells[month])}
+        - month 60 {fi(self.rows.tokenprice.cells[60])}
+
         """
+
         return j.core.tools.text_strip(C)
 
     def utilization_get(self, month):
@@ -600,6 +633,7 @@ class TFGridSimulator(SimulatorBase):
 
     def markdown_reality_check(self, month):
         cl = j.data.types.numeric.clean
+        fi = j.core.text.format_item
         nrnodes = self.rows.nrnodes_total.cells[month]
         tft_cultivated = cl(self.rows.tft_cultivated.cells[month])
         tft_price = self.tft_price_get(month)
@@ -609,9 +643,27 @@ class TFGridSimulator(SimulatorBase):
         usd_sold = cl(self.rows.tft_sold.cells[month] * tft_price)
         usd_burned = cl(self.rows.tft_burned.cells[month] * tft_price)
         usd_total = cl(self.rows.tft_farmer_income.cells[month] * tft_price)
+        n = self.environment.node_normalized
+
+        cpr_improve = self.rows.cpr_improve.cells[month]
+        utilization = self.utilization_get(month)
+
+        cu = n.production.cu * (1 + cpr_improve)
+        su = n.production.su * (1 + cpr_improve)
+        # no improvement on nu because we kept it same
+        nu = float(n.production.nu_used_month)
+
+        price_decline = self.sales_price_decline_get(month)  # 0-1
+
+        cu_price = self.sales_price_cu / (1 + price_decline)
+        su_price = self.sales_price_su / (1 + price_decline)
+        # for nu no price decline because we also did not let the cost go down
+        nu_price = self.sales_price_nu
+
+        cost_node_all_nohw = float((self.rows.cost_total.cells[month] - self.rows.cost_hardware.cells[month]) / nrnodes)
 
         res = f"""
-        ## Some Checks ({month} month mark)
+        ## Some Totals for the simulation: ({month} month mark)
 
         - nrnodes: {nrnodes}
         - nrtokens cultivated: {tft_cultivated}
@@ -619,15 +671,78 @@ class TFGridSimulator(SimulatorBase):
         - USD cultivated in that month: {usd_cultivated} USD
         - USD farmed in that month: {usd_farmed} USD
 
+        ### simulation params in this month
+
+        - utilization           : {fi(utilization)}
+        - price decline         : {fi(price_decline)}
+        - cu price              : {fi(cu_price)}
+        - su price              : {fi(su_price)}
+        - nu price              : {fi(nu_price)}
+
+        ### cloud units sold total
+
+        - #cu        : {fi(cu*nrnodes*utilization)}
+        - #su        : {fi(su*nrnodes*utilization)}
+        - #nu        : {fi(nu*nrnodes*utilization)}
+
+        ### per node production
+
+        #### per node setup
+
+        - USD investment cost per node: {fi(n.total.cost_hardware)}
+
+        #### cloud units per node
+
+        - #cu               : {fi(cu)}
+        - #su               : {fi(su)}
+        - #nu               : {fi(nu)}
+        - cost of 1 nu      : {fi(n.production.cost_nu_month/nu)}
+        - passmark per cu   : {fi(n.production.cu_passmark)}
+
+        #### resource units per node
+
+        - cpr : {fi(n.production.cpr)}
+        - cru : {fi(n.production.cru)}
+        - sru : {fi(n.production.sru)}
+        - hru : {fi(n.production.hru)}
+        - mru : {fi(n.production.mru)}
+
+        #### revenue per month per node based on simulation totals
+
+        - rev compute month         : {fi(self.rows.rev_compute.cells[month]/nrnodes)}
+        - rev storage month         : {fi(self.rows.rev_storage.cells[month]/nrnodes)}
+        - rev network month         : {fi(self.rows.rev_network.cells[month]/nrnodes)}
+        - rev total month           : {fi(self.rows.rev_total.cells[month]/nrnodes)}
+
+        #### costs per month per node normalized over months
+
+        - cost hardware month       : {fi(n.total.cost_hardware_month)}
+        - cost rack month           : {fi(n.total.cost_rack_month)}
+        - cost power month          : {fi(n.total.cost_power_month*utilization)}
+        - cost maintenance month    : {fi(n.total.cost_maintenance_month)}
+        - cost network month        : {fi(n.production.cost_nu_month*utilization)}
+
+        #### costs per month per node based on simulation totals
+
+        - cost hardware month       : {fi(self.rows.cost_hardware.cells[month]/nrnodes)}
+        - cost rack month           : {fi(self.rows.cost_rackspace.cells[month]/nrnodes)}
+        - cost power month          : {fi(self.rows.cost_power.cells[month]/nrnodes)}
+        - cost maintenance month    : {fi(self.rows.cost_maintenance.cells[month]/nrnodes)}
+        - cost network month        : {fi(self.rows.cost_network.cells[month]/nrnodes)}
+        - cost total month          : {fi(self.rows.cost_total.cells[month]/nrnodes)}
+        - cost total month no hw    : {fi(cost_node_all_nohw)}
+        
         ### per node per month
 
-        - USD cultivated per node:  {usd_node_cultivated} USD
-        - USD farmed per node:  {cl(usd_farmed / nrnodes)} USD    
-        - USD burned per node:  {cl(usd_burned / nrnodes)} USD  
-        - USD sold per node (to pay for rackspace/power/mgmt):  {cl(usd_sold / nrnodes)} USD  
-        - USD profit for farmer per node (profit from token income):  {cl(usd_total / nrnodes)} USD
+        - USD cultivated per node                                   :  {usd_node_cultivated} USD
+        - USD farmed per node                                       :  {fi(usd_farmed / nrnodes)} USD    
+        - USD burned per node                                       :  {fi(usd_burned / nrnodes)} USD
+        - USD monthly tft sold (rackspace/power/mgmt/net)           :  {fi(-usd_sold / nrnodes)} USD  
+        - USD monthly cost per node (rackspace/power/mgmt/net)      :  {fi(cost_node_all_nohw )} USD
+        - USD profit for farmer per node (profit from token income) :  {fi(usd_total / nrnodes)} USD
 
         """
+        # print(j.core.tools.text_strip(res))
 
         return j.core.tools.text_strip(res)
 

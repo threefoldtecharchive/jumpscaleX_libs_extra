@@ -1,5 +1,6 @@
 from Jumpscale import j
 from .SimulatorBase import SimulatorBase
+import matplotlib.pyplot as plt
 
 
 class NodesBatch(SimulatorBase):
@@ -42,6 +43,7 @@ class NodesBatch(SimulatorBase):
         self._row_add("tft_cultivated")  # sold capacity
         self._row_add("tft_cultivated_usd")  # sold capacity
         self._row_add("tft_sold")  # sold tft to cover power & rackspace costs
+        self._row_add("tft_sold_usd")
         self._row_add("tft_burned")
         self._row_add("tft_farmer_income")
         self._row_add("tft_farmer_income_cumul")
@@ -59,7 +61,7 @@ class NodesBatch(SimulatorBase):
         self._row_add("power")
         # self._row_add("mbit_sec_used")
 
-        self._row_add("tft_movement_usd")
+        self._row_add("tft_farmer_income_usd")
         self._row_add("tft_farmer_income_cumul_usd")
         self._row_add("roi")
 
@@ -248,12 +250,13 @@ class NodesBatch(SimulatorBase):
             self._set("tft_cultivated", month, tft_cultivated)
             self._set("tft_cultivated_usd", month, tft_cultivated * tftprice_now)
             self._set("tft_burned", month, -tft_burned)
-            tft_sold = (float(cost_power) + float(cost_rackspace) + float(cost_maintenance)) / float(tftprice_now)
+            tft_sold = (float(cost_power) + float(cost_rackspace) + float(cost_maintenance) + float(cost_network)) / float(tftprice_now)
             self._set("tft_sold", month, -tft_sold)
+            self._set("tft_sold_usd", month,-tft_sold*tftprice_now)
             tft_farmer_income = tft_farmed + tft_cultivated - tft_sold
             self._set("tft_farmer_income", month, tft_farmer_income)
 
-            self._set("tft_movement_usd", month, tftprice_now * floatt(tft_farmer_income))
+            self._set("tft_farmer_income_usd", month, tftprice_now * floatt(tft_farmer_income))
 
             self._set("difficulty_level", month, self.simulation.token_creator.difficulty_level_get(month))
             self._set("tft_price", month, tftprice_now)
@@ -344,7 +347,7 @@ class NodesBatch(SimulatorBase):
         rev_network_max = self.rows.rev_network_max.cells[month]
         if not rev_compute or not rev_storage or not rev_storage:
             return "CANNOT CALCULATE THE P&L REPORT, check if month asked for is in the active simulation."
-        rev_total = rev_compute + rev_storage + rev_storage
+        rev_total = rev_compute + rev_storage + rev_network
         rev_total_max = rev_compute_max + rev_storage_max + rev_network_max
 
         cost_rackspace = self.rows.cost_rackspace.cells[month]
@@ -357,10 +360,10 @@ class NodesBatch(SimulatorBase):
         price_decline = self.simulation.sales_price_decline_get(month)  # 0-1
         utilization = self.simulation.utilization_get(month)
 
-        cu = self.node_normalized.production.cu * self.nrnodes * (1 + self.cpr_improve)
-        su = self.node_normalized.production.su * self.nrnodes * (1 + self.cpr_improve)
+        cu = self.node_normalized.production.cu * (1 + self.cpr_improve)
+        su = self.node_normalized.production.su * (1 + self.cpr_improve)
         # no improvement on nu because we kept it same
-        nu = self.node_normalized.production.nu_used_month * self.nrnodes
+        nu = self.node_normalized.production.nu_used_month
 
         cu_price = self.simulation.sales_price_cu / (1 + price_decline)
         su_price = self.simulation.sales_price_su / (1 + price_decline)
@@ -371,6 +374,7 @@ class NodesBatch(SimulatorBase):
             nrmonths = self.simulation.config.cloudvaluation.revenue_months
         else:
             nrmonths = self.simulation.config.cloudvaluation.margin_months
+        nr = self.nrnodes
 
         C = f"""
 
@@ -382,7 +386,7 @@ class NodesBatch(SimulatorBase):
         - nrnodes                : {self.nrnodes}
         - investment hardware    : {fi(self.cost_hardware)}
 
-        ### cloud units
+        ### cloud units per node
 
         - #cu                   : {fi(cu)}
         - #su                   : {fi(su)}
@@ -396,12 +400,19 @@ class NodesBatch(SimulatorBase):
         - su price              : {fi(su_price)}
         - nu price              : {fi(nu_price)}
 
-        ### revenues with utilization in account
+        ### revenue for full batch
 
         - rev cu                : {fi(rev_compute)}
         - rev su                : {fi(rev_storage)}
         - rev nu                : {fi(rev_network)}
         - rev total             : {fi(rev_total)}
+
+        ### revenue per node
+
+        - rev cu                : {fi(rev_compute/nr)}
+        - rev su                : {fi(rev_storage/nr)}
+        - rev nu                : {fi(rev_network/nr)}
+        - rev total             : {fi(rev_total/nr)}
 
         ### revenues if all resources used
 
@@ -410,8 +421,7 @@ class NodesBatch(SimulatorBase):
         - rev nu                : {fi(rev_network_max)}
         - rev total             : {fi(rev_total_max)}
 
-
-        ### costs
+        ### costs for full batch
 
         - cost hardware         : {fi(cost_hardware)}
         - cost power            : {fi(cost_power)}
@@ -420,10 +430,24 @@ class NodesBatch(SimulatorBase):
         - cost network          : {fi(cost_network)}
         - cost total            : {fi(cost_total)}
 
+        ### costs per node
+
+        - cost hardware         : {fi(cost_hardware/nr)}
+        - cost power            : {fi(cost_power/nr)}
+        - cost maintenance      : {fi(cost_maintenance/nr)}
+        - cost rackspace        : {fi(cost_rackspace/nr)}
+        - cost network          : {fi(cost_network/nr)}
+        - cost total            : {fi(cost_total/nr)}
+
         ### profit this month
 
-        - margin in month       : {fi(rev_total-self.cloud_cost_get(month))}
+        - margin                : {fi(rev_total-self.cloud_cost_get(month))}
         - margin 100% used      : {fi(rev_total_max-cost_total)}
+
+        ### profit this month per node
+
+        - margin                : {fi((rev_total-self.cloud_cost_get(month))/nr)}
+        - margin 100% used      : {fi((rev_total_max-cost_total)/nr)}
 
         ### valuation parameters
 
@@ -431,14 +455,115 @@ class NodesBatch(SimulatorBase):
         - price_su              : {self.simulation.config.cloudvaluation.price_su}
         - price_nu              : {self.simulation.config.cloudvaluation.price_nu}
 
-        ### valuation report
+        ### valuation report for the full batch
 
         - valuation based on {nrmonths} months of {self.simulation.config.cloudvaluation.indextype}
-        - valuation is          : {fi(self.cloud_valuation_get(month))}
+        - valuation total          : {fi(self.cloud_valuation_get(month))}
+        - valuation per node       : {fi(self.cloud_valuation_get(month)/nr)}
 
         
         """
         return j.core.tools.text_strip(C)
+
+    def markdown_report(self,path):
+        graph_usd_png_loc=self.graph_usd_png(path=path, singlenode=True)
+
+        cu = self.node_normalized.production.cu * (1 + self.cpr_improve)
+        su = self.node_normalized.production.su * (1 + self.cpr_improve)
+        # no improvement on nu because we kept it same
+        nu = self.node_normalized.production.nu_used_month
+
+        m=self.month_start+60
+
+        # rev_total = self.rows.tft_farmer_income_cumul.cells[-1]
+        rev_compute = self.rows.rev_compute.sum() #sum over all values
+        rev_storage = self.rows.rev_storage.sum()  # sum over all values
+        rev_network = self.rows.rev_network.sum()
+        rev_farming = self.rows.tft_farmer_income.sum()
+        # rev_total = self.rows.rev_total.sum()
+        rev_total = rev_farming + rev_compute + rev_storage + rev_network
+
+        cost_rackspace = self.rows.cost_rackspace.sum()
+        cost_maintenance = self.rows.cost_maintenance.sum()
+        cost_hardware = self.rows.cost_hardware.sum()
+        cost_network = self.rows.cost_network.sum()
+        cost_power = self.rows.cost_power.sum()
+        cost_total = self.rows.cost_total.sum()
+
+        fi = j.core.text.format_item
+        nr = self.nrnodes
+
+        wo = self.months_left
+
+        roi_end = (rev_total - cost_hardware)/cost_hardware
+
+        C = f"""
+
+        ## Nodebatch report for month {self.month_start}
+
+        ![]({graph_usd_png_loc} ':size=800x600')
+
+        ### nodesbatch
+
+        | | |
+        | --- | ---: |
+        | added to grid in month | {self.month_start} |
+        | nrnodes                | {self.nrnodes} |
+        | investment hardware    | {fi(self.cost_hardware)} |
+
+        ### cloud units per node
+
+        | | cloudunits |
+        | --- | ---: |
+        | #cu                   | {fi(cu)} |
+        | #su                   | {fi(su)} |
+        | #nu                   | {fi(nu)} |
+
+        ### revenue per node
+        
+        | | USD |
+        | --- | ---: |    
+        | rev cu                | {fi(rev_compute / nr)} |
+        | rev su                | {fi(rev_storage / nr)} |
+        | rev nu                | {fi(rev_network / nr)} |
+        | rev farming           | {fi(rev_farming / nr)} |
+        | rev total             | {fi(rev_total / nr)} |
+
+        ### costs per node over all years
+
+        | | USD |
+        | --- | ---: |
+        | cost hardware         | {fi(cost_hardware / nr)} |
+        | cost power            | {fi(cost_power / nr)} |
+        | cost maintenance      | {fi(cost_maintenance / nr)} |
+        | cost rackspace        | {fi(cost_rackspace / nr)} |
+        | cost network          | {fi(cost_network / nr)} |
+        | cost total            | {fi(cost_total / nr)} |
+
+        ### costs per node per month avg
+
+        | | USD |
+        | --- | ---: |
+        | cost hardware         | {fi(cost_hardware / nr / wo)} |
+        | cost power            | {fi(cost_power / nr / wo)} |
+        | cost maintenance      | {fi(cost_maintenance / nr / wo)} |
+        | cost rackspace        | {fi(cost_rackspace / nr / wo)} |
+        | cost network          | {fi(cost_network / nr / wo)} |
+        | cost total            | {fi(cost_total / nr / wo)} |
+
+
+        ### net margin & roi
+        | | |
+        | --- | ---: |
+        | revenue               | {fi((rev_total ) / nr)} |
+        | margin                | {fi((rev_total - cost_total ) / nr)} |
+        | roi                   | {fi(roi_end)}|
+
+
+        """
+        C=j.core.tools.text_strip(C)
+        j.sal.fs.writeFile(f"{path}/nodesbatch_{self.month_start}_report.md",C)
+        return C
 
     @property
     def roi_months(self):
@@ -544,6 +669,25 @@ class NodesBatch(SimulatorBase):
         )
 
         return fig
+
+    def graph_usd_png(self,path,singlenode=True):
+        title=f"nodebatch_{self.month_start}_income"
+        path2=f"{path}/{title}.png"
+        with plt.style.context('Solarize_Light2'):
+            names = ["tft_farmed_usd", "tft_cultivated_usd", "tft_sold_usd", "tft_farmer_income"]
+            for name in names:
+                x, y = self.rows[name].values_xy
+                if singlenode:
+                    y=[i/self.nrnodes for i in y]
+                plt.plot(x,y,label=name[4:])[0]
+        plt.title(title.replace("_"," "))
+        fig = plt.gcf()
+        fig.set_size_inches(10, 7)
+        plt.legend(loc='best')
+        plt.show()
+        plt.savefig(path2, dpi=200)
+        plt.close()
+        return f"{title}.png"
 
     def __repr__(self):
         out = str(SimulatorBase.__repr__(self))
