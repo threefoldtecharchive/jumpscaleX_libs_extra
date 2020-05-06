@@ -1,23 +1,62 @@
-prequisties:
-  - jsx
+prerequisites:
+  imageName: threefoldtech/3bot2
 
-install:
-  - apt-get update
-  - pip3 install click loguru parameterized xmltodict imbox logbook nltk imapclient base58 stellar_sdk
-  - eval `ssh-agent -s`; ssh-add
-  - rm -rf /sandbox/code/github/threefoldtech/*
-  - cd /sandbox/code/github/threefoldtech/
-  - cp -r /opt/code/github/threefoldtech/jumpscaleX_libs_extra /sandbox/code/github/threefoldtech/jumpscaleX_libs_extra
-  - cd /sandbox/code/github/threefoldtech/jumpscaleX_libs_extra ; libs_extra_branch=$(git rev-parse --abbrev-ref HEAD)
-  - declare strs=('libs' 'core' 'builders' 'threebot') && for s in ${strs[@]}; do 
-    cd /sandbox/code/github/threefoldtech/ && rm -rf /sandbox/code/github/threefoldtech/jumpscaleX_$s && 
-    git clone https://github.com/threefoldtech/jumpscaleX_$s.git --branch $libs_extra_branch || git clone https://github.com/threefoldtech/jumpscaleX_$s.git --branch development ; done
-  - source /sandbox/env.sh; js_init generate
-  - source /sandbox/env.sh; kosmos "j.builders.runtimes.lua.install_autossl()"
-
+install: |
+  apt-get update
+  pip3 install click pytest loguru parameterized requests checksumdir xmltodict imbox logbook nltk imapclient black==19.10b0
+  ssh-keygen -t rsa -N "" -f /root/.ssh/id_rsa <<< y
+  eval `ssh-agent -s`; ssh-add
+  mkdir -p /sandbox/code/github/threefoldtech/
+  cd /sandbox/code/github/threefoldtech/ 
+  cp -r /opt/code/vcs_repos/threefoldtech/jumpscaleX_libs_extra /sandbox/code/github/threefoldtech/
+  declare strs=('core' 'libs' 'builders' 'threebot') 
+  for s in ${strs[@]};
+  do
+  git clone https://github.com/threefoldtech/jumpscaleX_$s.git --branch development
+  done
+  source /sandbox/env.sh
+  jsx generate
+  jsx secret $secret
+  kosmos "j.builders.runtimes.lua.install_autossl()"
 
 script:
-  - source /sandbox/env.sh && python3 /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/js_testrun --with-xml  --xml-path /test.xml --xml-testsuite-name "data_tests" -o "j.data" && yes | bcdb delete --all
-  - source /sandbox/env.sh && python3 /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/js_testrun --with-xml  --xml-path /test.xml --xml-testsuite-name "tools_tests" -o "j.tools" && yes | bcdb delete --all
-  - source /sandbox/env.sh && python3 /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/js_testrun --with-xml  --xml-path /test.xml --xml-testsuite-name "clients_tests" -o "j.clients" && yes | bcdb delete --all
-  - source /sandbox/env.sh && python3 /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/js_testrun --with-xml  --xml-path /test.xml --xml-testsuite-name "servers_tests" -o "j.servers" && yes | bcdb delete --all
+  - name: Black Formatting
+    cmd: |
+      cd /opt/code/vcs_repos/threefoldtech
+      black jumpscaleX_libs_extra -l 120 -t py37 --diff --exclude 'templates' 1>/dev/null
+  - name: Sal Tests
+    cmd: | 
+      source /sandbox/env.sh
+      cd /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/
+      ./js_testrun --with-xml --xml-path /test.xml --xml-testsuite-name "sal_tests" -o "j.sal"
+      yes | bcdb delete --all
+  - name: Data Tests
+    cmd: |
+      source /sandbox/env.sh
+      cd /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/
+      ./js_testrun --with-xml --xml-path /test.xml --xml-testsuite-name "data_tests" -o "j.data"
+      yes | bcdb delete --all
+  - name: Tools Tests
+    cmd: |
+      source /sandbox/env.sh
+      cd /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/
+      ./js_testrun --with-xml --xml-path /test.xml --xml-testsuite-name "tools_tests" -o "j.tools"
+      yes | bcdb delete --all
+  - name: Clients Tests
+    cmd: | 
+      source /sandbox/env.sh
+      cd /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/
+      ./js_testrun --with-xml --xml-path /test.xml --xml-testsuite-name "clients_tests" -o "j.clients"
+      yes | bcdb delete --all
+  - name: Servers Tests
+    cmd: |
+      source /sandbox/env.sh
+      cd /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/
+      ./js_testrun --with-xml --xml-path /test.xml --xml-testsuite-name "servers_tests" -o "j.servers"
+      yes | bcdb delete --all
+  - name: Core Tests
+    cmd: |
+      source /sandbox/env.sh
+      cd /sandbox/code/github/threefoldtech/jumpscaleX_core/cmds/
+      ./js_testrun --with-xml --xml-path /test.xml --xml-testsuite-name "core_tests" -o "j.core"
+      yes | bcdb delete --all

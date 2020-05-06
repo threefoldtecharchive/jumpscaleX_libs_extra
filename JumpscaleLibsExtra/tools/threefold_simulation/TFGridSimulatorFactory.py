@@ -5,6 +5,9 @@ from .BillOfMaterial import Environment, BillOfMaterial
 import sys
 from .SimulatorConfig import SimulatorConfig
 
+f = j.core.text.format_item
+import gevent
+import gipc
 
 class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
@@ -54,33 +57,60 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         tokencreator_name="optimized",
         hardware_config_name="amd",
         node_growth=None,
+        growth = None,
         reload=True,
-        calc=True,
+        token_price = None,
+        log=False,
+        export=False,
+        cloudunits_price_range=None
     ):
         """
         example how to use
 
         ```
-        simulation = j.tools.tfgrid_simulator.simulation_get()
+        simulation = j.tools.tfgrid_simulator.simulation_get(growth=1000000)
         ```
 
-        @param node_growth: if empty will be whatever was defined in the simlator name see notebooks/simulators
-            default: "0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000"
-        @param tft_growth: if empty will be whatever was defined in the simlator name see notebooks/simulators
-            default: "0:0.15,60:3"
+        @param growth: amount of servers the grid will have in 2025
+            accepted inputs: 50000,100000,200000,600000,1000000,2000000,4000000,10000000
 
-        ## meaning of the interpolation values
-        # 0:0 means month 0 we have value 0
-        # 60:3 means month 60: value is 3
-        # interpolation will happen between the values
-        # above: the price go from 0.15 first month to 3 over 60 months
+        @param token_price: what will the token price be in 5 years from now?
+            accepted inputs: 0.15,0.3,0.6,1,2,3,6,10,20,40,100,500,auto
 
+        @param cloudunits_price_range: 1,2,3,4
+            1:
+                CU: 10
+                SU: 6
+                NU: 0.04
+            2:
+                CU: 12
+                SU: 8
+                NU: 0.05
+            3:
+                CU: 15
+                SU: 10
+                NU: 0.05
+            4:
+                CU: 20
+                SU: 15
+                NU: 0.08
+
+
+        @param keep, means we simulate and store the result
 
         """
+
         config = self.simulator_config
 
         if not node_growth:
-            growth = config.node_growth
+
+            if not growth:
+                growth = config.node_growth
+
+            assert isinstance(growth,int)
+            if not growth in [50000,100000,200000,600000,1000000,2000000,4000000,10000000]:
+                raise j.exceptions.Input(f"growth needs to be in: 50000,100000,200000,600000,1000000,2000000,4000000,10000000,20000000, now {growth}")
+
             if growth == 50000:
                 node_growth = "0:5,6:150,20:1000"
             elif growth == 100000:
@@ -92,15 +122,58 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             elif growth == 1000000:
                 node_growth = "0:5,6:150,12:1000,18:6000,24:12000,48:34000,60:34000"
             elif growth == 2000000:
-                node_growth = "0:5,6:150,12:2000,18:16000,24:36000,48:60000,60:60000"
-
+                node_growth = "0:5,6:150,12:2000,18:16000,24:38000,48:52000,60:60000"
+            elif growth == 4000000:
+                node_growth = "0:5,6:150,12:3000,18:25000,24:67000,48:110000,60:130000"
+            elif growth == 10000000:
+                node_growth = "0:5,6:150,12:4000,18:40000,24:120000,48:300000,60:440000"
             else:
                 node_growth = "0:5,6:150,20:2000"
         else:
             node_growth = "0:5,6:150,12:1000,18:2000,24:8000,36:12000,48:20000,60:20000"
-        #
-        # print(f" - tft_price_5y: {config.tft_price_5y}")
-        # print(f" - node_growth: {node_growth}")
+
+        if token_price:
+            assert isinstance(token_price, int) or isinstance(token_price, float) or isinstance(token_price, str)
+            if isinstance(token_price, str) and token_price == "auto":
+                config.tft_price_5y = 0
+                config.tft_pricing_type = "auto"
+            else:
+                if token_price not in [0.15,0.3,0.6,1,2,3,6,10,20,40,100,500]:
+                    raise j.exceptions.Input(f"price needs to be in: 0.15,0.3,0.6,1,2,3,6,10,20,40,100,500 now:{token_price }")
+                config.tft_price_5y = token_price
+
+
+        if cloudunits_price_range:
+            if cloudunits_price_range==1:
+                config.pricing.price_cu = 10
+                config.pricing.price_su = 6
+                config.pricing.price_nu = 0.04
+            elif cloudunits_price_range==2:
+                config.pricing.price_cu = 12
+                config.pricing.price_su = 8
+                config.pricing.price_nu = 0.05
+            elif cloudunits_price_range==3:
+                config.pricing.price_cu = 15
+                config.pricing.price_su = 10
+                config.pricing.price_nu = 0.05
+            elif cloudunits_price_range==4:
+                config.pricing.price_cu = 20
+                config.pricing.price_su = 15
+                config.pricing.price_nu = 0.08
+            else:
+                raise j.exceptions.Input(f"cloudunits_price_range needs to be in: 1,2,3,4 now:{cloudunits_price_range}")
+
+            config.cloudunits_price_range = cloudunits_price_range
+
+            config.cloudvaluation.price_cu=config.pricing.price_cu
+            config.cloudvaluation.price_su=config.pricing.price_su
+            config.cloudvaluation.price_nu=config.pricing.price_nu
+
+        if log:
+            print(f" - tft_price_5y: {config.tft_price_5y}")
+            print(f" - node_growth: {node_growth}")
+            if growth:
+                print(f" - growth: {f(growth)}")
 
         if reload or name not in self._instances:
             simulation = TFGridSimulator(name=name)
@@ -119,25 +192,37 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             # if node_growth:
             simulation.nrnodes_new_set(node_growth)
 
-            # print(f" - price_cu: {config.pricing.price_cu}")
-            # print(f" - price_su: {config.pricing.price_su}")
-            # print(f" - price_nu: {config.pricing.price_nu}")
+            if log:
+                print(f" - price_cu: {config.pricing.price_cu}")
+                print(f" - price_su: {config.pricing.price_su}")
+                print(f" - price_nu: {config.pricing.price_nu}")
 
             # we need the simulator to add the batches automatically based on chosen environment
             simulation.nodesbatches_add_auto(environment=environment)
             # put the default bom's
             simulation.environment = environment
             simulation.bom = environment.bom
+            simulation.config = config
 
             self._instances[name] = simulation
 
         simulation = self._instances[name]
 
+        if log:
+            print(f" - nr nodes in 5 years: {f(simulation.rows.nrnodes_total.cells[60])}")
+
         simulation.calc()
-        # calc = True
-        # if calc and simulation.simulated == False:
-        #     key = f"{name}_{tokencreator_name}_{hardware_config_name}_{node_growth}_{tft_growth}"
-        #     simulation.import_redis(key=key, autocacl=True, reset=reload)
+        if export:
+            if not growth:
+                growth = node_growth
+            if not cloudunits_price_range:
+                cloudunits_price_range = f"{config.pricing.price_cu}_{config.pricing.price_su}_{config.pricing.price_nu}"
+            exportpath = "/sandbox/code/github/simulator_export/tfsimulator/export"
+            price5y=config.tft_price_5y
+            if price5y==0:
+                price5y = "auto"
+            exportpath2 = f"{exportpath}/{hardware_config_name}/{growth}/tft_{price5y}/price_{int(cloudunits_price_range)}"
+            simulation.export_minimal(exportpath2)
 
         return simulation
 
@@ -188,34 +273,118 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             self._environments[name] = environment
         return self._environments[name]
 
-    def calc(self, batches_simulation=False, reload=False, detail=False):
+    def calc(self, growth=None, token_price=None, cloudunits_price_range=None, reload=False,export=True):
         """
-        kosmos 'j.tools.tfgrid_simulator.calc()'
+        kosmos 'j.tools.tfgrid_simulator.calc(export=True)'
         kosmos 'j.tools.tfgrid_simulator.calc(reload=True)'
+
+
+        @param growth: amount of servers the grid will have in 2025
+            accepted inputs: 50000,100000,200000,600000,1000000,2000000,4000000,10000000,20000000
+
+        @param token_price: what will the token price be in 5 years from now?
+            accepted inputs: 0.15,0.3,0.6,1,2,3,6,10,20,40,100,500,auto
+
+        @param cloudunits_price_range: 1,2,3,4
+
+            1:
+                CU: 10
+                SU: 6
+                NU: 0.04
+            2:
+                CU: 12
+                SU: 8
+                NU: 0.05
+            3:
+                CU: 15
+                SU: 10
+                NU: 0.05
+            4:
+                CU: 20
+                SU: 15
+                NU: 0.08
+
+        @param export, if True will write the results of the simulation in a directory so it can be used for visualization purposes
+
         :return:
         """
 
         startmonth = 1
 
-        simulation = self.simulation_get(
-            name="default", tokencreator_name="optimized", hardware_config_name="amd", reload=reload
+
+
+        simulation = self.simulation_get(growth=growth,token_price=token_price,
+            cloudunits_price_range=cloudunits_price_range,
+            name="default", tokencreator_name="optimized", hardware_config_name="amd", reload=reload,log=True,export=export
         )
 
-        nb0 = simulation.nodesbatch_get(startmonth)
-        if detail:
-            nb0.calc(detail=True)
+        # nb0 = simulation.nodesbatch_get(startmonth)
+        # # nb0.graph("cost_network")
+        #
+        # print(simulation)
+        # print(nb0)
+        #
+        # print(nb0.markdown_profit_loss(10))
+        # print(nb0.markdown_profit_loss(10))
 
-        # nb0.graph("cost_network")
+        return simulation
 
-        print(simulation)
-        print(nb0)
+    def simulate_export(self,all=False,one=False):
+        """
+        kosmos 'j.tools.tfgrid_simulator.simulate_export()'
+        kosmos 'j.tools.tfgrid_simulator.simulate_export(one=True)'
+        """
 
-        print(nb0.markdown_profit_loss(10))
-        print(nb0.markdown_profit_loss(10))
 
-        j.shell()
+        schedule_q = gevent.queue.Queue()
 
-        return
+        def server(schedule_q):
+            processes = j.baseclasses.dict()
+            max_processes = 6
+            while True:
+                if len(processes)<max_processes and schedule_q.qsize()>0:
+                    growth, token_price, cloudunits_price_range = schedule_q.get()
+                    print(f" - schedule  {growth}, {token_price}, {cloudunits_price_range}")
+                    name = f" {growth}_{token_price}_{cloudunits_price_range}"
+                    kwargs={"growth":growth,"token_price":token_price,"cloudunits_price_range":cloudunits_price_range}
+                    p = gipc.start_process(target=self.calc, kwargs=kwargs,name=name)
+                    processes[name]=p
+                for p in [p for p in processes.values()]:
+                    if p.is_alive():
+                        continue
+                    else:
+                        if p.exitcode!=0:
+                            raise j.exceptions.Base("could not execute:%"%p.name)
+                        processes.pop(p.name)
+
+                if schedule_q.qsize()==0 and len(processes)==0:
+                    return
+
+                gevent.sleep(1)
+                print(f" - nr processes: {len(processes)} : remaining: {schedule_q.qsize()}")
+                # print(f" - nr processes: {len(p)}")
+
+        if all:
+            for growth in [50000,100000,200000,600000,1000000,2000000,4000000,10000000,20000000]:
+                for token_price in [0.15,0.3,0.6,1,2,3,6,10,20,40,100,500,"auto"]:
+                    for cloudunits_price_range in [1,2,3,4]:
+                        schedule_q.put((growth, token_price, cloudunits_price_range))
+        elif one:
+            growth=1000000
+            token_price="auto"
+            cloudunits_price_range = 2
+            self.calc(growth, token_price, cloudunits_price_range)
+        else:
+            for growth in [100000,1000000,4000000]:
+                for token_price in [0.3,3,"auto"]:
+                    for cloudunits_price_range in [1,3]:
+                        schedule_q.put((growth, token_price, cloudunits_price_range))
+
+        s=gevent.spawn(server,schedule_q)
+        s.join()
+
+        print ("ALL SIMULATIONS DONE !!!")
+
 
     def get_path_dest(self, name=None, path_source=None, reset=False):
         if not path_source:

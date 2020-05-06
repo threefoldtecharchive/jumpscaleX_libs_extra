@@ -5,9 +5,6 @@ class TokenCreator:
         self.simulation = simulation
         self.environment = environment
         self.sheet = j.data.worksheets.sheet_new("tokencreator", nrcols=120)
-        self.uptime = 99.9
-        self.certified_capacity=False #simulator only supports non certified today
-
 
     def farming_cpr_tft(self,month):
         """
@@ -29,9 +26,7 @@ class TokenCreator:
         """
         calculate the farming of tft's
         """
-        #cpr is like a hashrate for a bitcoin miner
-        #in our case it represents the capability for a node to produce cloud units (our IT capacity)
-        tft_new = nodes_batch.cpr * self.farming_cpr_tft(month) * self.difficulty_level_get(month)
+        tft_new = nodes_batch.cpr * self.farming_cpr_tft(month) / self.difficulty_level_get(month)
 
         return tft_new
 
@@ -42,17 +37,17 @@ class TokenCreator:
         """
 
         if month == 0:
-            nr_of_tft_ever_farmed = int(self.simulation.tft_total(0))
+            nr_of_tft_ever_farmed = 800000000 #starting point
         else:
             nr_of_tft_ever_farmed = int(self.simulation.tft_total(month - 1)) #look at previous month
 
         p = nr_of_tft_ever_farmed / 4000000000
-        if p > 0.999:
-            return 0
+        if p > 0.999999:
+            perc = 1000000
         else:
-            diff_level = 1 - p
+            perc = 1 / (1 - p)
 
-        return diff_level
+        return perc
 
     def tft_cultivate(self, month, nodes_batch):
         """
@@ -68,4 +63,3 @@ class TokenCreator:
         burning is no part of the chosen tokenomics model
         """
         return 0
-
