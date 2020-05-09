@@ -36,7 +36,7 @@ class TFGridSimulator(SimulatorBase):
         r["nodebatches"] = [i.export_() for i in self.nodebatches]
         return r
 
-    def export_minimal(self,path):
+    def markdown_export(self,path):
 
         def export(name,data,indent=None):
             if not isinstance(data,str):
@@ -62,6 +62,34 @@ class TFGridSimulator(SimulatorBase):
 
         export("environment", self.environment._data._ddict_hr, 1)
         export("bom", self.environment.bom._data._ddict_hr, 1)
+
+        self.environment.bom.markdown_get(path=path)
+
+        self.environment.markdown_env_detail_get(path=path)
+
+        self.markdown_grid_growth(path=path)
+
+        j.sal.fs.writeFile(f"{path}/readme.md", "!!!include:wiki:simulator_readme\n")
+        j.sal.fs.writeFile(f"{path}/nodebatches.md", "!!!include:wiki:simulator_nodebatches\n")
+        j.sal.fs.writeFile(f"{path}/reality_checks.md", "!!!include:wiki:simulator_reality_checks\n")
+        C="""
+        - [home](readme.md)
+        - [grid growth](tfgrid_growth.md)
+        - [grid valuation](tfgrid_valuation.md)
+        - [server details](device_normalized.md)
+        - [nodebatches](nodebatches.md)
+            - [added month 1](nodesbatch_1_report.md)
+            - [added month 20](nodesbatch_20_report.md)
+            - [added month 40](nodesbatch_40_report.md)
+        - [reality checks](reality_checks.md)
+            - [month 1](reality_check_1.md)
+            - [month 20](reality_check_20.md)
+            - [month 40](reality_check_40.md)
+            - [month 60](reality_check_60.md)
+        """
+        j.sal.fs.writeFile(f"{path}/_sidebar.md", j.core.tools.text_strip(C))
+        j.sal.fs.writeFile(f"{path}/_navbar.md", "!!!include:wiki:simulator_navbar\n")
+
 
 
     def export_redis(self):
@@ -468,6 +496,110 @@ class TFGridSimulator(SimulatorBase):
                 margin = int(margin * config.margin_months)
                 return margin
 
+    def markdown_grid_growth(self, path=None):
+        fi = j.core.text.format_item
+
+        def r(val):
+            val=val/1000000
+            return val
+
+        def r2(val):
+            val=val/1000
+            return val
+
+        tft_gr_120=self.sheet.graph(title="tft growth 120 months (million)", path=path, row_names=["tft_farmed","tft_cultivated","tft_sold","tft_farmer_income"], row_filters=r, row_labels=None, start=1, end=None)
+        tft_gr_60=self.sheet.graph(title="tft growth 60 months (million)", path=path,
+                         row_names=["tft_farmed", "tft_cultivated", "tft_sold", "tft_farmer_income"], row_filters=r,
+                         row_labels=None, start=1, end=60)
+
+        tft_gr_60_b=self.sheet.graph(title="tft growth 60 months cumulated (million)", path=path,
+                         row_names=["tft_farmed_cumul", "tft_farmer_income_cumul"], row_filters=r,
+                         row_labels=None, start=1, end=60)
+
+        utilization=self.sheet.graph(title="utilization grid", path=path,row_names=["utilization"], start=1, end=60)
+
+        revenue_month = self.sheet.graph(title="revenue per month (million)", path=path,row_names=["rev_compute", "rev_storage", "rev_network", "rev_total"],row_filters=r, row_labels=None, start=1, end=60)
+        revenue_month_max = self.sheet.graph(title="revenue per month (million) if 100% used capacity", path=path,
+                                         row_names=["rev_compute_max", "rev_storage_max", "rev_network_max", "rev_total_max"],
+                                         row_filters=r, row_labels=None, start=1, end=60)
+
+        power_kw=self.sheet.graph(title="power usage in giga watt/hour", path=path,row_names=["power_kw"],row_filters=r,start=1, end=60,row_labels=["gwh"])
+
+        tft_marketcap = self.sheet.graph(title="tft marketcap in million usd", path=path, row_names=["tft_marketcap"],row_filters=r, start=1, end=60)
+
+        nr_nodes_new = self.sheet.graph(title="nr nodes in grid new per month (per thousand)", path=path, row_names=["nrnodes_new"],row_filters=r2, start=1, end=60)
+        nr_nodes_total = self.sheet.graph(title="nr nodes in grid total (per thousand)", path=path, row_names=["nrnodes_total"],row_filters=r2, start=1, end=60)
+
+        C = f"""
+        ## Grid Growth Report
+
+        ### Default Node
+
+        - [default node details](device_normalized.md)
+        - [bill of material used, hardware components](bom.md)
+
+        ### Token Growth 
+
+        The price of the tokens in relation to the simulator (please note this does not predict any token price, its just a simulation)
+
+        > disclaimer: the TFT is not an investment instrument.
+
+        ![]({self.graph_token_price_png(path=path)})
+        TFT price can be given by you (see arguments) or automatically calculated.
+
+        ![]({tft_marketcap})
+        What is the calculated marketcap of the TFT over 60 months?
+        
+        ### TFT movements
+
+        Over 120 months, how do TFT get
+
+        - farmed: means mined because farmers connect hardware to the grid
+        - cultivated: means people buying capacity from the farmers
+        - sold: means the farmers sell their TFT to pay for bandwidth, power, maintenance & rackspace
+        - farmer income = farmed + cultivated = sold (basically the income for the farmer)
+
+        ![]({tft_gr_120})
+        Over 120 months
+
+        ![]({tft_gr_60})        
+        Over 60 months which is the time window we look at
+
+        ![]({tft_gr_60_b})        
+        - Over 60 months cumulated which means we sum the previous months (so the total with previous months in)
+        - The income is higher than the total farmed because has cultivated TFT inside.
+        - The max nr of farmed is 4 Billion
+
+        ### Grid Growth
+
+        ![]({utilization})  
+        Utilization of the grid avg out.
+
+        ![]({nr_nodes_new})
+        ![]({nr_nodes_total})
+        How many nodes active on the grid.
+
+        ### Revenue of capacity sold on the grid
+
+        ![]({revenue_month})
+
+        ![]({revenue_month_max})
+    
+        ### Valuation of the grid
+
+        - see [valuation grid](tfgrid_valuation.md)
+
+        ### Power used of the grid
+
+        ![]({power_kw})
+
+        """
+
+        C = j.core.tools.text_strip(C)
+        if path:
+            j.sal.fs.writeFile(f"{path}/tfgrid_growth.md", C)
+        return C
+
     def markdown_cloud_valuation(self, month=60,path=None):
         fi = j.core.text.format_item
         rev_compute = self.rows.rev_compute.cells[month]
@@ -499,8 +631,11 @@ class TFGridSimulator(SimulatorBase):
         ### Token Price 
 
         The price of the tokens in relation to the simulator.
+        Please note this is just a simulation, by no means a prediction of the TFT price.
 
         ![]({self.graph_token_price_png(path=path)} ':size=800x600')
+
+        > disclaimer: the TFT is not an investment instrument.
 
         ### Valuation Of Grid Calculation
 
@@ -622,13 +757,13 @@ class TFGridSimulator(SimulatorBase):
             # j.shell()
             plt.bar(r,max(r))
             # plt.xticks(x, titles2)
-            plt.show()
+            #plt.show()
             # plt.plot(x,y,label="usd")[0]
         plt.title(title.replace("_"," "))
         fig = plt.gcf()
         fig.set_size_inches(10, 7)
         # plt.legend(loc='best')
-        plt.show()
+        #plt.show()
         plt.savefig(path2, dpi=200)
         plt.close()
         return f"{title}.png"
@@ -753,7 +888,7 @@ class TFGridSimulator(SimulatorBase):
         fig = plt.gcf()
         fig.set_size_inches(10, 7)
         plt.legend(loc='best')
-        plt.show()
+        #plt.show()
         plt.savefig(path2, dpi=200)
         plt.close()
         return f"{title}.png"
@@ -781,7 +916,7 @@ class TFGridSimulator(SimulatorBase):
         fig = plt.gcf()
         fig.set_size_inches(10, 7)
         plt.legend(loc='best')
-        plt.show()
+        #plt.show()
         plt.savefig(path2, dpi=200)
         plt.close()
         return f"{title2}.png"
@@ -903,7 +1038,6 @@ class TFGridSimulator(SimulatorBase):
 
     def graph_token_price(self, graph=True):
         x = [i for i in range(60)]
-        cells = [i / 44 for i in self.sheet.rows.rackspace_u.cells[0:60]]
         cells = self.rows.tokenprice.cells[0:60]
         y = [round(i, 2) for i in cells]
 

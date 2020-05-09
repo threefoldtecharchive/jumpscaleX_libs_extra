@@ -706,7 +706,7 @@ class NodesBatch(SimulatorBase):
         fig = plt.gcf()
         fig.set_size_inches(10, 7)
         plt.legend(loc='best')
-        plt.show()
+        #plt.show()
         plt.savefig(path2, dpi=200)
         plt.close()
         return f"{title}.png"

@@ -217,12 +217,14 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                 growth = node_growth
             if not cloudunits_price_range:
                 cloudunits_price_range = f"{config.pricing.price_cu}_{config.pricing.price_su}_{config.pricing.price_nu}"
-            exportpath = "/sandbox/code/github/simulator_export/tfsimulator/export"
+            exportpath = "{DIR_HOME}/code/github/threefoldfoundation/simulator_export/tfsimulator/export"
             price5y=config.tft_price_5y
             if price5y==0:
                 price5y = "auto"
             exportpath2 = f"{exportpath}/{hardware_config_name}/{growth}/tft_{price5y}/price_{int(cloudunits_price_range)}"
-            simulation.export_minimal(exportpath2)
+            exportpath2 = j.core.tools.text_replace(exportpath2)
+            j.core.tools.dir_ensure(exportpath2)
+            simulation.markdown_export(exportpath2)
 
         return simulation
 
@@ -256,7 +258,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         print(nb.roi_end)
 
-    def environment_get(self, name="amd", reload=False):
+    def environment_get(self, name="amd", reload=True):
         """
         name is name of file in notebooks/params/hardware
 
@@ -267,13 +269,13 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         return (bom,environment)
 
         """
-        if not reload or name not in self._environments:
+        if reload or name not in self._environments:
             # if reload or name not in self._bom:
             environment = Environment(name=name)
             self._environments[name] = environment
         return self._environments[name]
 
-    def calc(self, growth=None, token_price=None, cloudunits_price_range=None, reload=False,export=True):
+    def calc(self, growth=None, token_price=None, cloudunits_price_range=None, reload=True,export=True):
         """
         kosmos 'j.tools.tfgrid_simulator.calc(export=True)'
         kosmos 'j.tools.tfgrid_simulator.calc(reload=True)'
@@ -329,10 +331,11 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         return simulation
 
-    def simulate_export(self,all=False,one=False):
+    def markdown_export(self,all=False,one=False,debug=False):
         """
-        kosmos 'j.tools.tfgrid_simulator.simulate_export()'
-        kosmos 'j.tools.tfgrid_simulator.simulate_export(one=True)'
+        kosmos 'j.tools.tfgrid_simulator.markdown_export()'
+        kosmos 'j.tools.tfgrid_simulator.markdown_export(debug=True)'
+        kosmos 'j.tools.tfgrid_simulator.markdown_export(one=True)'
         """
 
 
@@ -354,7 +357,9 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                         continue
                     else:
                         if p.exitcode!=0:
+                            # print("CANNOT EXECUTE")
                             raise j.exceptions.Base("could not execute:%"%p.name)
+
                         processes.pop(p.name)
 
                 if schedule_q.qsize()==0 and len(processes)==0:
@@ -376,9 +381,12 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             self.calc(growth, token_price, cloudunits_price_range)
         else:
             for growth in [100000,1000000,4000000]:
-                for token_price in [0.3,3,"auto"]:
+                for token_price in ["auto",0.3,3]:
                     for cloudunits_price_range in [1,3]:
-                        schedule_q.put((growth, token_price, cloudunits_price_range))
+                        if debug:
+                            self.calc(growth, token_price, cloudunits_price_range)
+                        else:
+                            schedule_q.put((growth, token_price, cloudunits_price_range))
 
         s=gevent.spawn(server,schedule_q)
         s.join()
