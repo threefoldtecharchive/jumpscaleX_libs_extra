@@ -37,7 +37,6 @@ class TFGridSimulator(SimulatorBase):
         return r
 
     def markdown_export(self,path):
-
         def export(name,data,indent=None):
             if not isinstance(data,str):
                 data = j.data.serializers.json.dumps(data, sort_keys=True, indent=indent, encoding='ascii')
@@ -72,24 +71,31 @@ class TFGridSimulator(SimulatorBase):
         j.sal.fs.writeFile(f"{path}/readme.md", "!!!include:wiki:simulator_readme\n")
         j.sal.fs.writeFile(f"{path}/nodebatches.md", "!!!include:wiki:simulator_nodebatches\n")
         j.sal.fs.writeFile(f"{path}/reality_checks.md", "!!!include:wiki:simulator_reality_checks\n")
-        C="""
-        - [home](readme.md)
-        - [grid growth](tfgrid_growth.md)
-        - [grid valuation](tfgrid_valuation.md)
-        - [server details](device_normalized.md)
-        - [nodebatches](nodebatches.md)
-            - [added month 1](nodesbatch_1_report.md)
-            - [added month 20](nodesbatch_20_report.md)
-            - [added month 40](nodesbatch_40_report.md)
-        - [reality checks](reality_checks.md)
-            - [month 1](reality_check_1.md)
-            - [month 20](reality_check_20.md)
-            - [month 40](reality_check_40.md)
-            - [month 60](reality_check_60.md)
-        """
-        j.sal.fs.writeFile(f"{path}/_sidebar.md", j.core.tools.text_strip(C))
+        # C="""
+        # - [home](readme.md)
+        # - [grid growth](tfgrid_growth.md)
+        # - [grid valuation](tfgrid_valuation.md)
+        # - [servers return on investment](nodesbatch_1_report.md)
+        # - [server details](device_normalized.md)
+        # - [hardware components](bom.md)
+        # - [nodebatches](nodebatches.md)
+        #     - [added month 1](nodesbatch_1_report.md)
+        #     - [added month 20](nodesbatch_20_report.md)
+        #     - [added month 40](nodesbatch_40_report.md)
+        # - [reality checks](reality_checks.md)
+        #     - [month 1](reality_check_1.md)
+        #     - [month 20](reality_check_20.md)
+        #     - [month 40](reality_check_40.md)
+        #     - [month 60](reality_check_60.md)
+        # """
+        # j.sal.fs.writeFile(f"{path}/_sidebar.md", j.core.tools.text_strip(C))
+        j.sal.fs.writeFile(f"{path}/_sidebar.md", "!!!include:wiki:simulator_sidebar\n")
         j.sal.fs.writeFile(f"{path}/_navbar.md", "!!!include:wiki:simulator_navbar\n")
+        j.sal.fs.writeFile(f"{path}/simulator_configure.md", "!!!include:wiki:simulator_configure\n")
 
+        DIR_CODE = j.core.myenv.config['DIR_CODE']
+        path22 = f'{DIR_CODE}/github/threefoldfoundation/info_threefold/src/simulator/simulator_configure_webix.html'
+        j.sal.fs.copyFile(path22, f"{path}/simulator_configure_webix.html")
 
 
     def export_redis(self):
@@ -533,6 +539,8 @@ class TFGridSimulator(SimulatorBase):
         C = f"""
         ## Grid Growth Report
 
+        ![](https://wiki.threefold.io/img/autolayer.png)
+
         ### Default Node
 
         - [default node details](device_normalized.md)
@@ -627,6 +635,10 @@ class TFGridSimulator(SimulatorBase):
 
         C = f"""
         ## TF Grid Valuation Report.
+
+        ![](https://wiki.threefold.io/img/cap2layer.png)
+
+        Based on the arguments chosen we can simulate how the grid could grow.
 
         ### Token Price 
 

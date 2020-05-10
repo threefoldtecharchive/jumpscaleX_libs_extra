@@ -62,7 +62,8 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         token_price = None,
         log=False,
         export=False,
-        cloudunits_price_range=None
+        cloudunits_price_range=None,
+        overwrite=False
     ):
         """
         example how to use
@@ -108,7 +109,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                 growth = config.node_growth
 
             assert isinstance(growth,int)
-            if not growth in [50000,100000,200000,600000,1000000,2000000,4000000,10000000]:
+            if not growth in [50000,100000,200000,600000,1000000,2000000,4000000,10000000,20000000]:
                 raise j.exceptions.Input(f"growth needs to be in: 50000,100000,200000,600000,1000000,2000000,4000000,10000000,20000000, now {growth}")
 
             if growth == 50000:
@@ -127,6 +128,8 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                 node_growth = "0:5,6:150,12:3000,18:25000,24:67000,48:110000,60:130000"
             elif growth == 10000000:
                 node_growth = "0:5,6:150,12:4000,18:40000,24:120000,48:300000,60:440000"
+            elif growth == 20000000:
+                node_growth = "0:5,6:150,12:4000,18:40000,24:240000,48:600000,60:880000"
             else:
                 node_growth = "0:5,6:150,20:2000"
         else:
@@ -175,6 +178,26 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             if growth:
                 print(f" - growth: {f(growth)}")
 
+        if not growth:
+            growth = node_growth
+        if not cloudunits_price_range:
+            cloudunits_price_range = f"{config.pricing.price_cu}_{config.pricing.price_su}_{config.pricing.price_nu}"
+        if not j.core.platformtype.myplatform.platform_is_linux:
+            exportpath = "{DIR_HOME}/sandbox/code/github/threefoldfoundation/simulator_export/tfsimulator/export"
+        else:
+            exportpath = "/sandbox/code/github/threefoldfoundation/simulator_export/tfsimulator/export"
+        price5y=config.tft_price_5y
+        if price5y==0:
+            price5y = "auto"
+        exportpath2 = f"{exportpath}/{hardware_config_name}/{growth}/tft_{price5y}/price_{int(cloudunits_price_range)}"
+        exportpath2 = j.core.tools.text_replace(exportpath2)
+        j.core.tools.dir_ensure(exportpath2)
+
+        check_path = f"{exportpath2}/_navbar.md"
+
+        if not overwrite and j.sal.fs.exists(check_path):
+            return
+
         if reload or name not in self._instances:
             simulation = TFGridSimulator(name=name)
             # choose your token simulation !!!
@@ -200,6 +223,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             # we need the simulator to add the batches automatically based on chosen environment
             simulation.nodesbatches_add_auto(environment=environment)
             # put the default bom's
+            # simulation.rows.nrnodes_total.cells[60]
             simulation.environment = environment
             simulation.bom = environment.bom
             simulation.config = config
@@ -211,19 +235,10 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         if log:
             print(f" - nr nodes in 5 years: {f(simulation.rows.nrnodes_total.cells[60])}")
 
+
+
         simulation.calc()
         if export:
-            if not growth:
-                growth = node_growth
-            if not cloudunits_price_range:
-                cloudunits_price_range = f"{config.pricing.price_cu}_{config.pricing.price_su}_{config.pricing.price_nu}"
-            exportpath = "{DIR_HOME}/code/github/threefoldfoundation/simulator_export/tfsimulator/export"
-            price5y=config.tft_price_5y
-            if price5y==0:
-                price5y = "auto"
-            exportpath2 = f"{exportpath}/{hardware_config_name}/{growth}/tft_{price5y}/price_{int(cloudunits_price_range)}"
-            exportpath2 = j.core.tools.text_replace(exportpath2)
-            j.core.tools.dir_ensure(exportpath2)
             simulation.markdown_export(exportpath2)
 
         return simulation
@@ -275,7 +290,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             self._environments[name] = environment
         return self._environments[name]
 
-    def calc(self, growth=None, token_price=None, cloudunits_price_range=None, reload=True,export=True):
+    def calc(self, growth=None, token_price=None, cloudunits_price_range=None, reload=True, export=True,overwrite=False):
         """
         kosmos 'j.tools.tfgrid_simulator.calc(export=True)'
         kosmos 'j.tools.tfgrid_simulator.calc(reload=True)'
@@ -317,7 +332,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         simulation = self.simulation_get(growth=growth,token_price=token_price,
             cloudunits_price_range=cloudunits_price_range,
-            name="default", tokencreator_name="optimized", hardware_config_name="amd", reload=reload,log=True,export=export
+            name="default", tokencreator_name="optimized", hardware_config_name="amd", reload=reload,log=True,export=export,overwrite=overwrite
         )
 
         # nb0 = simulation.nodesbatch_get(startmonth)
@@ -331,13 +346,14 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
 
         return simulation
 
-    def markdown_export(self,all=False,one=False,debug=False):
+    def markdown_export(self,all=False,one=False,debug=False,overwrite=False):
         """
-        kosmos 'j.tools.tfgrid_simulator.markdown_export()'
+        kosmos 'j.tools.tfgrid_simulator.markdown_export(all=True)'
         kosmos 'j.tools.tfgrid_simulator.markdown_export(debug=True)'
         kosmos 'j.tools.tfgrid_simulator.markdown_export(one=True)'
         """
-
+        if one:
+            overwrite=True
 
         schedule_q = gevent.queue.Queue()
 
@@ -346,11 +362,11 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             max_processes = 6
             while True:
                 if len(processes)<max_processes and schedule_q.qsize()>0:
-                    growth, token_price, cloudunits_price_range = schedule_q.get()
+                    growth, token_price, cloudunits_price_range,overwrite = schedule_q.get()
                     print(f" - schedule  {growth}, {token_price}, {cloudunits_price_range}")
                     name = f" {growth}_{token_price}_{cloudunits_price_range}"
                     kwargs={"growth":growth,"token_price":token_price,"cloudunits_price_range":cloudunits_price_range}
-                    p = gipc.start_process(target=self.calc, kwargs=kwargs,name=name)
+                    p = gipc.start_process(target=self.calc, kwargs=kwargs,name=name,overwrite=overwrite)
                     processes[name]=p
                 for p in [p for p in processes.values()]:
                     if p.is_alive():
@@ -365,31 +381,34 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                 if schedule_q.qsize()==0 and len(processes)==0:
                     return
 
-                gevent.sleep(1)
+                gevent.sleep(0.1)
                 print(f" - nr processes: {len(processes)} : remaining: {schedule_q.qsize()}")
                 # print(f" - nr processes: {len(p)}")
 
         if all:
-            for growth in [50000,100000,200000,600000,1000000,2000000,4000000,10000000,20000000]:
+            for growth in [50000,100000,200000,600000,1000000,2000000,4000000,10000000]:
                 for token_price in [0.15,0.3,0.6,1,2,3,6,10,20,40,100,500,"auto"]:
                     for cloudunits_price_range in [1,2,3,4]:
-                        schedule_q.put((growth, token_price, cloudunits_price_range))
+                        if debug:
+                            self.calc(growth, token_price, cloudunits_price_range,overwrite=overwrite)
+                        else:
+                            schedule_q.put((growth, token_price, cloudunits_price_range,overwrite))
         elif one:
             growth=1000000
             token_price="auto"
-            cloudunits_price_range = 2
-            self.calc(growth, token_price, cloudunits_price_range)
+            cloudunits_price_range = 3
+            self.calc(growth, token_price, cloudunits_price_range,overwrite=overwrite)
         else:
             for growth in [100000,1000000,4000000]:
                 for token_price in ["auto",0.3,3]:
                     for cloudunits_price_range in [1,3]:
                         if debug:
-                            self.calc(growth, token_price, cloudunits_price_range)
+                            self.calc(growth, token_price, cloudunits_price_range,overwrite=overwrite)
                         else:
-                            schedule_q.put((growth, token_price, cloudunits_price_range))
-
-        s=gevent.spawn(server,schedule_q)
-        s.join()
+                            schedule_q.put((growth, token_price, cloudunits_price_range,overwrite))
+        if not debug:
+            s=gevent.spawn(server,schedule_q)
+            s.join()
 
         print ("ALL SIMULATIONS DONE !!!")
 

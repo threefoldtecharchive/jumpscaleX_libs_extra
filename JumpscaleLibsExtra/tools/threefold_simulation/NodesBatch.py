@@ -377,8 +377,9 @@ class NodesBatch(SimulatorBase):
         nr = self.nrnodes
 
         C = f"""
+        # P&L report for month {month}
 
-        ## P&L report for month {month}
+        ![](https://wiki.threefold.io/img/partners_intro.png)
 
         ### nodesbatch
 
@@ -414,9 +415,10 @@ class NodesBatch(SimulatorBase):
         - rev nu                : {fi(rev_network/nr)}
         - rev total             : {fi(rev_total/nr)}
 
-        ### revenues if all resources used
+        ### revenues if all resources used over 5 years.
 
-        This does not take TFT price increase in consideration.
+        This does not take TFT price increase in consideration, in other words revenuen is result of nr of TFT income for the farmer times the token price at that time.
+        If the TFT raises seriously in price then this revenue estimate is way too low.
 
         - rev cu                : {fi(rev_compute_max)}
         - rev su                : {fi(rev_storage_max)}

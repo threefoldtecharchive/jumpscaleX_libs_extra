@@ -452,5 +452,5 @@ class Environment(DeviceEnvBase):
         self.markdown_node_detail_get(path=path)
         #now report on the environment TODO:
 
-    def markdown_node_detail_get(self,path):
+    def markdown_node_detail_get(self,path,name=None):
         self.node_normalized.markdown_get(path=path,name="normalized")

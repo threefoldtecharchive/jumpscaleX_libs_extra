@@ -1,5 +1,7 @@
 # Device overview
 
+![](https://wiki.threefold.io/img/partners_intro.png)
+
 Is the normalized node (device) as used in the simulation.
 
 {{data.description}}
