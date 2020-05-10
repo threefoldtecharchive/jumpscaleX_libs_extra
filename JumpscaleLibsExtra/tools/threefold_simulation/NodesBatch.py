@@ -170,14 +170,15 @@ class NodesBatch(SimulatorBase):
     def _rev_get(self, month):
 
         price_decline = self.simulation.sales_price_decline_get(month)  # 0-1
+        assert price_decline<=1
 
         cu = self.node_normalized.production.cu * self.nrnodes * (1 + self.cpr_improve)
         su = self.node_normalized.production.su * self.nrnodes * (1 + self.cpr_improve)
         # no improvement on nu because we kept it same
         nu = self.node_normalized.production.nu_used_month * self.nrnodes
 
-        cu_price = self.simulation.sales_price_cu / (1 + price_decline)
-        su_price = self.simulation.sales_price_su / (1 + price_decline)
+        cu_price = self.simulation.sales_price_cu * (1 - price_decline)
+        su_price = self.simulation.sales_price_su * (1 - price_decline)
         # for nu no price decline because we also did not let the cost go down
         nu_price = self.simulation.sales_price_nu
 
@@ -186,6 +187,7 @@ class NodesBatch(SimulatorBase):
         nu_rev_max = nu_price * nu
 
         utilization = self.simulation.utilization_get(month)
+        assert utilization <= 1
 
         cu_rev = cu_rev_max * utilization
         su_rev = su_rev_max * utilization
@@ -262,16 +264,25 @@ class NodesBatch(SimulatorBase):
 
             cu_rev_max, su_rev_max, nu_rev_max, cu_rev, su_rev, nu_rev, tot_rev_max, tot_rev = self._rev_get(month)
 
-            self._set("rev_compute", month, cu_rev)
-            self._set("rev_storage", month, su_rev)
-            self._set("rev_network", month, nu_rev)
-            self._set("rev_total", month, tot_rev)
-            self._set("rev_compute_max", month, cu_rev_max)
-            self._set("rev_storage_max", month, su_rev_max)
-            self._set("rev_network_max", month, nu_rev_max)
-            self._set("rev_total_max", month, tot_rev_max)
+            #part for foundation
+            part = 0.9
+            self._set("rev_compute", month, cu_rev*part)
+            self._set("rev_storage", month, su_rev*part)
+            self._set("rev_network", month, nu_rev*part)
+            self._set("rev_total", month, tot_rev*part)
+            self._set("rev_compute_max", month, cu_rev_max*part)
+            self._set("rev_storage_max", month, su_rev_max*part)
+            self._set("rev_network_max", month, nu_rev_max*part)
+            self._set("rev_total_max", month, tot_rev_max*part)
 
             usd_cultivation = tft_cultivated * tftprice_now
+
+            # if month==30:
+            #     if self.month_start==1:
+            #         r=[i / self.nrnodes for i in self.rows.rev_total.cells if i!=None]
+            #         r2 = [i / self.nrnodes for i in self.rows.tft_cultivated_usd.cells if i != None]
+            #         j.shell()
+            #         s
 
         else:
             tft_farmer_income = 0
@@ -490,13 +501,13 @@ class NodesBatch(SimulatorBase):
         rev_compute = self.rows.rev_compute.sum() #sum over all values
         rev_storage = self.rows.rev_storage.sum()  # sum over all values
         rev_network = self.rows.rev_network.sum()
-        rev_farming = self.rows.tft_farmer_income.sum()
+        rev_farming = self.rows.tft_farmed_usd.sum()
         # rev_total = self.rows.rev_total.sum()
         rev_total = rev_farming + rev_compute + rev_storage + rev_network
 
-        tft_margin = self.rows.tft_farmed.sum()+self.rows.tft_cultivated.sum()-self.rows.tft_sold.sum()
-        tftprice = self.simulation.tft_price_get(month_end)
-        rev_total2 = tft_margin * tftprice
+        tft_margin = self.rows.tft_farmed.sum()+self.rows.tft_cultivated.sum()+self.rows.tft_sold.sum()
+        tftprice = self.simulation.tft_price_get(month_end-1)
+        rev_total2 = (self.rows.tft_farmed.sum()+self.rows.tft_cultivated.sum()) * tftprice
 
         cost_rackspace = self.rows.cost_rackspace.sum()
         cost_maintenance = self.rows.cost_maintenance.sum()
@@ -512,21 +523,35 @@ class NodesBatch(SimulatorBase):
 
         roi_end = (rev_total2 - cost_hardware)/cost_hardware
 
+        # self.rows.tft_farmer_income_usd
+
         C = f"""
 
         ## Farming report for nodes added in month: {self.month_start}
 
         ![](https://wiki.threefold.io/img/partners_intro.png)
 
-        ### **net margin & roi**
+        ### TFT income for one node
+
+        - TFT Price at end of period: {fi(tftprice)}
+        - This is the result of the simulation (price can be fixed set by you, or auto calculated based on valuation of grid).
+
+        | | TFT |
+        | --- | ---: |
+        | TFT Farmed  | {fi(self.rows.tft_farmed.sum()/nr)} |
+        | TFT Cultivated  | {fi(self.rows.tft_cultivated.sum()/nr)} |
+        | TFT Sold  | {fi(self.rows.tft_sold.sum()/nr)} |
+        | TFT Margin  | {fi(tft_margin/nr)} |
+
+        ### **net margin & roi** per node
 
         The return on investment on a default node is:
 
         | | |
         | --- | ---: |
         | investment hardware    | {fi(self.cost_hardware / nr) } |
-        | revenue without TFT upside    | {fi((rev_total ) / nr)} |
-        | margin without TFT upside  | {fi((rev_total - cost_total ) / nr)} |
+        | revenue immediate conversion | {fi((rev_total ) / nr)} |
+        | margin | {fi((rev_total - cost_total ) / nr)} |
         | revenue with TFT upside    | {fi((rev_total2 ) / nr)} |
         | margin with TFT upside  | {fi((rev_total2 - cost_total ) / nr)} |
         | roi = return on investment | {fi(roi_end)}|
@@ -590,17 +615,7 @@ class NodesBatch(SimulatorBase):
         | cost network          | {fi(cost_network / nr / wo)} |
         | cost total            | {fi(cost_total / nr / wo)} |
 
-        ### TFT income
 
-        TFT Price at end of period: {fi(tftprice)}
-        This is the result of the simulation (price can be fixed set by you, or auto calculated based on valuation of grid).
-
-        | | TFT |
-        | --- | ---: |
-        | TFT Farmed  | {fi(self.rows.tft_farmed.sum()/nr)} |
-        | TFT Cultivated  | {fi(self.rows.tft_cultivated.sum()/nr)} |
-        | TFT Sold  | {fi(self.rows.tft_sold.sum()/nr)} |
-        | TFT Margin  | {fi(tft_margin)} |
 
          
 
@@ -716,8 +731,9 @@ class NodesBatch(SimulatorBase):
         return fig
 
     def graph_usd_png(self,path,singlenode=True):
-        title=f"nodebatch_{self.month_start}_income"
-        path2=f"{path}/{title}.png"
+        title=f"income_per_node"
+        title2 = f"income_per_node_batch_{self.month_start}"
+        path2=f"{path}/{title2}.png"
         with plt.style.context('Solarize_Light2'):
             names = ["tft_farmed_usd", "tft_cultivated_usd", "tft_sold_usd", "tft_farmer_income_usd"]
             for name in names:
@@ -732,7 +748,7 @@ class NodesBatch(SimulatorBase):
         #plt.show()
         plt.savefig(path2, dpi=200)
         plt.close()
-        return f"{title}.png"
+        return f"{title2}.png"
 
     def __repr__(self):
         out = str(SimulatorBase.__repr__(self))

@@ -71,30 +71,12 @@ class TFGridSimulator(SimulatorBase):
         j.sal.fs.writeFile(f"{path}/readme.md", "!!!include:wiki:simulator_readme\n")
         j.sal.fs.writeFile(f"{path}/nodebatches.md", "!!!include:wiki:simulator_nodebatches\n")
         j.sal.fs.writeFile(f"{path}/reality_checks.md", "!!!include:wiki:simulator_reality_checks\n")
-        # C="""
-        # - [home](readme.md)
-        # - [grid growth](tfgrid_growth.md)
-        # - [grid valuation](tfgrid_valuation.md)
-        # - [servers return on investment](nodesbatch_1_report.md)
-        # - [server details](device_normalized.md)
-        # - [hardware components](bom.md)
-        # - [nodebatches](nodebatches.md)
-        #     - [added month 1](nodesbatch_1_report.md)
-        #     - [added month 20](nodesbatch_20_report.md)
-        #     - [added month 40](nodesbatch_40_report.md)
-        # - [reality checks](reality_checks.md)
-        #     - [month 1](reality_check_1.md)
-        #     - [month 20](reality_check_20.md)
-        #     - [month 40](reality_check_40.md)
-        #     - [month 60](reality_check_60.md)
-        # """
-        # j.sal.fs.writeFile(f"{path}/_sidebar.md", j.core.tools.text_strip(C))
         j.sal.fs.writeFile(f"{path}/_sidebar.md", "!!!include:wiki:simulator_sidebar\n")
         j.sal.fs.writeFile(f"{path}/_navbar.md", "!!!include:wiki:simulator_navbar\n")
         j.sal.fs.writeFile(f"{path}/simulator_configure.md", "!!!include:wiki:simulator_configure\n")
 
-        DIR_CODE = j.core.myenv.config['DIR_CODE']
-        path22 = f'{DIR_CODE}/github/threefoldfoundation/info_threefold/src/simulator/simulator_configure_webix.html'
+        DIR_HOME = j.core.myenv.config['DIR_HOME']
+        path22 = f'{DIR_HOME}/tfweb/github/threefoldfoundation/info_threefold/src/simulator/simulator_configure_webix.html'
         j.sal.fs.copyFile(path22, f"{path}/simulator_configure_webix.html")
 
 
@@ -947,8 +929,13 @@ class TFGridSimulator(SimulatorBase):
         usd_total = cl(self.rows.tft_farmer_income.cells[month] * tft_price)
         n = self.environment.node_normalized
 
-        cpr_improve = self.rows.cpr_improve.cells[month]
+        cpr_improve = self.rows.cpr_improve.cells[month]/100
         utilization = self.utilization_get(month)
+
+        assert cpr_improve <= 1
+        assert cpr_improve > 0
+        assert utilization <= 1
+        assert utilization > 0
 
         cu = n.production.cu * (1 + cpr_improve)
         su = n.production.su * (1 + cpr_improve)
@@ -965,6 +952,8 @@ class TFGridSimulator(SimulatorBase):
         cost_node_all_nohw = float((self.rows.cost_total.cells[month] - self.rows.cost_hardware.cells[month]) / nrnodes)
 
         res = f"""
+
+        ![](https://lh3.googleusercontent.com/ueuxCFqv1SvuR9HdR8GGz4-S8cJ8Z_do62mq7xaFVDgi31JCbPE5Hqjr7_ChvmXcgsrBuXZEYoX0Cv02iMe5yJfb_e-0-moQIrI=s1000)
         ## Some Totals for the simulation: ({month} month mark)
 
         - nrnodes: {nrnodes}

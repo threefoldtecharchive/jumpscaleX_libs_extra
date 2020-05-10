@@ -183,9 +183,9 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         if not cloudunits_price_range:
             cloudunits_price_range = f"{config.pricing.price_cu}_{config.pricing.price_su}_{config.pricing.price_nu}"
         if not j.core.platformtype.myplatform.platform_is_linux:
-            exportpath = "{DIR_HOME}/sandbox/code/github/threefoldfoundation/simulator_export/tfsimulator/export"
+            exportpath = "{DIR_HOME}/tfweb/production/github/threefoldfoundation/simulator_export/tfsimulator/export"
         else:
-            exportpath = "/sandbox/code/github/threefoldfoundation/simulator_export/tfsimulator/export"
+            exportpath = "/sandbox/myhost/tfsimulator/export"
         price5y=config.tft_price_5y
         if price5y==0:
             price5y = "auto"
@@ -351,6 +351,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         kosmos 'j.tools.tfgrid_simulator.markdown_export(all=True)'
         kosmos 'j.tools.tfgrid_simulator.markdown_export(debug=True)'
         kosmos 'j.tools.tfgrid_simulator.markdown_export(one=True)'
+        kosmos 'j.tools.tfgrid_simulator.markdown_export(all=True,debug=True,overwrite=True)'
         """
         if one:
             overwrite=True
@@ -395,12 +396,12 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                             schedule_q.put((growth, token_price, cloudunits_price_range,overwrite))
         elif one:
             growth=1000000
-            token_price="auto"
-            cloudunits_price_range = 3
+            token_price=0.15
+            cloudunits_price_range = 2
             self.calc(growth, token_price, cloudunits_price_range,overwrite=overwrite)
         else:
-            for growth in [100000,1000000,4000000]:
-                for token_price in ["auto",0.3,3]:
+            for growth in [100000,1000000]:
+                for token_price in ["auto",0.15,0.3,3]:
                     for cloudunits_price_range in [1,3]:
                         if debug:
                             self.calc(growth, token_price, cloudunits_price_range,overwrite=overwrite)
