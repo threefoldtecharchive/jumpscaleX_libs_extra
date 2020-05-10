@@ -383,9 +383,14 @@ class NodesBatch(SimulatorBase):
 
         ### nodesbatch
 
+        A nodebatch is a group of nodes which is added at a certain month during the simulation.
+        One batch has a nr of nodes which are added. There are 60 nodesbatches for 5 years.
+
         - added to grid in month : {self.month_start}
         - nrnodes                : {self.nrnodes}
         - investment hardware    : {fi(self.cost_hardware)}
+
+        A nodes batch helps us to simulate and see the impact of a group of nodes added at one single point of time.
 
         ### cloud units per node
 
@@ -401,14 +406,17 @@ class NodesBatch(SimulatorBase):
         - su price              : {fi(su_price)}
         - nu price              : {fi(nu_price)}
 
-        ### revenue for full batch
+        ### revenue for full batch over the 5 year
 
         - rev cu                : {fi(rev_compute)}
         - rev su                : {fi(rev_storage)}
         - rev nu                : {fi(rev_network)}
         - rev total             : {fi(rev_total)}
 
-        ### revenue per node
+        ### revenue per node over the 5 year
+
+        This does not take TFT price increase in consideration, in other words revenuen is result of nr of TFT income for the farmer times the token price at that time.
+        If the TFT raises seriously in price then this revenue estimate is way too low.
 
         - rev cu                : {fi(rev_compute/nr)}
         - rev su                : {fi(rev_storage/nr)}
@@ -417,15 +425,14 @@ class NodesBatch(SimulatorBase):
 
         ### revenues if all resources used over 5 years.
 
-        This does not take TFT price increase in consideration, in other words revenuen is result of nr of TFT income for the farmer times the token price at that time.
-        If the TFT raises seriously in price then this revenue estimate is way too low.
+        Same remark as above, revenue calculated this way is too low.
 
         - rev cu                : {fi(rev_compute_max)}
         - rev su                : {fi(rev_storage_max)}
         - rev nu                : {fi(rev_network_max)}
         - rev total             : {fi(rev_total_max)}
 
-        ### costs for full batch
+        ### costs for full batch over all years
 
         - cost hardware         : {fi(cost_hardware)}
         - cost power            : {fi(cost_power)}
@@ -434,7 +441,7 @@ class NodesBatch(SimulatorBase):
         - cost network          : {fi(cost_network)}
         - cost total            : {fi(cost_total)}
 
-        ### costs per node
+        ### costs per node over all years
 
         - cost hardware         : {fi(cost_hardware/nr)}
         - cost power            : {fi(cost_power/nr)}
@@ -443,12 +450,12 @@ class NodesBatch(SimulatorBase):
         - cost network          : {fi(cost_network/nr)}
         - cost total            : {fi(cost_total/nr)}
 
-        ### profit this month
+        ### profit for month {month}
 
         - margin                : {fi(rev_total-self.cloud_cost_get(month))}
         - margin 100% used      : {fi(rev_total_max-cost_total)}
 
-        ### profit this month per node
+        ### profit for month  {month} per node
 
         - margin                : {fi((rev_total-self.cloud_cost_get(month))/nr)}
         - margin 100% used      : {fi((rev_total_max-cost_total)/nr)}
@@ -507,17 +514,38 @@ class NodesBatch(SimulatorBase):
 
         C = f"""
 
-        ## Nodebatch report for month {self.month_start}
+        ## Farming report for nodes added in month: {self.month_start}
 
-        ![]({graph_usd_png_loc} ':size=800x600')
+        ![](https://wiki.threefold.io/img/partners_intro.png)
+
+        ### **net margin & roi**
+
+        The return on investment on a default node is:
+
+        | | |
+        | --- | ---: |
+        | investment hardware    | {fi(self.cost_hardware / nr) } |
+        | revenue without TFT upside    | {fi((rev_total ) / nr)} |
+        | margin without TFT upside  | {fi((rev_total - cost_total ) / nr)} |
+        | revenue with TFT upside    | {fi((rev_total2 ) / nr)} |
+        | margin with TFT upside  | {fi((rev_total2 - cost_total ) / nr)} |
+        | roi = return on investment | {fi(roi_end)}|
+
 
         ### nodesbatch
+
+        A nodebatch is a group of nodes which is added at a certain month during the simulation.
+        One batch has a nr of nodes which are added. There are 60 nodesbatches for 5 years.
 
         | | |
         | --- | ---: |
         | added to grid in month | {self.month_start} |
         | nrnodes                | {self.nrnodes} |
         | investment hardware    | {fi(self.cost_hardware)} |
+
+        A nodes batch helps us to simulate and see the impact of a group of nodes added at one single point of time.
+
+        ![]({graph_usd_png_loc} )
 
         ### cloud units per node
 
@@ -527,9 +555,10 @@ class NodesBatch(SimulatorBase):
         | #su                   | {fi(su)} |
         | #nu                   | {fi(nu)} |
 
-        ### revenue per node
+        ### revenue for one node (server) over the 5 year
         
-        This does not take TFT token price increase into consideration.
+        This does not take TFT price increase in consideration, in other words revenuen is result of nr of TFT income for the farmer times the token price at that time.
+        If the TFT raises seriously in price then this revenue estimate is way too low.
         
         | | USD |
         | --- | ---: |    
@@ -539,7 +568,7 @@ class NodesBatch(SimulatorBase):
         | rev farming           | {fi(rev_farming / nr)} |
         | rev total             | {fi(rev_total / nr)} |
 
-        ### costs per node over all years
+        ### costs per node (server) over the 5 years
 
         | | USD |
         | --- | ---: |
@@ -564,6 +593,7 @@ class NodesBatch(SimulatorBase):
         ### TFT income
 
         TFT Price at end of period: {fi(tftprice)}
+        This is the result of the simulation (price can be fixed set by you, or auto calculated based on valuation of grid).
 
         | | TFT |
         | --- | ---: |
@@ -573,15 +603,6 @@ class NodesBatch(SimulatorBase):
         | TFT Margin  | {fi(tft_margin)} |
 
          
-        ### net margin & roi
-        | | |
-        | --- | ---: |
-        | revenue without TFT upside    | {fi((rev_total ) / nr)} |
-        | margin without TFT upside  | {fi((rev_total - cost_total ) / nr)} |
-        | revenue with TFT upside    | {fi((rev_total2 ) / nr)} |
-        | margin with TFT upside  | {fi((rev_total2 - cost_total ) / nr)} |
-        | roi                   | {fi(roi_end)}|
-
 
         """
         C=j.core.tools.text_strip(C)

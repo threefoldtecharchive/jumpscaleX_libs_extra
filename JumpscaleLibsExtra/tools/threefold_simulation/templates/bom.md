@@ -1,5 +1,7 @@
 # Bill of Material
 
+![](https://wiki.threefold.io/img/tftexplo.png)
+
 Is the list of all devices (servers) and components used as used in this simulator.
 
 ## devices
