@@ -77,6 +77,9 @@ class TFGridSimulator(SimulatorBase):
 
         DIR_HOME = j.core.myenv.config['DIR_HOME']
         path22 = f'{DIR_HOME}/tfweb/github/threefoldfoundation/info_threefold/src/simulator/simulator_configure_webix.html'
+        if not j.sal.fs.exists(path22):
+            path22 = '/sandbox/myhost/tfsimulator/info_threefold/src/simulator/simulator_configure_webix.html'
+
         j.sal.fs.copyFile(path22, f"{path}/simulator_configure_webix.html")
 
 

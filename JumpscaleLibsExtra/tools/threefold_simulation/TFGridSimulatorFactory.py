@@ -366,8 +366,8 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                     growth, token_price, cloudunits_price_range,overwrite = schedule_q.get()
                     print(f" - schedule  {growth}, {token_price}, {cloudunits_price_range}")
                     name = f" {growth}_{token_price}_{cloudunits_price_range}"
-                    kwargs={"growth":growth,"token_price":token_price,"cloudunits_price_range":cloudunits_price_range}
-                    p = gipc.start_process(target=self.calc, kwargs=kwargs,name=name,overwrite=overwrite)
+                    kwargs={"growth":growth,"token_price":token_price,"cloudunits_price_range":cloudunits_price_range,"overwrite":overwrite}
+                    p = gipc.start_process(target=self.calc, kwargs=kwargs,name=name)
                     processes[name]=p
                 for p in [p for p in processes.values()]:
                     if p.is_alive():
@@ -375,7 +375,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                     else:
                         if p.exitcode!=0:
                             # print("CANNOT EXECUTE")
-                            raise j.exceptions.Base("could not execute:%"%p.name)
+                            raise j.exceptions.Base("could not execute:%s"%p.name)
 
                         processes.pop(p.name)
 
