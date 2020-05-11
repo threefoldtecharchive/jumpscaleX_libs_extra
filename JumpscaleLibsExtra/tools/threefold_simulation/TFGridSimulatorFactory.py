@@ -374,8 +374,8 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                         continue
                     else:
                         if p.exitcode!=0:
-                            # print("CANNOT EXECUTE")
-                            raise j.exceptions.Base("could not execute:%s"%p.name)
+                            print("- ****** ERROR: CANNOT EXECUTE:%s"%p.name)
+                            # raise j.exceptions.Base("could not execute:%s"%p.name)
 
                         processes.pop(p.name)
 
