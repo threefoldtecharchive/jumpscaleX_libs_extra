@@ -396,7 +396,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                             schedule_q.put((growth, token_price, cloudunits_price_range,overwrite))
         elif one:
             growth=1000000
-            token_price=0.15
+            token_price="auto"
             cloudunits_price_range = 2
             self.calc(growth, token_price, cloudunits_price_range,overwrite=overwrite)
         else:

@@ -535,6 +535,7 @@ class NodesBatch(SimulatorBase):
 
         - TFT Price at end of period: {fi(tftprice)}
         - This is the result of the simulation (price can be fixed set by you, or auto calculated based on valuation of grid).
+        - For more info how we calculate valuation and TFT token price see [tfgrid valuation](tfgrid_valuation.md).
 
         | | TFT |
         | --- | ---: |
@@ -582,7 +583,7 @@ class NodesBatch(SimulatorBase):
 
         ### revenue for one node (server) over the 5 year
         
-        This does not take TFT price increase in consideration, in other words revenuen is result of nr of TFT income for the farmer times the token price at that time.
+        This does not take TFT price increase in consideration, in other words revenue is result of nr of TFT income for the farmer times the token price at that time.
         If the TFT raises seriously in price then this revenue estimate is way too low.
         
         | | USD |
