@@ -316,7 +316,6 @@ class Environment(DeviceEnvBase):
         bom_calc(environment=self)
         assert self.params.cost_power_kwh > 0
         assert self.params.months_writeoff > 20
-        assert self.layout.nr_devices_overhead > 0
         assert self.layout.nr_devices_production > 0
         self._calcdone = False
 

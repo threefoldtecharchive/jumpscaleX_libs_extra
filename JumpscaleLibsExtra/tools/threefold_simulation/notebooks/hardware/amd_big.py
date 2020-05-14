@@ -8,5 +8,5 @@ def bom_calc(environment):
     environment.bom = bom_populate(environment.bom)
 
     # an environment to simulate the overhead per node (eg. 1 switch per node)
-    environment.device_node_add("compute", template="server", nr=20)
+    environment.device_node_add("compute", template="amd_big", nr=20)
     environment.device_overhead_add("switch", template="switch", nr=2)

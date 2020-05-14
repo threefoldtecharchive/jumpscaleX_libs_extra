@@ -256,13 +256,15 @@ class TFGridSimulator(SimulatorBase):
 
     def tft_price_get(self, month=None):
         config = j.tools.tfgrid_simulator.simulator_config
-        if month > 12 and config.tft_pricing_type == "auto":
+        if month>6 and config.tft_pricing_type == "auto":
             if month == 0:
                 month2 = 1
             else:
                 month2 = month
             tft_baseline = self.sheet.rows.tokenprice.cells[month]
             grid_valuation = self.grid_valuation(month=month)
+            if grid_valuation<150000000:
+                grid_valuation=150000000
             nrtokens = self.sheet.rows.tft_farmed_cumul.cells[month2 - 1]
             tft_index_price = grid_valuation / nrtokens
             if tft_index_price < tft_baseline:
@@ -513,22 +515,22 @@ class TFGridSimulator(SimulatorBase):
         - [default node details](device_normalized.md)
         - [bill of material used, hardware components](bom.md)
 
-        ### Token Growth 
+        ### Simulated TFT Token Price Evolution         
 
-        Simulated price index of the tokens in relation to the simulator (please note this does not predict any token price, its just a simulation)
-        For more info how we calculate valuation and TFT token price see [tfgrid valuation](tfgrid_valuation.md).
+        ![]({self.graph_token_price_png(path=path)})
+        
+        - TFT price can be given by you (see arguments) or automatically calculated.
+        - For more info how we calculate valuation and TFT token price see [tfgrid valuation](tfgrid_valuation.md).
 
         > disclaimer: the TFT is not an investment instrument.
 
-        ![]({self.graph_token_price_png(path=path)})
-        TFT price can be given by you (see arguments) or automatically calculated.
-
         ![]({tft_marketcap})
+
         What is the calculated marketcap of the TFT over 60 months?
         
         ### TFT movements
 
-        Over 120 months, how do TFT get
+        TFT's get farmed, cultivated or sold.
 
         - farmed: means mined because farmers connect hardware to the grid
         - cultivated: means people buying capacity from the farmers
@@ -542,6 +544,7 @@ class TFGridSimulator(SimulatorBase):
         Over 60 months which is the time window we look at
 
         ![]({tft_gr_60_b})        
+
         - Over 60 months cumulated which means we sum the previous months (so the total with previous months in)
         - The income is higher than the total farmed because has cultivated TFT inside.
         - The max nr of farmed is 4 Billion
@@ -716,6 +719,7 @@ class TFGridSimulator(SimulatorBase):
         a.nrtft = self.tft_total(month)
         a.valuations = self._valuations_get()
         a.valuation = self.valuation_get(useconfig=True)
+        a.month = month
 
         a.token_price_png_path = self.graph_token_price_png(path=path)
         a.path = path
@@ -725,6 +729,7 @@ class TFGridSimulator(SimulatorBase):
         else:
             dest = f"{path}/tfgrid_valuation_{month}.md"
 
+        print (dest)
         j.tools.jinja2.template_render(path=f"{self._dirpath}/templates/gridvaluation.md",trim_blocks=True,
                                        dest=dest, a=a, simulator=self)
 
@@ -789,7 +794,7 @@ class TFGridSimulator(SimulatorBase):
 
     def nodesbatch_simulate(self, month=1, hardware_config_name=None, environment=None, nrnodes=None):
         if hardware_config_name:
-            environment = j.tools.tfgrid_simulator.environment_get(hardware_config_name)
+            environment = j.tools.tfgrid_simulator.environment_get(self.config,hardware_config_name)
         if not environment:
             environment = self.environment
         name = f"nodesbatch_simulate_{environment.name}_{month}"
