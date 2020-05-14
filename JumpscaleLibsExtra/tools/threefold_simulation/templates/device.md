@@ -17,7 +17,7 @@ Is the normalized node (device) as used in the simulation.
 - compute capacity in nr of logical cores = {{data.production.cru}}
 - memory capacity in nr of GB = {{data.production.mru}}
 - if expressed in cloud units: compute units (cu): {{data.production.cu|round}}
-- percent production is compute: {{data.production.cu_perc*100|round(2)}}%
+- percent production is compute: {{data.production.cu_perc*100|round}}%
 - the performance of 1 compute unit (CU) expressed in passmark: {{data.production.cu_passmark}}
 
 ### storage
@@ -25,7 +25,7 @@ Is the normalized node (device) as used in the simulation.
 - storage capacity in TB HD capacity =  {{data.production.hru/1000}}
 - storage capacity in GB SSD capacity =  {{data.production.sru}}
 - if expressed in cloud units: storage units (su): {{data.production.su|round}}
-- percent production is storage:{{data.production.su_perc*100|round(2)}}%
+- percent production is storage:{{data.production.su_perc*100|round}}%
 
 ### network
     

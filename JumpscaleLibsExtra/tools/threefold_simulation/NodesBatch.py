@@ -525,6 +525,9 @@ class NodesBatch(SimulatorBase):
 
         # self.rows.tft_farmer_income_usd
 
+        j.shell()
+        w
+
         C = f"""
 
         ## Farming report for nodes added in month: {self.month_start}
@@ -532,6 +535,9 @@ class NodesBatch(SimulatorBase):
         ![](https://wiki.threefold.io/img/partners_intro.png)
 
         ### TFT income for one node
+
+        > name of the node (server environment): {self.environment.name}<BR>
+        > return on investment for this node: {fi(roi_end)}
 
         - TFT Price at end of period: {fi(tftprice)}
         - This is the result of the simulation (price can be fixed set by you, or auto calculated based on valuation of grid).

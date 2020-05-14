@@ -112,7 +112,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                 growth = config.node_growth
 
             assert isinstance(growth,int)
-            if not growth in [50000,100000,200000,600000,1000000,2000000,4000000,10000000,20000000]:
+            if not growth in [50000,100000,200000,600000,1000000,2000000,10000000,20000000]:
                 raise j.exceptions.Input(f"growth needs to be in: 50000,100000,200000,600000,1000000,2000000,4000000,10000000,20000000, now {growth}")
 
             if growth == 50000:
@@ -358,6 +358,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
         kosmos 'j.tools.tfgrid_simulator.markdown_export(debug=True)'
         kosmos 'j.tools.tfgrid_simulator.markdown_export(one=True)'
         kosmos 'j.tools.tfgrid_simulator.markdown_export(all=True,debug=True,overwrite=True)'
+        kosmos 'j.tools.tfgrid_simulator.markdown_export(overwrite=True)'
         """
         if one:
             overwrite=True
@@ -404,9 +405,9 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
                                 schedule_q.put((growth, token_price, cloudunits_price_range,hw,overwrite))
         elif one:
             # hw="amd_starter"
-            # hw = "amd_big"
-            growth=50000
-            hw="hpe_ml110_8"
+            hw = "amd_big"
+            growth=1000000
+            # hw="hpe_ml110_8"
             token_price="auto"
             # token_price = 3
             cloudunits_price_range = 2
@@ -415,7 +416,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             for hw in ["amd_starter", "amd_big"]:
                 for growth in [100000,1000000]:
                     for token_price in ["auto",0.15,0.3,3]:
-                        for cloudunits_price_range in [2]:
+                        for cloudunits_price_range in [3]:
                             if debug:
                                 self.calc(growth, token_price, cloudunits_price_range,hw=hw,overwrite=overwrite)
                             else:
