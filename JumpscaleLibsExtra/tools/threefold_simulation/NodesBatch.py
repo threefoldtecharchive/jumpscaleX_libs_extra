@@ -525,9 +525,6 @@ class NodesBatch(SimulatorBase):
 
         # self.rows.tft_farmer_income_usd
 
-        j.shell()
-        w
-
         C = f"""
 
         ## Farming report for nodes added in month: {self.month_start}
