@@ -414,7 +414,7 @@ class TFGridSimulatorFactory(j.baseclasses.testtools, j.baseclasses.object):
             self.calc(growth, token_price, cloudunits_price_range,hw=hw,overwrite=overwrite)
         else:
             for hw in ["amd_starter", "amd_big"]:
-                for growth in [100000,1000000]:
+                for growth in [50000, 200000,1000000]:
                     for token_price in ["auto",0.15,0.3,3]:
                         for cloudunits_price_range in [3]:
                             if debug:

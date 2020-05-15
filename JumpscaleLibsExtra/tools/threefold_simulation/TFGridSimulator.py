@@ -75,11 +75,10 @@ class TFGridSimulator(SimulatorBase):
         j.sal.fs.writeFile(f"{path}/_navbar.md", "!!!include:wiki:simulator_navbar\n")
         j.sal.fs.writeFile(f"{path}/simulator_configure.md", "!!!include:wiki:simulator_configure\n")
 
-        DIR_HOME = j.core.myenv.config['DIR_HOME']
-        path22 = f'{DIR_HOME}/tfweb/github/threefoldfoundation/info_threefold/src/simulator/simulator_configure_webix.html'
+        DIR_TMP = j.core.myenv.config['DIR_TEMP']
+        path22 = f'{DIR_TMP}/simulator_configure_webix.html'
         if not j.sal.fs.exists(path22):
-            path22 = '/sandbox/myhost/tfsimulator/info_threefold/src/simulator/simulator_configure_webix.html'
-
+            j.clients.http.download("https://raw.githubusercontent.com/threefoldfoundation/info_threefold/development/src/simulator/simulator_configure_webix.html",path22)
         j.sal.fs.copyFile(path22, f"{path}/simulator_configure_webix.html")
 
 
@@ -256,7 +255,7 @@ class TFGridSimulator(SimulatorBase):
 
     def tft_price_get(self, month=None):
         config = j.tools.tfgrid_simulator.simulator_config
-        if month>6 and config.tft_pricing_type == "auto":
+        if month>0 and config.tft_pricing_type == "auto":
             if month == 0:
                 month2 = 1
             else:
