@@ -54,15 +54,6 @@ def bom_populate(bom):
         passmark=17601,
     )
     
-   # bom.components.new(
-        name="intel3",
-        description="Intel Xeon-Silver 4216 (2.1GHz/16-core/100W) (32 logical cores)",
-        cost=1041,
-        cru=16,
-        power=100,
-        cu_perc=100,
-        passmark=20656,
-    )
 
     bom.components.new(name="ssd1", description="Intel D1 P4101 256GB NVMe PCIe 3.0 x4 M.2 22x80mm  0.5DWPD", cost=82, sru=256, power=10, su_perc=100)
     
