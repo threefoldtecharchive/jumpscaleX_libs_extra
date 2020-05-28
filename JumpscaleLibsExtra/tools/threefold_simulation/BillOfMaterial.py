@@ -73,6 +73,13 @@ class BillOfMaterial(SimulatorBase):
     #     return d
 
 
+    def markdown_get(self,path):
+        json_txt=self._data._json
+        j.sal.fs.writeFile(f"{path}/bom.json", json_txt)
+        data = self._data._ddict
+        j.tools.jinja2.template_render(path=f"{self._dirpath}/templates/bom.md",dest=f"{path}/bom.md",data=self._data,trim_blocks=True)
+
+
 class Component(j.baseclasses.object):
     def _init(self, **kwargs):
         self.nr = kwargs["nr"]
@@ -117,7 +124,7 @@ class DeviceEnvBase(SimulatorBase):
 
         #aggregation over all devices in env (nodes + overhead)
         @url = threefold.simulation.bom.total
-        cost_hardware = 0 (I)
+        cost_hardware = 0 (N)
         power = 0 (I)
         power_kwh_month = 0 (I)
         rackspace_u = 0 (F)
@@ -174,6 +181,17 @@ class DeviceEnvBase(SimulatorBase):
             setattr(self.total, propname, 0.0)
         for propname in costunits_names:
             setattr(self.costunits, propname, 0.0)
+
+    def markdown_get(self,path,name=None):
+        json_txt=self._data._json
+        if not name:
+            name=self.name
+        if name.startswith("device_"):
+            name=name[7:]
+        j.sal.fs.writeFile(f"{path}/device_{name}.json", json_txt)
+        data = self._data._ddict
+        j.tools.jinja2.template_render(path=f"{self._dirpath}/templates/device.md",dest=f"{path}/device_{name}.md",data=self._data,trim_blocks=True)
+
 
     @property
     def nodes_all_count(self):
@@ -298,7 +316,6 @@ class Environment(DeviceEnvBase):
         bom_calc(environment=self)
         assert self.params.cost_power_kwh > 0
         assert self.params.months_writeoff > 20
-        assert self.layout.nr_devices_overhead > 0
         assert self.layout.nr_devices_production > 0
         self._calcdone = False
 
@@ -429,3 +446,10 @@ class Environment(DeviceEnvBase):
         self.node_normalized = device
 
         self._calcdone = True
+
+    def markdown_env_detail_get(self,path):
+        self.markdown_node_detail_get(path=path)
+        #now report on the environment TODO:
+
+    def markdown_node_detail_get(self,path,name=None):
+        self.node_normalized.markdown_get(path=path,name="normalized")

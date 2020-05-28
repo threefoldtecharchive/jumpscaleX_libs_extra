@@ -10,7 +10,7 @@ class SimulatorConfig(j.baseclasses.object_config_redis):
         node_growth = 1000000 (I)
         cloudunits_price_range = 0 (I)
         startmonth = 1 (I)
-        hardwareconfig = "A_dc_rack"
+        hardwareconfig = "amd_big"
         
 
         pricing = (O) !threefold.simulation.pricing        
@@ -27,8 +27,8 @@ class SimulatorConfig(j.baseclasses.object_config_redis):
         nu_multiplier_from_su = 40 (I)        
 
         @url = threefold.simulation.pricing
-        price_cu = 10 (F)
-        price_su = 8 (F)
+        price_cu = 15 (F)
+        price_su = 10 (F)
         price_nu = 0.05 (F)
         
         @url = threefold.simulation.cloudvaluation.config
@@ -37,9 +37,9 @@ class SimulatorConfig(j.baseclasses.object_config_redis):
         price_nu = 0.05 (F)
         revenue_months = 30 (I)
         margin_months = 60 (I)
-        indextype = "revenue,margin" (E)
+        indextype = "margin,revenue" (E)
         #is the price the token would achieve over 5 years as baseline
-        tft_price_5y_baseline = 4 (I)      
+        tft_price_5y_baseline = 0.3 (F)      
         
 
         """
