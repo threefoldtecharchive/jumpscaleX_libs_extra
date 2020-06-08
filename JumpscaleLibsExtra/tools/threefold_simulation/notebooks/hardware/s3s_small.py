@@ -7,5 +7,3 @@ def bom_calc(environment):
 
     environment.bom = bom_populate(environment.bom)
 
-    # sn1
-    environment.device_node_add("compute", template="sn1", nr=1)
