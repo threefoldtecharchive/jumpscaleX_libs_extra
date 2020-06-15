@@ -486,6 +486,78 @@ class NodesBatch(SimulatorBase):
         
         """
         return j.core.tools.text_strip(C)
+ 
+    def text_profit_loss(self, month):
+
+        tft_farmed = self.rows.tft_farmed.cells[month]
+        tft_farmed_usd = self.rows.tft_farmed_usd.cells[month]
+        tft_farmer_income = self.rows.tft_farmer_income.cells[month]
+        tft_farmer_income_usd = self.rows.tft_farmer_income_usd.cells[month]
+        tft_farmer_income_cumul = self.rows.tft_farmer_income_cumul.cells[month]
+        tft_farmer_income_cumul_usd = self.rows.tft_farmer_income_cumul_usd.cells[month]
+        tft_farmer_income_usd = self.rows.tft_farmer_income_usd.cells[month]
+        tft_cultivated = self.rows.tft_cultivated.cells[month]
+        tft_cultivated_usd = self.rows.tft_cultivated_usd.cells[month]
+        rev_compute = self.rows.rev_compute.cells[month]
+        rev_storage = self.rows.rev_storage.cells[month]
+        rev_network = self.rows.rev_network.cells[month]
+        rev_compute_max = self.rows.rev_compute_max.cells[month]
+        rev_storage_max = self.rows.rev_storage_max.cells[month]
+        rev_network_max = self.rows.rev_network_max.cells[month]
+        rev_total = self.rows.rev_total.cells[month]
+        rev_total_max = self.rows.rev_total_max.cells[month]
+        cost_rackspace = self.rows.cost_rackspace.cells[month]
+        cost_maintenance = self.rows.cost_maintenance.cells[month]
+        cost_hardware = self.rows.cost_hardware.cells[month]
+        cost_network = self.rows.cost_network.cells[month]
+        cost_power = self.rows.cost_power.cells[month]
+        cost_total = self.rows.cost_total.cells[month]
+        tft_price = self.rows.tft_price.cells[month]
+        tft_sold = self.rows.tft_sold.cells[month]
+        tft_sold_usd = self.rows.tft_sold_usd.cells[month]
+        roi = self.rows.roi.cells[month]
+#        cu = self.rows.cu.cells[month]
+#        su = self.rows.su.cells[month]
+#        nu = self.rows.nu.cells[month]
+#        cu_price = self.rows.cu_price.cells[month]
+#        su_price = self.rows.su_price.cells[month]
+#        nu_price = self.rows.nu_price.cells[month]
+
+        print(tft_farmed,",",
+            tft_farmed_usd,",",
+            tft_farmer_income,",",
+            tft_farmer_income_usd,",",
+            tft_farmer_income_cumul,",",
+            tft_farmer_income_cumul_usd,",",
+            tft_farmer_income_usd,",",
+            tft_cultivated,",",
+            tft_cultivated_usd,",",
+            rev_compute,",",
+            rev_storage,",",
+            rev_network,",",
+            rev_compute_max,",",
+            rev_storage_max,",",
+            rev_network_max,",",
+            rev_total,",",
+            rev_total_max,",",
+            cost_rackspace,",",
+            cost_maintenance,",",
+            cost_hardware,",",
+            cost_network,",",
+            cost_power, ",",
+            cost_total,",",
+            tft_price,",",
+            tft_sold,",",
+            tft_sold_usd,",",
+            roi)
+#            cu,",",
+#            su,",",
+#            nu,",",
+#            cu_price,",",
+#            su_price,",",
+#            nu_price)
+
+        return 1
 
     def markdown_report(self,path):
         graph_usd_png_loc=self.graph_usd_png(path=path, singlenode=True)
