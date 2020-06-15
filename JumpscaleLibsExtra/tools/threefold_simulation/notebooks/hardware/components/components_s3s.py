@@ -115,7 +115,7 @@ def bom_populate(bom):
     d.components.new(name="amd2", nr=1)
     d.components.new(name="hd4", nr=2)
     d.components.new(name="mem64_ecc", nr=1)
-    d.components.new(name="ssd2", nr=1)
+    d.components.new(name="ssd1", nr=1)
      
     d = bom.devices.new(name="switch_48")
     d.components.new(name="ng2", nr=1)
