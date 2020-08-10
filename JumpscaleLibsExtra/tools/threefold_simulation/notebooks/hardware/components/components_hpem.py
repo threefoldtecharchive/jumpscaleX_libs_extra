@@ -111,6 +111,7 @@ def bom_populate(bom):
     d.components.new(name="hd4", nr=3)
     d.components.new(name="mem16_ecc", nr=1)
     d.components.new(name="ssd240", nr=1)
+    d.components.new(name="margin", nr=2)
     #d.components.new(name="sas_contr", nr=1)
     #d.components.new(name="power_supply", nr=1)
     #d.components.new(name="sas_cable", nr=1)
