@@ -18,6 +18,6 @@ def bom_calc(environment):
     # environment.device_node_add("storage", storage, 5)
     # environment.device_overhead_add("switch", switch, 2)
 
-    environment.device_node_add("compute", template="hpe_compute_server", nr=1)
-    environment.device_node_add("storage", template="hpe_storage_server", nr=1)
+    environment.device_node_add("compute", template="hpe_compute_server", nr=2)
+    environment.device_node_add("storage", template="hpe_storage_server", nr=2)
     environment.device_overhead_add("switch", template="switch_48", nr=2)
