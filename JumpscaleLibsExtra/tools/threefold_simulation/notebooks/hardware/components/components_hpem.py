@@ -2,13 +2,13 @@ def bom_populate(bom):
     
     bom.components.new(
         name="s0",
-        description="HPE ProLiant MicroServer Gen10 Plus E-2224 4-core 1P 16GB-U S100i 4LFF-NHP 180W External PS Server",
-        cost=378,
+        description="HPE ProLiant MicroServer Gen10 Plus E-2224 + Smart Array + SATA converter", 
+        cost=(699.11+174.78+7.89+33.67),
         rackspace_u=1,  # Rackspace unit set to 0 to mimic the perk to the tennant that needs to be included in the modeling
         cru=0,
         sru=0,
         hru=0,
-        mru=0,
+        mru=16,
         su_perc=50,
         cu_perc=50,
         power=150,
@@ -43,12 +43,15 @@ def bom_populate(bom):
     )
 
     bom.components.new(name="margin", description="margin per node for threefold and its partners", power=0, cost=500)
+    
+    bom.components.new(name="license", description="HPE iLO Advanced 1-server License with 3yr Support on iLO Licensed Features", power=0, cost=260.44
+    )
 
     bom.components.new(
         name="hd12", description="HPE 12TB SATA 6G Midline 7.2K LFF (6-8 watt)", cost=350, hru=12000, power=10, su_perc=100
     )
     bom.components.new(
-        name="hd4", description="HPE 4TB SATA 6G Midline 7.2K LFF (3.5in) RW 1yr Wty", cost=200, hru=4000, power=10, su_perc=100
+        name="hd4", description="HPE 4TB SATA 6G Midline 7.2K LFF (3.5in) RW 1yr Wty", cost=180.56, hru=4000, power=10, su_perc=100
     )
     
     bom.components.new(
@@ -81,10 +84,10 @@ def bom_populate(bom):
         passmark=20656,
     )
 
-    bom.components.new(name="ssd240", description="240 GB HPE SSD", cost=120, sru=240, power=10, su_perc=100)
+    bom.components.new(name="ssd240", description="240 GB HPE SSD", cost=200.33, sru=240, power=10, su_perc=100)
     bom.components.new(name="ssd1", description="960 GB HPE SSD", cost=180, sru=1920, power=10, su_perc=100)
     
-    bom.components.new(name="mem16_ecc", description="mem 16", cost=98, mru=16, power=8, cu_perc=100)
+    bom.components.new(name="mem16_ecc", description="mem 16", cost=144.78, mru=16, power=8, cu_perc=100)
     
     bom.components.new(name="mem32_ecc", description="mem 32", cost=220, mru=32, power=8, cu_perc=100)
     
@@ -111,7 +114,8 @@ def bom_populate(bom):
     d.components.new(name="hd4", nr=3)
     d.components.new(name="mem16_ecc", nr=1)
     d.components.new(name="ssd240", nr=1)
-    d.components.new(name="margin", nr=2)
+    d.components.new(name="license", nr=1)
+    d.components.new(name="margin", nr=1)
     #d.components.new(name="sas_contr", nr=1)
     #d.components.new(name="power_supply", nr=1)
     #d.components.new(name="sas_cable", nr=1)

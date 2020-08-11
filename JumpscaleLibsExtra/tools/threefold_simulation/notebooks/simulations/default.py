@@ -4,6 +4,9 @@ from Jumpscale import j
 
 def simulation_calc(simulation, environment):
 
+    ########################################################
+    # Use this section to model the reimbursement / perk for the tennants that will provide care and housing for the micrososerver.
+    ########################################################
     # costs for environment
     # is the cost of 1 kwh
     environment.params.cost_power_kwh = "0.15 USD"
@@ -16,6 +19,7 @@ def simulation_calc(simulation, environment):
     # in bulk prices can be +10 times more cost effective
     environment.params.cost_mbitsec_month = "2 USD"
 
+    ###########################################################
     # how much does it cost to maintain the environment (people hands on in percent of the hardware monthly cost)
     environment.params.cost_maintenance_percent_of_hw = 10
 
