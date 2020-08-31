@@ -254,6 +254,11 @@ class Device(DeviceEnvBase):
             su_weight += float(c.cost * c2.nr * c.su_perc)
             cu_weight += float(c.cost * c2.nr * c.cu_perc)
             self.components[component.name] = c2
+
+        #these are suggested farming rules for end 2020, aim is that the cost of acquiring reflects generation of SU
+        #aug 2020, a SSD is roughly 5x more expensive as a HDD, hence sru / 200 in stead of original / 100
+        #we don't change in farming (minting) code because this can only be suggested once a year
+        #to have it already in simulator is the most prudent thing to do
         self.production.su = self.production.hru / 1000 / 1.2 + self.production.sru / 100 / 2 / 1.2
         self.production.cu = min((self.production.mru - 1) / 4, self.production.cru * 2)
         self.production.cu_passmark = passmark / self.production.cu
